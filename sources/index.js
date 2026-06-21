@@ -1,4 +1,5 @@
 import { AmadeusAdapter } from './AmadeusAdapter.js';
+import { TravelpayoutsAdapter } from './travelpayouts.js';
 
 /**
  * SourceRegistry — implements the Strategy Pattern at the registry level.
@@ -51,8 +52,18 @@ export function initializeSources(env = process.env) {
     sourceRegistry.registerSource(amadeus);
   }
 
+  const travelpayouts = new TravelpayoutsAdapter({
+    apiToken: env.TRAVELPAYOUTS_API_TOKEN,
+    marker: env.TRAVELPAYOUTS_MARKER,
+  });
+
+  if (travelpayouts.isConfigured()) {
+    sourceRegistry.registerSource(travelpayouts);
+  }
+
   return sourceRegistry;
 }
 
 export { FlightSourceInterface } from './FlightSourceInterface.js';
 export { AmadeusAdapter } from './AmadeusAdapter.js';
+export { TravelpayoutsAdapter } from './travelpayouts.js';
