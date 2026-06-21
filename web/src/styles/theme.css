@@ -26,6 +26,15 @@
   /* Status */
   --color-discount-badge: #ff5d73;
 
+  /* Heatmap hero — deep night-blue, almost black, per spec */
+  --color-heatmap-bg: #0a0e1a;
+  --color-heatmap-bg-gradient: radial-gradient(120% 100% at 50% 0%, #0d1326 0%, #0a0e1a 60%, #07090f 100%);
+
+  /* Deal heat tiers — yellow (mild) -> orange (hot) -> red (blazing) */
+  --color-heat-mild: #facc15;
+  --color-heat-hot: #fb923c;
+  --color-heat-blazing: #ef4444;
+
   /* Typography */
   --font-latin: 'Outfit', 'Inter', system-ui, sans-serif;
   --font-hebrew: 'Noto Sans Hebrew', 'Outfit', system-ui, sans-serif;

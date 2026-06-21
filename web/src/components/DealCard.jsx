@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { useCountUp } from '../hooks/useCountUp.js';
+import { getDiscountPercent } from '../utils/dealHeat.js';
 import { RiskGauge } from './RiskGauge.jsx';
 
 /** הופך מחרוזת מסלול לגוון צבע יציב, כדי שלכל מסלול יהיה placeholder גרדיאנט עקבי */
@@ -21,13 +22,11 @@ export function DealCard({ deal }) {
   const { t } = useLanguage();
   const animatedPrice = useCountUp(Math.round(deal.price));
   const hue = hueFromRoute(`${deal.origin}${deal.destination}`);
-  const discountPercent = Math.max(
-    0,
-    Math.round(((deal.movingAverage - deal.price) / deal.movingAverage) * 100)
-  );
+  const discountPercent = getDiscountPercent(deal);
 
   return (
     <motion.article
+      id={`deal-${deal.id}`}
       className="deal-card"
       variants={cardVariants}
       whileHover={{ scale: 1.025 }}

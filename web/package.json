@@ -11,10 +11,15 @@
   "dependencies": {
     "framer-motion": "^11.11.17",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "react-simple-maps": "^3.0.0",
+    "world-atlas": "^2.0.2"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
     "vite": "^5.4.11"
+  },
+  "overrides": {
+    "d3-color": "^3.1.0"
   }
 }
