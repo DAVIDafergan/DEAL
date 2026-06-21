@@ -40,6 +40,18 @@ npm run web:dev     # Frontend (טרמינל נפרד)
 
 הדרישה היחידה: **Node.js 18+**.
 
+### פריסה ל-Production (Railway וכו')
+
+זה אפליקציה אחת שמגישה גם API וגם frontend מאותו שרת Express — אין צורך בשני שירותים נפרדים.
+
+- `npm run build` (בשורש הפרויקט) מתקין ובונה את ה-frontend לתוך `web/dist`.
+- `npm start` מריץ את שרת ה-Express, שמגיש את `/api/*` כ-JSON, ואת כל שאר הנתיבים (כולל `/`)
+  כ-frontend הסטטי מ-`web/dist` עם SPA fallback ל-`index.html`.
+- ב-Railway: הגדירו את **Build Command** ל-`npm run build` ואת **Start Command** ל-`npm start`
+  (או הסתמכו על Nixpacks שמזהה את שני ה-scripts האלה אוטומטית מ-`package.json`).
+- אם `web/dist` לא קיים (למשל סביבת dev לפני build), השרת לא קורס — הוא פשוט לא מגיש frontend
+  סטטי, ומחזיר 404 JSON רגיל על נתיבים שאינם `/api/*`.
+
 ## מפתחות API נדרשים (כולם מתועדים ב-.env.example)
 
 | משתנה | למה צריך | היכן להשיג |

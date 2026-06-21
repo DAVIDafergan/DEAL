@@ -1,8 +1,16 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'node:path';
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import dealsRouter from './routes/deals.js';
 import personalRadarRouter from './routes/personalRadar.js';
 import statsRouter from './routes/stats.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// תיקיית ה-build הסטטי של ה-frontend (נוצרת על ידי `npm run build` בתיקיית web)
+const WEB_DIST_DIR = path.join(__dirname, '..', 'web', 'dist');
+const WEB_INDEX_HTML = path.join(WEB_DIST_DIR, 'index.html');
 
 export function createApp() {
   const app = express();
@@ -15,6 +23,23 @@ export function createApp() {
   app.use('/api/deals', dealsRouter);
   app.use('/api/personal-radar', personalRadarRouter);
   app.use('/api/stats', statsRouter);
+
+  // נתיב /api/* שלא תאם שום router — תמיד JSON, לעולם לא index.html
+  app.use('/api', (_req, res) => {
+    res.status(404).json({ error: 'Not found' });
+  });
+
+  // הגשת ה-frontend הבנוי (web/dist) — רק אם ה-build קיים, כדי לא לקרוס בסביבת dev
+  // לפני שהורצה `npm run build`. ב-production (Railway) ה-build script דואג שזה יקרה.
+  if (fs.existsSync(WEB_INDEX_HTML)) {
+    app.use(express.static(WEB_DIST_DIR));
+
+    // SPA fallback: כל נתיב GET שלא תאם קובץ סטטי (למשל ניווט פנימי בריאקט) מקבל index.html
+    app.use((req, res, next) => {
+      if (req.method !== 'GET') return next();
+      res.sendFile(WEB_INDEX_HTML);
+    });
+  }
 
   app.use((_req, res) => {
     res.status(404).json({ error: 'Not found' });

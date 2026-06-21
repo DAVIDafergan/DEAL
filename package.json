@@ -6,10 +6,14 @@
   "description": "Flight & hotel deal-anomaly hunter — official APIs only, AI-written multilingual narratives, multi-channel distribution.",
   "main": "server/index.js",
   "scripts": {
+    "build": "npm install --prefix web && npm run build --prefix web",
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",
     "web:dev": "npm --prefix web run dev",
     "web:build": "npm --prefix web run build"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
