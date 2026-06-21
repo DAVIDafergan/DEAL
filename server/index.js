@@ -3,6 +3,7 @@ import { createApp } from './app.js';
 import { initializeSources } from '../sources/index.js';
 import { initializeDistribution } from '../distribution/index.js';
 import { DealPipeline } from './services/dealPipeline.js';
+import { connectWithRetry } from '../core/db/index.js';
 
 const PORT = process.env.PORT || 3001;
 
@@ -40,6 +41,15 @@ function parseWatchedRoutes(env = process.env) {
 
 async function main() {
   const app = createApp();
+
+  // מתחבר ל-MySQL ברקע, עם retry+backoff — בכוונה לא חוסם את app.listen() למטה.
+  // כך השרת עולה ומגיש /health ו-/api גם אם ה-DB עוד לא מוכן (למשל מכל MySQL שעדיין מתאתחל
+  // בעלייה הראשונה ב-Railway); כל שאילתה בודדת מטופלת בנפרד ומחזירה fallback בטוח אם נכשלת.
+  // Connects to MySQL in the background with retry+backoff — deliberately NOT awaited before
+  // app.listen() below, so the HTTP server stays up even while the DB is still warming up.
+  connectWithRetry().catch((err) => {
+    console.error('[deal-radar-pro] Giving up on MySQL connection:', err.message);
+  });
 
   const sourceRegistry = initializeSources();
   const distributionManager = initializeDistribution();

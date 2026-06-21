@@ -67,10 +67,22 @@ button {
   padding: 18px 20px;
 }
 
-.brand {
+.brand-block {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo__wordmark {
   font-weight: 800;
-  font-size: 1.25rem;
-  letter-spacing: -0.01em;
+  font-size: 1.2rem;
+  letter-spacing: 0.02em;
   background: var(--gradient-accent);
   -webkit-background-clip: text;
   background-clip: text;
@@ -78,11 +90,19 @@ button {
 }
 
 .brand-sub {
-  display: block;
+  display: none;
   font-size: 0.7rem;
   font-weight: 500;
   color: var(--color-text-muted);
   letter-spacing: 0.04em;
+  padding-inline-start: 10px;
+  border-inline-start: 1px solid var(--color-border-subtle);
+}
+
+@media (min-width: 560px) {
+  .brand-sub {
+    display: block;
+  }
 }
 
 /* ---------- language switcher ---------- */
@@ -393,6 +413,18 @@ button {
   font-weight: 700;
 }
 
+.deals-feed__live-tag {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 999px;
+  padding: 2px 8px;
+  flex-shrink: 0;
+}
+
 .deals-feed__empty {
   font-size: 0.82rem;
   color: var(--color-text-muted);
@@ -468,7 +500,7 @@ button {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 1px solid rgba(142, 123, 255, 0.4);
+  border: 1px solid rgba(249, 115, 22, 0.4);
   animation: radar-ping 2.6s ease-out infinite;
 }
 
@@ -495,7 +527,7 @@ button {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: conic-gradient(from 0deg, rgba(142, 123, 255, 0.35), transparent 35%);
+  background: conic-gradient(from 0deg, rgba(249, 115, 22, 0.35), transparent 35%);
   animation: radar-spin 3.2s linear infinite;
 }
 
@@ -579,13 +611,28 @@ button {
   margin-top: 4px;
 }
 
-/* ---------- deals grid ---------- */
+/* ---------- deals grid (mobile-first: 1 column, then progressively widen) ---------- */
 
 .deals-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
-  gap: 22px;
-  padding-bottom: 64px;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  padding-bottom: 48px;
+}
+
+@media (min-width: 560px) {
+  .deals-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+}
+
+@media (min-width: 960px) {
+  .deals-grid {
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 22px;
+    padding-bottom: 64px;
+  }
 }
 
 /* ---------- deal card ---------- */
@@ -617,14 +664,23 @@ button {
   position: absolute;
   top: 14px;
   inset-inline-start: 14px;
-  background: var(--color-discount-badge);
   color: #fff;
   font-size: 0.74rem;
   font-weight: 700;
   padding: 5px 10px;
   border-radius: 999px;
   z-index: 2;
+}
+
+.deal-card__badge--hot {
+  background: var(--color-discount-badge);
   animation: badge-pulse 2.4s ease-in-out infinite;
+}
+
+.deal-card__badge--calm {
+  background: rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.22);
 }
 
 .deal-card__route {
@@ -679,6 +735,45 @@ button {
   font-size: 0.8rem;
   color: var(--color-text-muted);
   text-decoration: line-through;
+}
+
+.deal-card__updated .updated-ago {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+/* ---------- deal card actions (mobile-first: big, thumb-friendly, full-width) ---------- */
+
+.deal-card__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.deal-card__action {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: center;
+}
+
+.deal-card__action--share {
+  background: var(--color-surface-elevated);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+}
+
+.deal-card__action--buy {
+  background: var(--gradient-accent);
+  color: #fff;
+  box-shadow: 0 8px 20px -8px rgba(239, 68, 68, 0.55);
 }
 
 /* ---------- risk gauge ---------- */

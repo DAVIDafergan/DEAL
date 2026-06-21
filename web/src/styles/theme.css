@@ -12,9 +12,9 @@
   --color-text-secondary: #9ba0b4;
   --color-text-muted: #6b7086;
 
-  /* Brand accent — indigo to violet gradient, premium feel without being garish */
-  --color-accent-from: #6c5ce7;
-  --color-accent-to: #8e7bff;
+  /* Brand accent — burning orange-to-red, echoes the deal "heat" concept across the whole site */
+  --color-accent-from: #f97316;
+  --color-accent-to: #ef4444;
   --gradient-accent: linear-gradient(135deg, var(--color-accent-from), var(--color-accent-to));
   --gradient-card: linear-gradient(160deg, #181c2e 0%, #11131d 100%);
 
@@ -44,7 +44,7 @@
   --radius-md: 16px;
   --radius-lg: 24px;
   --shadow-card: 0 8px 30px -10px rgba(0, 0, 0, 0.6);
-  --shadow-card-hover: 0 16px 40px -12px rgba(108, 92, 231, 0.35);
+  --shadow-card-hover: 0 16px 40px -12px rgba(239, 68, 68, 0.35);
 
   --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }

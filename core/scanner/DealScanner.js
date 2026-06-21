@@ -2,11 +2,14 @@ import { AnomalyEngine } from '../anomaly-engine/index.js';
 
 /**
  * DealScanner — מתאם בין שכבת המקורות (sources) למנוע האנומליות (anomaly-engine).
- * סורק רשימת מסלולים, רושם כל מחיר שמתקבל בהיסטוריה, ומפעיל callback בכל פעם שמתגלה אנומליה
- * אמיתית (כזו שעומדת בדרישת המינימום של 5 נקודות מידע היסטוריות).
+ * סורק רשימת מסלולים, רושם כל מחיר שמתקבל בהיסטוריה, ומפעיל שני סוגי callback:
+ *   - onLivePriceFound: המחיר הזול ביותר שנמצא כרגע למסלול (תמיד, גם בלי היסטוריה) —
+ *     "Best Live Prices", כדי שיהיו דילים אמיתיים להציג מהשנייה הראשונה.
+ *   - onDealDetected: אנומליה אמיתית מול היסטוריה (כזו שעומדת בדרישת המינימום של 5 נקודות
+ *     מידע היסטוריות), כפי שהיה קודם.
  *
  * Orchestrates sources -> anomaly-engine. Stays decoupled from AI/distribution/server by
- * accepting an `onDealDetected` callback instead of importing those layers directly.
+ * accepting callbacks instead of importing those layers directly.
  */
 export class DealScanner {
   /**
@@ -14,13 +17,20 @@ export class DealScanner {
    *   rate-limit של מקורות חיצוניים (למשל Travelpayouts) כשסורקים רשימת מסלולים גדולה.
    *   Delay between consecutive route scans to stay under external API rate limits.
    */
-  constructor({ sourceRegistry, anomalyEngine = new AnomalyEngine(), onDealDetected, requestDelayMs = 0 }) {
+  constructor({
+    sourceRegistry,
+    anomalyEngine = new AnomalyEngine(),
+    onDealDetected,
+    onLivePriceFound,
+    requestDelayMs = 0,
+  }) {
     if (!sourceRegistry) {
       throw new Error('DealScanner requires a sourceRegistry');
     }
     this.sourceRegistry = sourceRegistry;
     this.anomalyEngine = anomalyEngine;
     this.onDealDetected = onDealDetected || (() => {});
+    this.onLivePriceFound = onLivePriceFound || (() => {});
     this.requestDelayMs = requestDelayMs;
   }
 
@@ -42,8 +52,18 @@ export class DealScanner {
         offers = [];
       }
 
+      // "Best Live Prices": המחיר הזול ביותר שנמצא כרגע למסלול הזה, ללא תלות בהיסטוריה
+      if (offers.length > 0) {
+        const cheapestOffer = offers.reduce((min, offer) => (offer.price < min.price ? offer : min));
+        try {
+          await this.onLivePriceFound(cheapestOffer);
+        } catch (err) {
+          console.error(`[DealScanner] onLivePriceFound failed for ${origin}-${destination}:`, err.message);
+        }
+      }
+
       for (const offer of offers) {
-        const analysis = this.anomalyEngine.recordAndAnalyze({
+        const analysis = await this.anomalyEngine.recordAndAnalyze({
           origin,
           destination,
           date,

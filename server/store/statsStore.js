@@ -1,28 +1,31 @@
+import { getPool } from '../../core/db/index.js';
+
 /**
- * StatsStore — מצרף סטטיסטיקות תפעוליות בזיכרון (כמה דילים נשלחו, חיסכון ממוצע).
- * In-memory aggregate stats. Derived only from real recorded deals — never fabricated.
+ * StatsStore — סטטיסטיקות תפעוליות (כמה דילים נשלחו, חיסכון ממוצע), נשמרות בטבלת deals_sent
+ * ב-MySQL כך שלא מתאפסות ב-restart. Derived only from real recorded sends — never fabricated.
  */
-const state = {
-  dealsSent: 0,
-  totalSavingsPercent: 0, // running sum, used to compute the average
-};
 
 /** נקרא בכל פעם שדיל מופץ בהצלחה לפחות לערוץ אחד */
-export function recordDealSent({ savingsPercent }) {
-  state.dealsSent += 1;
-  state.totalSavingsPercent += savingsPercent;
+export async function recordDealSent({ savingsPercent }) {
+  try {
+    const pool = getPool();
+    await pool.query('INSERT INTO deals_sent (savings_percent, sent_at) VALUES (?, ?)', [savingsPercent, new Date()]);
+  } catch (err) {
+    console.error('[statsStore] Failed to record sent deal:', err.message);
+  }
 }
 
-export function getStats() {
-  const averageSavingsPercent = state.dealsSent === 0 ? 0 : Math.round(state.totalSavingsPercent / state.dealsSent);
-  return {
-    dealsSent: state.dealsSent,
-    averageSavingsPercent,
-  };
-}
-
-/** לשימוש בטסטים בלבד */
-export function _resetStatsStore() {
-  state.dealsSent = 0;
-  state.totalSavingsPercent = 0;
+export async function getStats() {
+  try {
+    const pool = getPool();
+    const [rows] = await pool.query('SELECT COUNT(*) AS dealsSent, AVG(savings_percent) AS avgSavings FROM deals_sent');
+    const { dealsSent, avgSavings } = rows[0];
+    return {
+      dealsSent: Number(dealsSent) || 0,
+      averageSavingsPercent: avgSavings === null ? 0 : Math.round(Number(avgSavings)),
+    };
+  } catch (err) {
+    console.error('[statsStore] Failed to read stats:', err.message);
+    return { dealsSent: 0, averageSavingsPercent: 0 };
+  }
 }

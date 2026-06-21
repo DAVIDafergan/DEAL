@@ -48,8 +48,10 @@ set +a
 missing=()
 [ -z "$AMADEUS_API_KEY" ] && missing+=("AMADEUS_API_KEY")
 [ -z "$AMADEUS_API_SECRET" ] && missing+=("AMADEUS_API_SECRET")
+[ -z "$TRAVELPAYOUTS_API_TOKEN" ] && missing+=("TRAVELPAYOUTS_API_TOKEN")
 [ -z "$ANTHROPIC_API_KEY" ] && missing+=("ANTHROPIC_API_KEY")
 [ -z "$TELEGRAM_BOT_TOKEN" ] && missing+=("TELEGRAM_BOT_TOKEN")
+[ -z "$MYSQL_URL" ] && [ -z "$DATABASE_URL" ] && [ -z "$MYSQLHOST" ] && missing+=("MYSQL_URL (or MYSQLHOST/...)")
 
 if [ ${#missing[@]} -gt 0 ]; then
   echo "⚠️  המפתחות הבאים לא מוגדרים עדיין ב-.env (הפיצ'רים התלויים בהם יושבתו אוטומטית):"

@@ -1,15 +1,15 @@
 import { motion } from 'framer-motion';
 import { Marker } from 'react-simple-maps';
-import { HEAT_TIER_CONFIG, getDiscountPercent, getHeatTier } from '../../utils/dealHeat.js';
+import { HEAT_TIER_CONFIG, getHeatTier } from '../../utils/dealHeat.js';
 
 /**
  * DealMarker — נקודה זוהרת על המפה לדיל בודד.
  * שלוש שכבות עיגולים: glow מטושטש (אווירה), טבעת פעימה רציפה (CSS, עוצמה לפי חום הדיל),
  * וגרעין מוצק במרכז. כניסה ראשונה למפה מאנימטת עם Framer Motion: scale-in + ripple חד-פעמי.
+ * דילי live_price מקבלים שכבה ניטרלית ('live') ולא נכנסים לסקאלת החום (ראו utils/dealHeat.js).
  */
 export function DealMarker({ deal, coordinates, onHover, onLeave, onSelect }) {
-  const discountPercent = getDiscountPercent(deal);
-  const tier = getHeatTier(discountPercent);
+  const tier = getHeatTier(deal);
   const config = HEAT_TIER_CONFIG[tier];
 
   return (

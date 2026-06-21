@@ -1,6 +1,6 @@
 import { DealScanner } from '../../core/scanner/DealScanner.js';
 import { AnomalyEngine } from '../../core/anomaly-engine/index.js';
-import { generateDealNarrative } from '../../ai/index.js';
+import { generateDealNarrative, buildLivePriceNarrative } from '../../ai/index.js';
 import { addDeal } from '../store/dealsStore.js';
 import { recordDealSent } from '../store/statsStore.js';
 
@@ -21,7 +21,8 @@ export class DealPipeline {
     this.scanner = new DealScanner({
       sourceRegistry,
       anomalyEngine: new AnomalyEngine(),
-      onDealDetected: (deal) => this._handleDeal(deal),
+      onDealDetected: (deal) => this._handleAnomalyDeal(deal),
+      onLivePriceFound: (offer) => this._handleLivePrice(offer),
       requestDelayMs: scanRequestDelayMs,
     });
   }
@@ -31,7 +32,17 @@ export class DealPipeline {
     return this.scanner.scanRoutes(routes);
   }
 
-  async _handleDeal(deal) {
+  /**
+   * "Best Live Prices": המחיר הזול ביותר שנמצא כרגע למסלול — בלי AI (נרטיב תבניתי) ובלי הפצה,
+   * כדי לא להוציא קריאת Claude/הודעת Telegram על כל רענון של אחד מ-~40 המסלולים בכל סריקה.
+   * נשמר עם type='live_price' ומתעדכן (UPSERT) במקום להצטבר.
+   */
+  async _handleLivePrice(offer) {
+    const narrative = buildLivePriceNarrative(offer);
+    return addDeal({ type: 'live_price', offer, analysis: null, narrative });
+  }
+
+  async _handleAnomalyDeal(deal) {
     let narrative;
     try {
       narrative = await generateDealNarrative(deal);
@@ -40,7 +51,7 @@ export class DealPipeline {
       narrative = this._fallbackNarrative(deal);
     }
 
-    const storedDeal = addDeal({ offer: deal.offer, analysis: deal.analysis, narrative });
+    const storedDeal = await addDeal({ type: 'anomaly', offer: deal.offer, analysis: deal.analysis, narrative });
 
     const savingsPercent = Math.round(
       ((deal.analysis.movingAverage - deal.offer.price) / deal.analysis.movingAverage) * 100
@@ -51,7 +62,7 @@ export class DealPipeline {
       const results = await this.distributionManager.flush();
       const anySucceeded = results.some((r) => r.success);
       if (anySucceeded) {
-        recordDealSent({ savingsPercent });
+        await recordDealSent({ savingsPercent });
       }
     }
 

@@ -30,3 +30,14 @@ export function isRecentlyAdded(createdAtIso, now = Date.now(), windowMs = 10 * 
   const createdAtMs = new Date(createdAtIso).getTime();
   return Number.isFinite(createdAtMs) && now - createdAtMs <= windowMs;
 }
+
+/** "עודכן לפני X" עבור דילי live_price — מתעדכן בכל רענון סריקה, אין כאן חלון תפוגה */
+export function computeElapsed(updatedAtIso, now = Date.now()) {
+  const updatedAtMs = new Date(updatedAtIso).getTime();
+  const elapsedMs = Math.max(0, now - updatedAtMs);
+  const totalMinutes = Math.floor(elapsedMs / 60000);
+  return {
+    hours: Math.floor(totalMinutes / 60),
+    minutes: totalMinutes % 60,
+  };
+}

@@ -2,7 +2,7 @@ import { PriceHistoryRepository, buildRouteKey } from './priceHistoryRepository.
 import { AnomalyDetector } from './anomalyDetector.js';
 
 /**
- * AnomalyEngine — חוט מקשר בין persistence (SQLite) לבין הסטטיסטיקה הטהורה.
+ * AnomalyEngine — חוט מקשר בין persistence (MySQL) לבין הסטטיסטיקה הטהורה.
  * Facade combining persistence (repository) and pure statistics (detector).
  */
 export class AnomalyEngine {
@@ -15,13 +15,13 @@ export class AnomalyEngine {
    * רושם תצפית מחיר חדשה, ובודק האם היא אנומליה לעומת ההיסטוריה הקיימת (לפני שנרשמה).
    * Records a new price observation and checks it against history recorded *before* this point.
    */
-  recordAndAnalyze({ origin, destination, date, price, scannedAt }) {
+  async recordAndAnalyze({ origin, destination, date, price, scannedAt }) {
     const route = buildRouteKey(origin, destination);
-    const history = this.repository.getRecentHistory(route);
+    const history = await this.repository.getRecentHistory(route);
 
     const analysis = this.detector.analyze(history, price);
 
-    this.repository.recordPrice({ route, date, price, scannedAt });
+    await this.repository.recordPrice({ route, date, price, scannedAt });
 
     return { route, ...analysis };
   }
@@ -29,4 +29,3 @@ export class AnomalyEngine {
 
 export { PriceHistoryRepository, buildRouteKey } from './priceHistoryRepository.js';
 export { AnomalyDetector } from './anomalyDetector.js';
-export { getDb, closeDb } from './database.js';

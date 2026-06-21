@@ -5,6 +5,7 @@ import { getDiscountPercent } from '../../utils/dealHeat.js';
 /** טולטיפ Glassmorphism שעוקב אחרי המצביע — נפתח ב-hover/קליק על נקודה במפה */
 export function DealTooltip({ deal, x, y, onClose }) {
   const { t } = useLanguage();
+  const isAnomaly = deal.type === 'anomaly';
   const discountPercent = getDiscountPercent(deal);
 
   function handleViewDeal() {
@@ -34,8 +35,8 @@ export function DealTooltip({ deal, x, y, onClose }) {
         </strong>
       </div>
       <div className="deal-tooltip__row">
-        <span>{t.tooltipDiscountLabel}</span>
-        <strong className="deal-tooltip__discount">-{discountPercent}%</strong>
+        <span>{isAnomaly ? t.tooltipDiscountLabel : t.bestPriceBadge}</span>
+        {isAnomaly ? <strong className="deal-tooltip__discount">-{discountPercent}%</strong> : <strong>—</strong>}
       </div>
       <button type="button" className="deal-tooltip__cta" onClick={handleViewDeal}>
         {t.viewDealButton}
