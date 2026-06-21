@@ -102,6 +102,23 @@ export const AIRPORT_COORDINATES = {
   YYZ: { lon: -79.6306, lat: 43.6777, city: 'Toronto' },
   YVR: { lon: -123.1815, lat: 49.1947, city: 'Vancouver' },
   YUL: { lon: -73.7408, lat: 45.4706, city: 'Montreal' },
+
+  // יעדים פופולריים מ-TLV שנוספו לתמיכה ברשימת WATCHED_ROUTES
+  HER: { lon: 25.1803, lat: 35.3397, city: 'Heraklion (Crete)' },
+  TBS: { lon: 44.9547, lat: 41.6692, city: 'Tbilisi' },
+  BUS: { lon: 41.5997, lat: 41.6105, city: 'Batumi' },
+  SOF: { lon: 23.4079, lat: 42.6967, city: 'Sofia' },
+  KRK: { lon: 19.7848, lat: 50.0777, city: 'Kraków' },
+  TIA: { lon: 19.7206, lat: 41.4147, city: 'Tirana' },
+  BEG: { lon: 20.3091, lat: 44.8184, city: 'Belgrade' },
+  ZAG: { lon: 16.0688, lat: 45.7429, city: 'Zagreb' },
+  SPU: { lon: 16.298, lat: 43.5389, city: 'Split' },
+  OTP: { lon: 26.1021, lat: 44.5711, city: 'Bucharest' },
+  EVN: { lon: 44.3961, lat: 40.1473, city: 'Yerevan' },
+  GOI: { lon: 73.8314, lat: 15.3808, city: 'Goa' },
+  CMB: { lon: 79.8816, lat: 7.1808, city: 'Colombo' },
+  MLE: { lon: 73.5286, lat: 4.1918, city: 'Malé' },
+  ZNZ: { lon: 39.2249, lat: -6.222, city: 'Zanzibar' },
 };
 
 export function getAirportCoordinates(iataCode) {

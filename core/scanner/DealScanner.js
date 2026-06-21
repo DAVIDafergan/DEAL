@@ -9,13 +9,19 @@ import { AnomalyEngine } from '../anomaly-engine/index.js';
  * accepting an `onDealDetected` callback instead of importing those layers directly.
  */
 export class DealScanner {
-  constructor({ sourceRegistry, anomalyEngine = new AnomalyEngine(), onDealDetected }) {
+  /**
+   * @param {number} requestDelayMs - השהיה בין מסלול למסלול בסריקה, כדי לא לעבור מכסות
+   *   rate-limit של מקורות חיצוניים (למשל Travelpayouts) כשסורקים רשימת מסלולים גדולה.
+   *   Delay between consecutive route scans to stay under external API rate limits.
+   */
+  constructor({ sourceRegistry, anomalyEngine = new AnomalyEngine(), onDealDetected, requestDelayMs = 0 }) {
     if (!sourceRegistry) {
       throw new Error('DealScanner requires a sourceRegistry');
     }
     this.sourceRegistry = sourceRegistry;
     this.anomalyEngine = anomalyEngine;
     this.onDealDetected = onDealDetected || (() => {});
+    this.requestDelayMs = requestDelayMs;
   }
 
   /**
@@ -25,13 +31,15 @@ export class DealScanner {
   async scanRoutes(routes) {
     const detectedDeals = [];
 
-    for (const { origin, destination, date } of routes) {
+    for (let i = 0; i < routes.length; i += 1) {
+      const { origin, destination, date } = routes[i];
+
       let offers = [];
       try {
         offers = await this.sourceRegistry.searchAll(origin, destination, date);
       } catch (err) {
         // מקור שנכשל לא צריך לעצור את כל הסריקה
-        continue;
+        offers = [];
       }
 
       for (const offer of offers) {
@@ -48,6 +56,11 @@ export class DealScanner {
           detectedDeals.push(deal);
           await this.onDealDetected(deal);
         }
+      }
+
+      const isLastRoute = i === routes.length - 1;
+      if (this.requestDelayMs > 0 && !isLastRoute) {
+        await new Promise((resolve) => setTimeout(resolve, this.requestDelayMs));
       }
     }
 

@@ -13,7 +13,7 @@ import { recordDealSent } from '../store/statsStore.js';
  * No other layer depends on this module; it only depends on them.
  */
 export class DealPipeline {
-  constructor({ sourceRegistry, distributionManager, whatsappRecipients = [] }) {
+  constructor({ sourceRegistry, distributionManager, whatsappRecipients = [], scanRequestDelayMs = 0 }) {
     this.sourceRegistry = sourceRegistry;
     this.distributionManager = distributionManager;
     this.whatsappRecipients = whatsappRecipients;
@@ -22,6 +22,7 @@ export class DealPipeline {
       sourceRegistry,
       anomalyEngine: new AnomalyEngine(),
       onDealDetected: (deal) => this._handleDeal(deal),
+      requestDelayMs: scanRequestDelayMs,
     });
   }
 
