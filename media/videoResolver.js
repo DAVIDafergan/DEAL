@@ -5,20 +5,25 @@ const REQUEST_TIMEOUT_MS = 10000;
 const RUNWAY_POLL_ATTEMPTS = 20;
 const RUNWAY_POLL_DELAY_MS = 5000;
 
+const EMPTY_RESULT = { videoUrl: null, posterUrl: null };
+
 /**
  * שרשרת fallback לוידאו רקע של הפיד, בעדיפות מהיקר/איכותי לזול/חינמי:
  *   1. Runway ML (RUNWAY_API_KEY) — וידאו AI-generated. ⚠️ לא מאומת מול תשובת API אמיתית
  *      (אין מפתח Production לבדוק) — ה-endpoint/שדות מבוססים על תיעוד כללי. אם משהו שונה
- *      בפועל, זה המקום הראשון לתקן.
- *   2. Pexels (PEXELS_API_KEY) — וידאו אמיתי וקיים של היעד, חינמי.
- *   3. בלי שום מפתח: מחזיר null במכוון — לא ממציאים URL לוידאו שאין לנו. ה-UI (DealSlide)
- *      נופל ל-gradient+motion CSS, שתמיד עובד בלי שום תצורה.
+ *      בפועל, זה המקום הראשון לתקן. אין poster frame מ-Runway (לא חלק מהתשובה).
+ *   2. Pexels (PEXELS_API_KEY) — וידאו אמיתי וקיים של היעד, חינמי, כולל poster frame
+ *      (תמונת preview שמוצגת לפני שהוידאו עצמו נטען — `<video poster>`).
+ *   3. בלי שום מפתח: מחזיר { videoUrl: null, posterUrl: null } במכוון — לא ממציאים URL
+ *      לוידאו שאין לנו. ה-UI (DealSlide) נופל ל-photo/gradient+motion CSS.
+ *
+ * @returns {Promise<{videoUrl: string|null, posterUrl: string|null}>}
  */
 export async function resolveVideoForDestination(cityNameEn, env = process.env) {
   if (env.RUNWAY_API_KEY) {
     try {
-      const video = await generateRunwayVideo(cityNameEn, env.RUNWAY_API_KEY);
-      if (video) return video;
+      const videoUrl = await generateRunwayVideo(cityNameEn, env.RUNWAY_API_KEY);
+      if (videoUrl) return { videoUrl, posterUrl: null };
     } catch (err) {
       console.error(`[videoResolver] Runway generation failed for "${cityNameEn}":`, err.message);
     }
@@ -26,14 +31,14 @@ export async function resolveVideoForDestination(cityNameEn, env = process.env) 
 
   if (env.PEXELS_API_KEY) {
     try {
-      const video = await searchPexelsVideo(cityNameEn, env.PEXELS_API_KEY);
-      if (video) return video;
+      const result = await searchPexelsVideo(cityNameEn, env.PEXELS_API_KEY);
+      if (result) return result;
     } catch (err) {
       console.error(`[videoResolver] Pexels search failed for "${cityNameEn}":`, err.message);
     }
   }
 
-  return null;
+  return EMPTY_RESULT;
 }
 
 async function generateRunwayVideo(cityNameEn, apiKey) {
@@ -74,6 +79,10 @@ async function searchPexelsVideo(cityNameEn, apiKey) {
   const video = res.data?.videos?.[0];
   if (!video) return null;
 
+  // 'sd' שמרני יותר על bandwidth מה-quality המלא, אבל עדיין ברור על מסך נייד — אם אין sd,
+  // נופלים לכל קובץ ראשון שיש (עדיף וידאו כלשהו מאשר שום וידאו).
   const file = video.video_files?.find((f) => f.quality === 'sd') || video.video_files?.[0];
-  return file?.link || null;
+  if (!file?.link) return null;
+
+  return { videoUrl: file.link, posterUrl: video.image || null };
 }

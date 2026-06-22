@@ -82,6 +82,8 @@ const MIGRATIONS = [
   (connection) => ensureColumn(connection, 'deals', 'return_date', 'DATE NULL'),
   (connection) => ensureColumn(connection, 'deals', 'return_departure_at', 'DATETIME NULL'),
   (connection) => ensureColumn(connection, 'deals', 'return_stops', 'INT NULL'),
+  (connection) => ensureColumn(connection, 'vibe_feed_cards', 'photo_url', 'TEXT NULL'),
+  (connection) => ensureColumn(connection, 'vibe_feed_cards', 'video_poster_url', 'TEXT NULL'),
 ];
 
 const SCHEMA_STATEMENTS = [

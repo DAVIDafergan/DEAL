@@ -3,6 +3,7 @@ import { getDestinationTags } from '../../web/src/data/destinationTags.js';
 import { buildHotelUrl } from '../../web/src/utils/packageLinks.js';
 import { searchCheapestHotel } from '../../sources/hotellookClient.js';
 import { resolveVideoForDestination } from '../../media/videoResolver.js';
+import { resolvePhotoForDestination } from '../../media/photoResolver.js';
 import { resolveMusicForVibe } from '../../media/musicResolver.js';
 import { persistMediaUrl } from '../../media/cloudStorage.js';
 import { buildVibeFeedNarrative } from '../../ai/vibeFeedNarrative.js';
@@ -77,11 +78,20 @@ async function buildFeedCard({ vibe, destination, isGlitchDrop, deps }) {
   }
 
   let videoUrl = null;
+  let videoPosterUrl = null;
   try {
-    videoUrl = await resolveVideoForDestination(cityNameEn);
-    videoUrl = await persistMediaUrl(videoUrl);
+    const video = await resolveVideoForDestination(cityNameEn);
+    videoUrl = await persistMediaUrl(video.videoUrl);
+    videoPosterUrl = video.posterUrl; // תמונת preview, כבר hosted חיצונית — לא צריך להעלות מחדש
   } catch (err) {
     console.error(`[vibeFeedEngine] Video resolution failed for ${destination}:`, err.message);
+  }
+
+  let photoUrl = null;
+  try {
+    photoUrl = await resolvePhotoForDestination(cityNameEn, destination);
+  } catch (err) {
+    console.error(`[vibeFeedEngine] Photo resolution failed for ${destination}:`, err.message);
   }
 
   let musicUrl = null;
@@ -118,6 +128,8 @@ async function buildFeedCard({ vibe, destination, isGlitchDrop, deps }) {
     pricePerPerson,
     currency: 'USD',
     videoUrl,
+    videoPosterUrl,
+    photoUrl,
     musicUrl,
     isGlitchDrop,
   };

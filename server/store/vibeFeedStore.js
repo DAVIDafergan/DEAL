@@ -18,9 +18,9 @@ export async function upsertVibeFeedCard(card) {
          id, vibe, origin, destination, departure_date, return_date, nights, people_count,
          flight_price, flight_booking_url, flight_stops, flight_return_stops,
          hotel_name, hotel_stars, hotel_total_price, hotel_booking_url,
-         total_price, price_per_person, currency, video_url, music_url, is_glitch_drop,
-         narrative_json, created_at, updated_at
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         total_price, price_per_person, currency, video_url, video_poster_url, photo_url,
+         music_url, is_glitch_drop, narrative_json, created_at, updated_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE
          departure_date = VALUES(departure_date), return_date = VALUES(return_date),
          flight_price = VALUES(flight_price), flight_booking_url = VALUES(flight_booking_url),
@@ -28,7 +28,8 @@ export async function upsertVibeFeedCard(card) {
          hotel_name = VALUES(hotel_name), hotel_stars = VALUES(hotel_stars),
          hotel_total_price = VALUES(hotel_total_price), hotel_booking_url = VALUES(hotel_booking_url),
          total_price = VALUES(total_price), price_per_person = VALUES(price_per_person),
-         video_url = VALUES(video_url), music_url = VALUES(music_url),
+         video_url = VALUES(video_url), video_poster_url = VALUES(video_poster_url),
+         photo_url = VALUES(photo_url), music_url = VALUES(music_url),
          narrative_json = VALUES(narrative_json), updated_at = VALUES(updated_at)`,
       [
         card.id,
@@ -51,6 +52,8 @@ export async function upsertVibeFeedCard(card) {
         card.pricePerPerson,
         card.currency || 'USD',
         card.videoUrl || null,
+        card.videoPosterUrl || null,
+        card.photoUrl || null,
         card.musicUrl || null,
         card.isGlitchDrop ? 1 : 0,
         JSON.stringify(card.narrative),
@@ -106,6 +109,8 @@ function projectRow(row, lang = 'en') {
     pricePerPerson: numOrNull(row.price_per_person),
     currency: row.currency || 'USD',
     videoUrl: row.video_url || null,
+    videoPosterUrl: row.video_poster_url || null,
+    photoUrl: row.photo_url || null,
     musicUrl: row.music_url || null,
     isGlitchDrop: Boolean(row.is_glitch_drop),
     updatedAt: toIso(row.updated_at),

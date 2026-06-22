@@ -64,14 +64,25 @@ export function DealSlide({ card }) {
         className="deal-slide__media"
         style={{ background: `linear-gradient(160deg, hsl(${hue}, 60%, 30%), hsl(${(hue + 40) % 360}, 65%, 14%))` }}
       >
-        {card.videoUrl && isActive && (
-          <video className="deal-slide__video" src={card.videoUrl} autoPlay muted loop playsInline />
+        {card.videoUrl && isActive ? (
+          <video
+            className="deal-slide__video"
+            src={card.videoUrl}
+            poster={card.videoPosterUrl || undefined}
+            autoPlay
+            muted
+            loop
+            playsInline
+          />
+        ) : card.photoUrl ? (
+          <img className="deal-slide__photo" src={card.photoUrl} alt="" loading="lazy" />
+        ) : (
+          <motion.div
+            className="deal-slide__motion-fallback"
+            animate={{ opacity: [0.5, 0.8, 0.5] }}
+            transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+          />
         )}
-        <motion.div
-          className="deal-slide__motion-fallback"
-          animate={{ opacity: card.videoUrl ? 0 : [0.5, 0.8, 0.5] }}
-          transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-        />
       </div>
 
       <div className="deal-slide__overlay">

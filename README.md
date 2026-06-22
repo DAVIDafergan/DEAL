@@ -265,18 +265,30 @@ round-trip ל-live-price) — ⚠️ עם `SCAN_INTERVAL_MINUTES=5` (ברירת 
 מחיר X%" או "נשארו X חדרים" — אין לנו נתון היסטוריה אמיתי לכרטיסי הפיד (בניגוד ל-anomaly)
 שיתמוך בטענה כזו, ולא ממציאים אותה.
 
-### וידאו + מוזיקה רקע — שרשרת fallback, בלי המתחה לקרוס
+### וידאו + מוזיקה + תמונות רקע — שרשרת fallback, בלי המתחה לקרוס
 
-בלי שום מפתח: הפיד עובד מלא עם gradient+motion CSS במקום וידאו, ובלי מוזיקת רקע. עם מפתחות:
+בלי שום מפתח: הפיד עובד מלא עם gradient+motion CSS במקום וידאו/תמונה, ובלי מוזיקת רקע. עם מפתחות:
 - **`RUNWAY_API_KEY`** (`media/videoResolver.js`) — וידאו AI-generated. ⚠️ לא מאומת מול
   תשובת API אמיתית, אין מפתח Production לבדוק — אם הפורמט בפועל שונה, זה המקום הראשון לתקן.
-- **`PEXELS_API_KEY`** — fallback חינמי, וידאו אמיתי וקיים של היעד (לא AI).
+- **`PEXELS_API_KEY`** — וידאו אנכי אמיתי של היעד (`orientation: portrait`, quality `sd` כדי
+  לחסוך bandwidth) + `poster` frame להצגה מיידית לפני שהוידאו נטען, **וגם** תמונה (`media/photoResolver.js`)
+  שמוצגת מעל ה-gradient (opacity 0.7) כשאין וידאו — שתי קריאות API נפרדות (`/videos/search`
+  ו-`/v1/search`), לא אינטגרציה אחת.
+- אם Pexels לא משיג תמונה (או שאין `PEXELS_API_KEY`), `photoResolver.js` נופל ל-Unsplash
+  (`UNSPLASH_ACCESS_KEY`) — **משתמש מחדש** ב-`images/destinationImageService.js` הקיים
+  (כולל ה-cache שלו ב-MySQL), לא אינטגרציה כפולה.
 - **`MUBERT_API_KEY`** (`media/musicResolver.js`) — מוזיקת רקע AI לפי ווייב. ⚠️ גם זה לא מאומת.
 - **`AWS_S3_BUCKET`/`CLOUDINARY_URL`** (`media/cloudStorage.js`) — stub שקוף, לא מיושם בפועל
   (מחזיר את ה-URL המקורי כמו שהוא) עד שתאשרו איזה provider — אין credentials לבדוק נגדו.
 
-**מה שכן מאומת**: הזרימה המלאה דרך MySQL אמיתי + HTTP אמיתי (mocked Travelpayouts/Hotellook),
-כולל ה-fallback ל-`null` (לא URL מומצא) כש-Runway/Pexels/Mubert לא מוגדרים.
+**מה שכן מאומת**: הזרימה המלאה דרך MySQL אמיתי + HTTP אמיתי, עם Pexels (וידאו+poster+תמונה)
+ו-Travelpayouts/Hotellook מדומים — אישרתי שה-quality שנבחר לוידאו הוא `sd` (לא הקובץ הראשון
+שמוחזר, שיכול להיות 4K), ושה-poster/photo מתמלאים מהשדות הנכונים בתשובת Pexels. גם ה-fallback
+ל-`null` (לא URL מומצא) כש-Runway/Pexels/Mubert לא מוגדרים נשאר מאומת מסשן קודם.
+
+**`PEXELS_API_KEY` עצמו**: אני לא יכול להגדיר משתני סביבה ב-Railway בעצמכם — זה משהו שעליכם
+לעשות ב-Railway Variables (Settings -> Variables בשירות שלכם). הקוד קורא את המשתנה נכון
+ומפעיל את האינטגרציה אוטומטית ברגע שהוא קיים, בלי deploy נוסף מעבר לרסטרט הרגיל.
 
 ## עקרון עיצוב: בלי סטטיסטיקות פנימיות למשתמש
 
