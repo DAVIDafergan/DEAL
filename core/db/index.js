@@ -79,6 +79,9 @@ const MIGRATIONS = [
   (connection) => ensureColumn(connection, 'deals', 'departure_at', 'DATETIME NULL'),
   (connection) => ensureColumn(connection, 'deals', 'arrival_at', 'DATETIME NULL'),
   (connection) => ensureColumn(connection, 'deals', 'duration_minutes', 'INT NULL'),
+  (connection) => ensureColumn(connection, 'deals', 'return_date', 'DATE NULL'),
+  (connection) => ensureColumn(connection, 'deals', 'return_departure_at', 'DATETIME NULL'),
+  (connection) => ensureColumn(connection, 'deals', 'return_stops', 'INT NULL'),
 ];
 
 const SCHEMA_STATEMENTS = [

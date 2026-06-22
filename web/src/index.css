@@ -157,6 +157,31 @@ button {
   width: 100%;
   height: 100%;
   max-width: 1500px;
+  cursor: grab;
+}
+
+.world-heatmap__zoom-controls {
+  position: absolute;
+  bottom: 20px;
+  inset-inline-end: 20px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.world-heatmap__zoom-button {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(16, 20, 34, 0.65);
+  backdrop-filter: blur(10px);
+  color: var(--color-text-primary);
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
 }
 
 .glass-panel {
@@ -637,6 +662,12 @@ button {
   margin: 0;
 }
 
+.last-refreshed-label {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  margin: 10px 0 0;
+}
+
 /* ---------- stats bar ---------- */
 
 .stats-bar {
@@ -771,9 +802,17 @@ button {
   position: absolute;
   bottom: 12px;
   inset-inline-start: 16px;
+  inset-inline-end: 16px;
   font-weight: 700;
   font-size: 1rem;
   z-index: 2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.deal-card__route--roundtrip {
+  font-size: 0.82rem;
 }
 
 .deal-card__body {
@@ -811,8 +850,9 @@ button {
 }
 
 .deal-card__price {
-  font-size: 1.6rem;
+  font-size: 1.9rem;
   font-weight: 800;
+  letter-spacing: -0.01em;
 }
 
 .deal-card__price-avg {
@@ -932,6 +972,10 @@ button {
   gap: 12px;
 }
 
+.flight-details__cell--full {
+  grid-column: 1 / -1;
+}
+
 .flight-details__cell {
   display: flex;
   flex-direction: column;
@@ -1042,44 +1086,35 @@ button {
   margin: 0;
 }
 
-/* ---------- route animation (line + moving plane) ---------- */
+/* ---------- route animation (self-drawing line + stop dots + moving plane) ---------- */
 
 .route-animation {
   flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  height: 22px;
   min-width: 0;
-}
-
-.route-animation__dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--color-accent-from);
-  flex-shrink: 0;
-}
-
-.route-animation__dot--end {
-  background: var(--color-accent-to);
+  overflow: visible;
 }
 
 .route-animation__line {
-  position: relative;
-  flex: 1;
-  height: 1px;
-  background: var(--color-border);
+  stroke: var(--color-border);
+  stroke-width: 1;
+  fill: none;
 }
 
-.route-animation__plane {
-  position: absolute;
-  top: 50%;
-  transform: translate(-50%, -50%) rotate(90deg);
-  color: var(--color-accent-from);
+.route-animation__dot {
+  fill: var(--color-accent-from);
 }
 
-[dir='rtl'] .route-animation__plane {
-  transform: translate(-50%, -50%) rotate(-90deg);
+.route-animation__dot--end {
+  fill: var(--color-accent-to);
+}
+
+.route-animation__stop-dot {
+  fill: var(--color-heat-hot);
+}
+
+.route-animation__plane path {
+  fill: var(--color-accent-from);
 }
 
 /* ---------- risk gauge ---------- */

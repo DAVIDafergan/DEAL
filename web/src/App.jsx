@@ -13,6 +13,7 @@ import { PersonalizedResultsModal } from './components/questionnaire/Personalize
 import { WorldHeatmap } from './components/heatmap/WorldHeatmap.jsx';
 import { LiveDealsCounter } from './components/heatmap/LiveDealsCounter.jsx';
 import { DealsFeedSidebar } from './components/heatmap/DealsFeedSidebar.jsx';
+import { LastRefreshedLabel } from './components/LastRefreshedLabel.jsx';
 
 const POLL_INTERVAL_MS = 20000; // רענון תקופתי כדי שהמפה תרגיש "חיה" ולא תצלום קפוא
 const POPULAR_PACKAGES_POLL_MS = 5 * 60 * 1000; // המנוע ברקע מרענן כל 30 דק' — מספיק לבדוק כל 5
@@ -32,6 +33,7 @@ export function App() {
   const [popularPackages, setPopularPackages] = useState([]);
   const [isQuestionnaireOpen, setIsQuestionnaireOpen] = useState(false);
   const [personalizedPackages, setPersonalizedPackages] = useState(null);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState(null);
 
   useEffect(() => {
     fetchPublicConfig()
@@ -70,6 +72,7 @@ export function App() {
         .then((dealsRes) => {
           if (!isMounted) return;
           setDeals(dealsRes.deals || []);
+          setLastRefreshedAt(Date.now());
         })
         .catch(() => {
           if (isMounted && isFirstLoadRef.current) setDeals([]);
@@ -144,6 +147,7 @@ export function App() {
         <section className="page-hero">
           <h1>{t.heroTitle}</h1>
           <p>{t.heroSubtitle}</p>
+          <LastRefreshedLabel lastRefreshedAt={lastRefreshedAt} />
         </section>
 
         <DealsGrid

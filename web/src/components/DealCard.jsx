@@ -10,6 +10,7 @@ import { UpdatedAgoLabel } from './UpdatedAgoLabel.jsx';
 import { FlightDetails } from './FlightDetails.jsx';
 import { DestinationImage } from './DestinationImage.jsx';
 import { PackageBuilder } from './PackageBuilder.jsx';
+import { formatShortDate } from '../utils/flightFormat.js';
 
 /** הופך מחרוזת מסלול לגוון צבע יציב, כדי שלכל מסלול יהיה placeholder גרדיאנט עקבי */
 function hueFromRoute(route) {
@@ -33,7 +34,7 @@ const cardVariants = {
  *     (אין כאן ניתוח סיכון אמיתי — זה פשוט המחיר הנוכחי).
  */
 export function DealCard({ deal, packageConfig = null }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [shareStatus, setShareStatus] = useState(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isPackageOpen, setIsPackageOpen] = useState(false);
@@ -41,6 +42,18 @@ export function DealCard({ deal, packageConfig = null }) {
   const hue = hueFromRoute(`${deal.origin}${deal.destination}`);
   const isAnomaly = deal.type === 'anomaly';
   const discountPercent = isAnomaly ? getDiscountPercent(deal) : 0;
+
+  // הלוך-חזור מוצג רק אם יש נתון אמיתי (returnDate) — קיים ל-live_price כשהמקור תומך בכך,
+  // לא קיים ל-anomaly (שם נשאר one-way במכוון, ראו DealScanner). לא ממציאים תאריך חזור.
+  const isRoundTrip = Boolean(deal.returnDate);
+  const routeLine = isRoundTrip
+    ? t.packageRoundTripFormat(
+        deal.origin,
+        deal.destination,
+        formatShortDate(deal.departureDate, lang),
+        formatShortDate(deal.returnDate, lang)
+      )
+    : `${deal.origin} → ${deal.destination}`;
 
   async function handleShare() {
     const result = await shareDeal(deal, t);
@@ -67,9 +80,7 @@ export function DealCard({ deal, packageConfig = null }) {
         <DestinationImage iataCode={deal.destination} />
         {isAnomaly && discountPercent > 0 && <span className="deal-card__badge deal-card__badge--hot">-{discountPercent}%</span>}
         {!isAnomaly && <span className="deal-card__badge deal-card__badge--calm">{t.bestPriceBadge}</span>}
-        <span className="deal-card__route">
-          {deal.origin} → {deal.destination}
-        </span>
+        <span className={`deal-card__route ${isRoundTrip ? 'deal-card__route--roundtrip' : ''}`}>{routeLine}</span>
       </div>
 
       <div className="deal-card__body">

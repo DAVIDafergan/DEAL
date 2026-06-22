@@ -37,6 +37,24 @@ class SourceRegistry {
       .filter((r) => r.status === 'fulfilled')
       .flatMap((r) => r.value);
   }
+
+  /**
+   * חיפוש הלוך-חזור בכל המקורות שתומכים בכך (duck-typed: יש להם searchRoundTripFlights) —
+   * מקורות שלא תומכים (כרגע Amadeus) מתעלמים בעדינות, לא נכשלים.
+   * Round-trip search across sources that support it; sources without searchRoundTripFlights
+   * (currently Amadeus) are silently skipped, not treated as a failure.
+   */
+  async searchAllRoundTrip(origin, destination, departureDate, returnDate) {
+    const supportedSources = this.listSources().filter((source) => typeof source.searchRoundTripFlights === 'function');
+
+    const results = await Promise.allSettled(
+      supportedSources.map((source) => source.searchRoundTripFlights(origin, destination, departureDate, returnDate))
+    );
+
+    return results
+      .filter((r) => r.status === 'fulfilled')
+      .flatMap((r) => r.value);
+  }
 }
 
 export const sourceRegistry = new SourceRegistry();

@@ -33,7 +33,15 @@ async function main() {
 
   // השהיה בין מסלול למסלול בסריקה כדי לא לעבור את מכסת ה-rate-limit של מקורות כמו Travelpayouts
   const scanRequestDelayMs = Number(process.env.SCAN_REQUEST_DELAY_MS || 1500);
-  const pipeline = new DealPipeline({ sourceRegistry, distributionManager, whatsappRecipients, scanRequestDelayMs });
+  // הנחת אורך חופשה לחיפוש הלוך-חזור (תצוגה בלבד, ב-"Best Live Prices") — ראו אזהרה למטה
+  const returnTripDays = Number(process.env.SCAN_RETURN_TRIP_DAYS || 7);
+  const pipeline = new DealPipeline({
+    sourceRegistry,
+    distributionManager,
+    whatsappRecipients,
+    scanRequestDelayMs,
+    returnTripDays,
+  });
   const watchedRoutes = parseWatchedRoutes();
 
   if (sourceRegistry.listSources().length === 0) {
@@ -44,11 +52,20 @@ async function main() {
   } else if (watchedRoutes.length === 0) {
     console.warn('[deal-radar-pro] No WATCHED_ROUTES configured — scanning is disabled.');
   } else {
-    const intervalMinutes = Number(process.env.SCAN_INTERVAL_MINUTES || 60);
+    const intervalMinutes = Number(process.env.SCAN_INTERVAL_MINUTES || 5);
+    // כל מסלול עושה כעת 2 קריאות API (one-way + round-trip enrichment) — סריקה תכופה על ~40
+    // מסלולים יכולה לצרוך מכסה גדולה. מזהירים בלוג כדי שזה לא יתפוס בהפתעה.
+    const estimatedCallsPerHour = Math.round((watchedRoutes.length * 2 * 60) / intervalMinutes);
     console.log(
       `[deal-radar-pro] Scanning ${watchedRoutes.length} routes every ${intervalMinutes}m ` +
-        `(${scanRequestDelayMs}ms delay between requests).`
+        `(${scanRequestDelayMs}ms delay between requests, ~${estimatedCallsPerHour} API calls/hour).`
     );
+    if (intervalMinutes <= 10) {
+      console.warn(
+        `[deal-radar-pro] ⚠️ SCAN_INTERVAL_MINUTES=${intervalMinutes} is aggressive — ~${estimatedCallsPerHour} ` +
+          'Travelpayouts calls/hour. If you see frequent 429s, raise SCAN_INTERVAL_MINUTES.'
+      );
+    }
     const runScan = () => {
       pipeline.runScan(watchedRoutes).catch((err) => console.error('[deal-radar-pro] Scan failed:', err.message));
     };

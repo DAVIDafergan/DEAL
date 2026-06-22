@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useLanguage } from '../context/LanguageContext.jsx';
 
@@ -9,20 +10,39 @@ const AUDIENCE_LABEL_KEYS = { couples: 'audienceCouples', families: 'audienceFam
 const TYPE_LABEL_KEYS = { beach: 'typeBeach', city: 'typeCity', nature: 'typeNature', shopping: 'typeShopping', culture: 'typeCulture' };
 const BUDGET_LABEL_KEYS = { 500: 'budgetUnder500', 1000: 'budgetUnder1000', 2000: 'budgetUnder2000' };
 
+/**
+ * FilterPill — כפתור סינון בודד. לחיצה: spring physics (קצת scale + 2px shift), וטקסט
+ * שמהבהב קצרות (remount עם key חדש בכל קליק) — "מגיב בחיתוך", לא קשיח ולא "מוזר".
+ */
+function FilterPill({ value, label, isActive, onToggle }) {
+  const [clickTick, setClickTick] = useState(0);
+
+  function handleClick() {
+    setClickTick((c) => c + 1);
+    onToggle(isActive ? null : value);
+  }
+
+  return (
+    <motion.button
+      type="button"
+      className={`filter-pill ${isActive ? 'is-active' : ''}`}
+      whileTap={{ scale: 0.94, y: 2 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+      onClick={handleClick}
+    >
+      <motion.span key={clickTick} initial={{ opacity: 0.35 }} animate={{ opacity: 1 }} transition={{ duration: 0.25 }}>
+        {label}
+      </motion.span>
+    </motion.button>
+  );
+}
+
 function FilterRow({ options, labelKeys, active, onToggle }) {
   const { t } = useLanguage();
   return (
     <div className="filter-row">
       {options.map((value) => (
-        <motion.button
-          key={value}
-          type="button"
-          className={`filter-pill ${active === value ? 'is-active' : ''}`}
-          whileTap={{ scale: 0.94 }}
-          onClick={() => onToggle(active === value ? null : value)}
-        >
-          {t[labelKeys[value]]}
-        </motion.button>
+        <FilterPill key={value} value={value} label={t[labelKeys[value]]} isActive={active === value} onToggle={onToggle} />
       ))}
     </div>
   );

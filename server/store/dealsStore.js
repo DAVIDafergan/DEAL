@@ -31,12 +31,15 @@ export async function addDeal({ type, offer, analysis = null, narrative }) {
     await pool.query(
       `INSERT INTO deals (
          id, type, origin, destination, departure_date, departure_at, arrival_at, duration_minutes,
+         return_date, return_departure_at, return_stops,
          price, currency, carrier, stops, source,
          booking_url, moving_average, z_score, enforcement_likelihood, narrative_json, created_at, updated_at
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE
          departure_at = VALUES(departure_at), arrival_at = VALUES(arrival_at),
          duration_minutes = VALUES(duration_minutes),
+         return_date = VALUES(return_date), return_departure_at = VALUES(return_departure_at),
+         return_stops = VALUES(return_stops),
          price = VALUES(price), currency = VALUES(currency), carrier = VALUES(carrier), stops = VALUES(stops),
          source = VALUES(source), booking_url = VALUES(booking_url), moving_average = VALUES(moving_average),
          z_score = VALUES(z_score), enforcement_likelihood = VALUES(enforcement_likelihood),
@@ -50,6 +53,9 @@ export async function addDeal({ type, offer, analysis = null, narrative }) {
         offer.departureTime ? new Date(offer.departureTime) : null,
         offer.arrivalTime ? new Date(offer.arrivalTime) : null,
         offer.durationMinutes ?? null,
+        offer.returnDate || null,
+        offer.returnDepartureTime ? new Date(offer.returnDepartureTime) : null,
+        offer.returnStops ?? null,
         offer.price,
         offer.currency,
         offer.carrier || null,
@@ -78,6 +84,9 @@ export async function addDeal({ type, offer, analysis = null, narrative }) {
     departure_at: offer.departureTime,
     arrival_at: offer.arrivalTime,
     duration_minutes: offer.durationMinutes,
+    return_date: offer.returnDate,
+    return_departure_at: offer.returnDepartureTime,
+    return_stops: offer.returnStops,
     price: offer.price,
     currency: offer.currency,
     carrier: offer.carrier,
@@ -149,6 +158,9 @@ function projectRawDeal(deal, lang = 'en') {
     departureTime: toIso(deal.departure_at),
     arrivalTime: toIso(deal.arrival_at),
     durationMinutes: deal.duration_minutes === null || deal.duration_minutes === undefined ? null : Number(deal.duration_minutes),
+    returnDate: toDateOnly(deal.return_date),
+    returnDepartureTime: toIso(deal.return_departure_at),
+    returnStops: deal.return_stops === null || deal.return_stops === undefined ? null : Number(deal.return_stops),
     price: Number(deal.price),
     currency: deal.currency,
     carrier: deal.carrier,

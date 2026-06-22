@@ -18,6 +18,10 @@ export function FlightDetails({ deal }) {
   const arrivalTimeLabel = formatFlightTime(deal.arrivalTime, lang, deal.destination);
   const durationLabel = formatDurationMinutes(deal.durationMinutes, t);
 
+  // הלוך-חזור: רק אם יש returnDate אמיתי (כרגע live_price בלבד, ראו DealScanner) — לא ממציאים
+  const isRoundTrip = Boolean(deal.returnDate);
+  const returnDateLabel = formatFlightDate(deal.returnDepartureTime, lang, deal.destination) || deal.returnDate;
+
   return (
     <motion.div
       className="flight-details"
@@ -31,7 +35,7 @@ export function FlightDetails({ deal }) {
           <strong>{deal.origin}</strong>
           <span>{getCityName(deal.origin, lang)}</span>
         </div>
-        <RouteAnimation />
+        <RouteAnimation stops={deal.stops ?? 0} />
         <div className="flight-details__endpoint flight-details__endpoint--end">
           <strong>{deal.destination}</strong>
           <span>{getCityName(deal.destination, lang)}</span>
@@ -72,6 +76,16 @@ export function FlightDetails({ deal }) {
           <span className="flight-details__cell-label">{t.flightDurationTitle}</span>
           <span className="flight-details__cell-value">{durationLabel || '—'}</span>
         </div>
+
+        {isRoundTrip && (
+          <div className="flight-details__cell flight-details__cell--full">
+            <span className="flight-details__cell-label">{t.tripReturnLabel}</span>
+            <span className="flight-details__cell-value">{returnDateLabel}</span>
+            {deal.returnStops !== null && deal.returnStops !== undefined && (
+              <span className="flight-details__cell-sub">{t.stopsLabel(deal.returnStops)}</span>
+            )}
+          </div>
+        )}
       </div>
     </motion.div>
   );
