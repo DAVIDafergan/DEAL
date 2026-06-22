@@ -10,7 +10,9 @@ import { buildPackageDeps } from '../core/packages/packageDeps.js';
 import { refreshVibeFeed } from '../core/vibes/vibeFeedEngine.js';
 
 const POPULAR_PACKAGES_INTERVAL_MINUTES = 30;
-const VIBE_FEED_INTERVAL_MINUTES = 4 * 60; // כל 4 שעות, כמבוקש — לא צריך תכוף יותר, אלה לא טיסות בודדות
+const VIBE_FEED_INTERVAL_MINUTES = Number(process.env.VIBE_FEED_INTERVAL_MINUTES || 30);
+const VIBE_FEED_DESTINATIONS_PER_VIBE = 8; // ראו core/vibes/vibeFeedEngine.js CANDIDATES_PER_VIBE
+const VIBE_FEED_VIBE_COUNT = 4; // urban/beach/nature/romantic
 
 const PORT = process.env.PORT || 3001;
 
@@ -90,10 +92,23 @@ async function main() {
     console.warn('[deal-radar-pro] Travelpayouts not configured — popular package generation is disabled.');
   }
 
-  // "ווייב פיד" (/feed) — כרטיסי טיסה+מלון+media לפי ווייב, מתעדכנים כל 4 שעות (לא צריך
-  // תכוף יותר; אלה ~8 יעדים לכל אחד מ-4 הווייבים, לא ~40 מסלולים). אם Travelpayouts לא
-  // מוגדר, ה-engine מדלג בעדינות (לא ממציא נתונים) — ראו refreshVibeFeed.
+  // "ווייב פיד" (/) — כרטיסי טיסה+מלון+media לפי ווייב. כל מסלול עושה קריאת round-trip אחת
+  // ל-Travelpayouts (חיפוש מלון הוא ל-Hotellook, דומיין נפרד — לא נכלל במכסת Travelpayouts;
+  // ⚠️ ונכון לעכשיו מאומת ב-curl שה-endpoint שלו לא פעיל בכלל, ראו sources/hotellookClient.js).
+  // אם Travelpayouts לא מוגדר, ה-engine מדלג בעדינות (לא ממציא נתונים) — ראו refreshVibeFeed.
   if (packageDeps.travelpayoutsAdapter) {
+    const vibeFeedCallsPerCycle = VIBE_FEED_VIBE_COUNT * VIBE_FEED_DESTINATIONS_PER_VIBE;
+    const vibeFeedCallsPerHour = Math.round((vibeFeedCallsPerCycle * 60) / VIBE_FEED_INTERVAL_MINUTES);
+    console.log(
+      `[deal-radar-pro] Refreshing vibe feed every ${VIBE_FEED_INTERVAL_MINUTES}m ` +
+        `(~${vibeFeedCallsPerHour} Travelpayouts calls/hour, on top of the route scanner above).`
+    );
+    if (VIBE_FEED_INTERVAL_MINUTES <= 15) {
+      console.warn(
+        `[deal-radar-pro] ⚠️ VIBE_FEED_INTERVAL_MINUTES=${VIBE_FEED_INTERVAL_MINUTES} is aggressive — ` +
+          'combined with the route scanner this adds up. If you see frequent 429s, raise VIBE_FEED_INTERVAL_MINUTES.'
+      );
+    }
     const runVibeFeedRefresh = () => {
       refreshVibeFeed(packageDeps).catch((err) => console.error('[deal-radar-pro] Vibe feed refresh failed:', err.message));
     };

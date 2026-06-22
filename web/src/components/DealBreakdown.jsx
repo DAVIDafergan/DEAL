@@ -1,12 +1,23 @@
 import { useLanguage } from '../context/LanguageContext.jsx';
 
 /**
- * DealBreakdown — שורת icon+label+מחיר לכל רכיב עם **מחיר אמיתי**, וסה"כ בתחתית.
- * רק טיסה (תמיד) ומלון (אם נמצא, Hotellook best-effort) נכנסים לסכום — בדיוק העיקרון של
- * core/packages/packageEngine.js. רכב/eSIM לא מופיעים כאן בכוונה: יש לנו רק לינק להם, לא
- * מחיר אמיתי — להציג להם שורת "מחיר" היה ממציא נתון. הם מוצגים כלינקים נפרדים ב-BundleModal.
+ * DealBreakdown — שורת icon+label+מחיר לכל רכיב, וסה"כ בתחתית. הסה"כ כולל **רק** רכיבים
+ * עם מחיר אמיתי (טיסה תמיד, מלון אם נמצא — Hotellook best-effort, נכון לעכשיו לא פעיל
+ * בפועל, ראו sources/hotellookClient.js). רכב/eSIM, כשיש להם לינק (hasCarOption/hasEsimOption),
+ * מוצגים כשורה **בלי מחיר** ומתויגים בבירור "הערכה — ראו מחיר בלינק" — לא ממציאים מספר.
  */
-export function DealBreakdown({ flightPrice, hotelName, hotelTotalPrice, hotelStars, currency, totalPrice, pricePerPerson, peopleCount = 1 }) {
+export function DealBreakdown({
+  flightPrice,
+  hotelName,
+  hotelTotalPrice,
+  hotelStars,
+  currency,
+  totalPrice,
+  pricePerPerson,
+  peopleCount = 1,
+  hasCarOption = false,
+  hasEsimOption = false,
+}) {
   const { t } = useLanguage();
   const hasHotel = hotelTotalPrice !== null && hotelTotalPrice !== undefined;
 
@@ -30,6 +41,22 @@ export function DealBreakdown({ flightPrice, hotelName, hotelTotalPrice, hotelSt
           <span className="deal-breakdown__price">
             {Math.round(hotelTotalPrice)} {currency}
           </span>
+        </div>
+      )}
+
+      {hasEsimOption && (
+        <div className="deal-breakdown__item deal-breakdown__item--estimate">
+          <span className="deal-breakdown__icon">📱</span>
+          <span className="deal-breakdown__label">{t.breakdownEsimLabel}</span>
+          <span className="deal-breakdown__estimate-tag">{t.breakdownEstimateTag}</span>
+        </div>
+      )}
+
+      {hasCarOption && (
+        <div className="deal-breakdown__item deal-breakdown__item--estimate">
+          <span className="deal-breakdown__icon">🚗</span>
+          <span className="deal-breakdown__label">{t.breakdownCarLabel}</span>
+          <span className="deal-breakdown__estimate-tag">{t.breakdownEstimateTag}</span>
         </div>
       )}
 

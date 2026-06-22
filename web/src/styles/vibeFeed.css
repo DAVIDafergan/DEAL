@@ -170,6 +170,28 @@
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
 }
 
+.deal-slide__bottom-line {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
+}
+
+.deal-slide__total-price {
+  margin: 0;
+  font-size: clamp(1.6rem, 7vw, 2.1rem);
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+}
+
+.deal-slide__per-person {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+}
+
 .deal-slide__lock-button {
   margin-top: 4px;
   min-height: 52px;
@@ -202,6 +224,13 @@
 .urgency-banner__checked {
   color: rgba(255, 255, 255, 0.7);
   font-weight: 500;
+}
+
+.urgency-banner__trust {
+  width: 100%;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.55);
 }
 
 /* ---------- glitch drop effect ---------- */

@@ -3,18 +3,22 @@ import axios from 'axios';
 const HOTELLOOK_CACHE_URL = 'https://engine.hotellook.com/api/v2/cache.json';
 const REQUEST_TIMEOUT_MS = 10000;
 
+let hasWarnedEndpointDown = false;
+
 /**
  * HotellookClient — אינטגרציה עם Hotellook Hotel Data API (חלק ממוצרי Travelpayouts).
  *
- * ⚠️ לא מאומת מול תשובת API אמיתית — אין מפתח Production לבדוק. ההנחות הבאות מבוססות על
- * תיעוד/ידע כללי על ה-endpoint הזה, לא על קריאה אמיתית שנבדקה בפועל:
- *   1. `location` מקבל שם עיר באנגלית (resolve מקורב בצד Hotellook), לא דורש location-id נפרד.
- *   2. `priceFrom` בתשובה מייצג מחיר עבור כל השהייה (checkIn->checkOut) שצוינה, לא מחיר ללילה.
- *   3. `token` (אותו Travelpayouts API token של הטיסות) אופציונלי אך מועיל למעקב/quota.
- * אם הפורמט בפועל שונה — זה המקום הראשון לתקן.
+ * 🔴 נבדק בפועל ב-2026-06-22 עם curl, לא רק "לא מאומת": `engine.hotellook.com` (כל path,
+ * כולל הroot) מחזיר 404 מ-CloudFront ("Error from cloudfront" ב-x-cache header) — סימן
+ * ל-distribution שאין לו backend מוגדר מאחוריו, כלומר ה-endpoint הזה כבר לא פעיל. זה לא
+ * עניין של token/auth — `Unauthorized` (לא 404) הוא מה שמתקבל מ-endpoint תקין אבל בלי
+ * token, וזה לא מה שקרה כאן. בדקתי גם locations.json וכמה paths נוספים — כולם 404.
  *
- * Official Hotellook (Travelpayouts) Hotel Data API. NOT verified against a real response —
- * no production key available to test. See assumptions above; fix here first if wrong.
+ * המשמעות בפועל: searchCheapestHotel תמיד מחזיר null היום (לא "אם אין token" — תמיד),
+ * אז כל totalPrice בפועל הוא flight-only. זה לא bug בלוגיקת השילוב (vibeFeedEngine.js כבר
+ * נכון: totalPrice = flight + hotel רק אם hotel נמצא) — זה מקור-נתונים שבור, ואין לי
+ * תחליף אמיתי לו כרגע (לא ממציאים מחיר מלון). אם יש לכם endpoint/API key חדש של Hotellook
+ * או חשבון Booking.com Affiliate אמיתי — זה המקום הראשון לחבר אותו.
  */
 export async function searchCheapestHotel({ cityNameEn, checkIn, checkOut, apiToken }) {
   let response;
@@ -32,6 +36,17 @@ export async function searchCheapestHotel({ cityNameEn, checkIn, checkOut, apiTo
     });
   } catch (err) {
     if (err.response?.status === 429) return null;
+    if (err.response?.status === 404) {
+      if (!hasWarnedEndpointDown) {
+        hasWarnedEndpointDown = true;
+        console.warn(
+          '[hotellookClient] engine.hotellook.com returned 404 — this endpoint appears to be ' +
+            'discontinued (confirmed via curl, not a token/auth issue). Hotel prices will be ' +
+            'unavailable (flight-only totals) until a working hotel-price source is configured.'
+        );
+      }
+      return null;
+    }
     throw new Error(`Hotellook request failed: ${err.message}`);
   }
 

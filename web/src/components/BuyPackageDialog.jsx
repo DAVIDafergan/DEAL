@@ -4,10 +4,9 @@ import { buildHotelUrl, buildCarRentalUrl, buildEsimUrl } from '../utils/package
 
 /**
  * BuyPackageDialog — בונה את רשימת הפריטים (טיסה + כל לינק נוסף שיש לו URL אמיתי: מלון/רכב/
- * eSIM) ומעביר ל-BundleModal הגנרי. בלי breakdown כאן בכוונה: דילי ה-grid (anomaly/live_price)
- * הם טיסה בודדת — יש לנו רק מחיר טיסה אמיתי (כבר מוצג על הכרטיס), אין לנו מחיר מלון אמיתי
- * כדי להציג total הגיוני שמשלב את שניהם, אז לא בונים breakdown מזויף. ה-breakdown האמיתי
- * (טיסה+מלון, שני המחירים אמיתיים) קיים רק בפיד הווייב — ראו web/src/vibe/DealSlide.jsx.
+ * eSIM) ומעביר ל-BundleModal הגנרי, עם breakdown: טיסה (מחיר אמיתי, כבר מוצג על הכרטיס),
+ * מלון רק אם יש מחיר אמיתי (דילי ה-grid הם טיסה בודדת — בפועל hotelTotalPrice לא קיים להם
+ * בכלל, אז השורה לא תוצג), ורכב/eSIM כשורות "הערכה" בלי מחיר (ראו DealBreakdown.jsx).
  */
 export function BuyPackageDialog({ deal, packageConfig, onClose }) {
   const { t } = useLanguage();
@@ -26,5 +25,18 @@ export function BuyPackageDialog({ deal, packageConfig, onClose }) {
     esimUrl && { key: 'esim', icon: '📱', labelKey: 'packageEsimButton', url: esimUrl },
   ].filter(Boolean);
 
-  return <BundleModal title={t.buyPackageButton} items={items} onClose={onClose} />;
+  const breakdown = {
+    flightPrice: deal.price,
+    hotelName: null,
+    hotelTotalPrice: null,
+    hotelStars: null,
+    currency: deal.currency,
+    totalPrice: deal.price,
+    pricePerPerson: deal.price,
+    peopleCount: 1,
+    hasCarOption: Boolean(carUrl),
+    hasEsimOption: Boolean(esimUrl),
+  };
+
+  return <BundleModal title={t.buyPackageButton} breakdown={breakdown} items={items} onClose={onClose} />;
 }

@@ -1117,6 +1117,16 @@ button {
   white-space: nowrap;
 }
 
+.deal-breakdown__item--estimate {
+  opacity: 0.8;
+}
+
+.deal-breakdown__estimate-tag {
+  font-size: 0.68rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
 .deal-breakdown__total {
   display: flex;
   align-items: baseline;

@@ -3,16 +3,18 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { GlitchDropOverlay } from './GlitchDropOverlay.jsx';
 import { UrgencyBanner } from './UrgencyBanner.jsx';
-import { DealBreakdown } from '../components/DealBreakdown.jsx';
 import { BundleModal } from '../components/BundleModal.jsx';
 import { buildCarRentalUrl, buildEsimUrl } from '../utils/packageLinks.js';
 
 /**
  * DealSlide — שקף אחד במסך מלא בפיד הווייב. רקע: וידאו אם יש card.videoUrl (אמיתי, לא
- * ממציאים), אחרת gradient+motion עדין לפי היעד — תמיד עובד, בלי תצורה. הוידאו רק מתנגן
- * כשהשקף בפועל גלוי (>50%, IntersectionObserver) — לא את כל 8 הסרטונים בבת אחת.
- * הכפתור הראשי פותח BundleModal **ישירות, בלי אנימציית טעינה** (לפי הנחיה מפורשת) —
- * breakdown+כפתורים מוכנים כבר ברגע הלחיצה, לא מחושבים אחרי delay מזויף.
+ * ממציאים), אחרת gradient+motion עדין — תמיד עובד, בלי תצורה. הוידאו רק מתנגן כשהשקף בפועל
+ * גלוי (>50%, IntersectionObserver) — לא את כל 8 הסרטונים בבת אחת.
+ *
+ * התצוגה על השקף עצמו ("Bottom Line") מינימלית בכוונה: יעד, שורת טיסה+מלון קצרה, ומחיר
+ * כולל בולט אחד — בלי breakdown מפורט עם אייקונים. ה-breakdown המפורט (DealBreakdown, כל
+ * רכיב בנפרד) מוצג רק בתוך BundleModal, אחרי לחיצה על הכפתור היחיד — UI נקי, לא עומס.
+ * הכפתור פותח את ה-modal **ישירות, בלי אנימציית טעינה** (לפי הנחיה מפורשת).
  */
 export function DealSlide({ card, packageConfig = null }) {
   const { t } = useLanguage();
@@ -65,6 +67,8 @@ export function DealSlide({ card, packageConfig = null }) {
     totalPrice: card.totalPrice,
     pricePerPerson: card.pricePerPerson,
     peopleCount: card.peopleCount,
+    hasCarOption: Boolean(carUrl),
+    hasEsimOption: Boolean(esimUrl),
   };
 
   return (
@@ -94,7 +98,20 @@ export function DealSlide({ card, packageConfig = null }) {
       <div className="deal-slide__overlay">
         <h2 className="deal-slide__title">{card.title}</h2>
 
-        <DealBreakdown {...breakdown} />
+        <p className="deal-slide__bottom-line">
+          ✈️ {t.stopsLabel(card.flightStops ?? 0)}
+          {card.hotelName && ` · 🏨 ${card.hotelName}`}
+        </p>
+
+        <p className="deal-slide__total-price">
+          {Math.round(card.totalPrice)} {card.currency}
+          {card.peopleCount > 1 && (
+            <span className="deal-slide__per-person">
+              {' '}
+              · {Math.round(card.pricePerPerson)} {card.currency} {t.vibePerPersonLabel}
+            </span>
+          )}
+        </p>
 
         <UrgencyBanner updatedAt={card.updatedAt} />
 

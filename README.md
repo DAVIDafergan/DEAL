@@ -265,7 +265,9 @@ romantic), ועובר ל-`/:vibe` — פיד גלילה אנכית מלא-מסך
 הלוך-חזור אמיתי (Travelpayouts) + מלון אמיתי (Hotellook, best-effort) ליעד שמתאים לווייב לפי
 התיוג העורכי הקיים (`web/src/data/destinationTags.js` — אותו תיוג ששירת את כפתורי הסינון
 בעמוד הבית, לא מערכת תיוג נפרדת). המחיר-לאדם מחושב מ-טיסה+מלון אמיתיים בלבד, בדיוק כמו
-`core/packages/packageEngine.js`. מתעדכן כל 4 שעות (`server/index.js`), נשמר בטבלת
+`core/packages/packageEngine.js`. מתעדכן כל 30 דק' (`VIBE_FEED_INTERVAL_MINUTES`, ירד מ-4
+שעות לפי הנחיה מפורשת — ~64 קריאות Travelpayouts/שעה נוספות, בנוסף לסריקת המסלולים, עם
+אזהרת לוג אם זה אגרסיבי מדי), נשמר בטבלת
 `vibe_feed_cards`, מוגש ב-`GET /api/deals/feed?vibe=X&lang=Y`.
 
 **"ויסות מחירים" — `totalPrice`/`pricePerPerson` הם כבר source-of-truth יחיד**: לא הוספתי
@@ -293,21 +295,43 @@ adults=2&currency=USD` — אישרתי ב-`curl -L` ש-302 ל-`hotels-api.avias
 ואז 302 ל-`sp.booking.com` (`selected_currency=USD` מאושר בתשובה) ואז landing סופי ב-
 `www.booking.com/searchresults.html`. שרשרת redirect אמיתית ועובדת, לא ניחוש. תוקן ב-`buildHotelUrl`.
 
-**"הזמן את הטיול עכשיו"**: לחיצה פותחת **מיד** את `BundleModal.jsx` (בלי אנימציית טעינה —
-זו בקשה מפורשת משני סבבים: גם "בלי delay" וגם "modal עם breakdown+4 כפתורים", ששניהם
-מתיישבים יחד כל עוד ה-modal עצמו נפתח instant). המודאל מציג: `DealBreakdown` (טיסה+מלון,
-שני המחירים אמיתיים — ראו למעלה) ו-4 כפתורים (טיסה/מלון/רכב/eSIM, רכב+eSIM מחושבים בצד
-הלקוח מ-`packageConfig` כמו ב-`BuyPackageDialog`) — **כולם באותו צבע/עיצוב אחיד** (לא צבעוני
-לפי סוג, ראו "עיצוב מינימליסטי" למטה), מובחנים רק ב-icon+label. לא בונה URL מומצא בסטייל
-`booking.com/checkout?hotel_id=...` (אין לנו גישת API ל-Booking.com) — הכפתורים פותחים
-את לינקי Aviasales/Hotellook **האמיתיים** (`card.flightBookingUrl`/`card.hotelBookingUrl`,
-כבר עם ה-marker), עם `console.log` של כל URL לדיבוג.
+### 🔴 ממצא קריטי: ה-Hotellook **price API** (לא ה-deep link) לא פעיל בכלל
+
+זה משהו אחר מהלינק ל-`search.hotellook.com` מעלה (שעובד) — `sources/hotellookClient.js`
+משתמש ב-API **נפרד** (`engine.hotellook.com/api/v2/cache.json`) כדי למשוך **מספר** (מחיר
+מלון בפועל) שמתחבר ל-totalPrice. בדקתי אותו ב-`curl` בפועל — **404 מ-CloudFront על כל path,
+כולל ה-root** ("Error from cloudfront" ב-header, לא Unauthorized שהיה מצביע על חוסר token).
+זה domain שאין לו backend מאחוריו, כלומר ה-API הזה כבר לא קיים.
+
+**המשמעות**: `totalPrice`/`pricePerPerson` בפועל היום הם **flight-only** לכל דיל — לא בגלל
+בעיה בלוגיקת השילוב (`vibeFeedEngine.js` כבר נכון: `total = flight + hotel` רק אם hotel
+נמצא), אלא בגלל שמקור הנתונים עצמו שבור. תיקנתי את הטיפול בכשלון (היה bug שבו ה-404 הראשון
+בלבד טופל בעדינות, וכל ה-404-ים הבאים זרקו שגיאה בכל זאת — עכשיו כולם מטופלים בעדינות, אזהרה
+אחת בלוג ולא spam). **לא הומצא תחליף** — אין לי מקור אמיתי למחיר מלון כרגע. אם יש לכם
+endpoint/API key מעודכן של Hotellook, או חשבון Booking.com Affiliate אמיתי, זה המקום הראשון
+לחבר אותו (`sources/hotellookClient.js`).
+
+**השקף עצמו ("Bottom Line") נקי**: יעד, שורת טיסה+מלון קצרה אחת, מחיר כולל בולט אחד, ו-UI
+נקי עם **כפתור מרכזי אחד** ("הזמן את הטיול עכשיו"). ה-breakdown המפורט (icons, שורה לכל
+רכיב) **לא** מוצג על השקף עצמו — רק בתוך `BundleModal.jsx`, אחרי לחיצה, כדי לא להעמיס.
+
+לחיצה פותחת **מיד** את `BundleModal.jsx` (בלי אנימציית טעינה — זו בקשה מפורשת משני סבבים:
+גם "בלי delay" וגם "modal עם breakdown+כפתורים", ששניהם מתיישבים יחד כל עוד ה-modal עצמו
+נפתח instant). המודאל מציג `DealBreakdown`: ✈️ טיסה (מחיר אמיתי) + 🏨 מלון (מחיר אמיתי, אם
+נמצא — נכון לעכשיו, **לא** נמצא, ראו הממצא הקריטי מעלה) + 🚗/📱 רכב/eSIM **בלי מחיר**, מתויגים
+בבירור "הערכה — ראו מחיר בלינק" (לא ממציאים מספר). סה"כ = רק רכיבים עם מחיר אמיתי. הכפתורים
+**כולם באותו צבע/עיצוב אחיד** (לא צבעוני לפי סוג, ראו "עיצוב מינימליסטי" למטה), מובחנים רק
+ב-icon+label. לא בונה URL מומצא בסטייל `booking.com/checkout?hotel_id=...` — פותחים את לינקי
+Aviasales/Hotellook **האמיתיים** (`card.flightBookingUrl`/`card.hotelBookingUrl`, כבר עם
+ה-marker), עם `console.log` של כל URL לדיבוג.
 
 **`UrgencyBanner.jsx` — דחיפות אמיתית, לא "X חדרים נותרו"**: המפרט המקורי ביקש "fake urgency
 (אבל לא שקר)" — ניסוח שמתנגש בעצמו. בחרתי בגרסה שאפשר להגן עליה: "מחירי טיסות משתנים תוך
-דקות" (עיקרון אמיתי וידוע, לא ספציפי לדיל) + "נבדק לפני X דק'" (מבוסס על `updatedAt` האמיתי).
-**לא** הוספתי טענת מלאי ("X חדרים נותרו") — `Hotellook` (`sources/hotellookClient.js`) לא
-מחזיר נתון availability אמיתי, רק `priceFrom`, אז אין לנו שום נתון שתומך בטענה כזו.
+דקות" (עיקרון אמיתי וידוע, לא ספציפי לדיל) + **"מחיר נכון ל-HH:MM"** (שעון קבוע, לא "לפני X
+דק'" — לפי בקשה מפורשת, בזמן המקומי של המשתמש via `toLocaleTimeString`) + הערת אמון "המחיר
+הסופי מאומת אצל הספק". **לא** הוספתי טענת מלאי ("X חדרים נותרו") — `Hotellook`
+(`sources/hotellookClient.js`) גם לא מחזיר נתון availability אמיתי (רק `priceFrom`, וגם
+זה כרגע לא נגיש בכלל), אז אין לנו שום נתון שתומך בטענה כזו.
 
 **אפקט "Live API Drop"**: מופיע פעם אחת לכרטיס (לא בלופ) אם `card.isGlitchDrop` (כל כרטיס
 חמישי בערך). הטקסט הוא אפקט אווירה ("🔴 LIVE — דיל פעיל ברגע זה"), **לא** טוען טענת "ירידת
