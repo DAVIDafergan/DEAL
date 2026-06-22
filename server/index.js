@@ -4,40 +4,13 @@ import { initializeSources } from '../sources/index.js';
 import { initializeDistribution } from '../distribution/index.js';
 import { DealPipeline } from './services/dealPipeline.js';
 import { connectWithRetry } from '../core/db/index.js';
+import { parseWatchedRoutes } from '../core/watchedRoutes.js';
+import { refreshPopularPackages } from '../core/packages/packageEngine.js';
+import { buildPackageDeps } from '../core/packages/packageDeps.js';
+
+const POPULAR_PACKAGES_INTERVAL_MINUTES = 30;
 
 const PORT = process.env.PORT || 3001;
-
-/**
- * רשימת ברירת מחדל של ~40 מסלולים פופולריים מ-TLV (אירופה, יעדי נופש, מזרח רחוק) — משמשת
- * רק אם WATCHED_ROUTES לא הוגדר בסביבה, כדי שהסריקה תתחיל "out of the box" בלי תצורה נוספת.
- * הערה: כמה קודים שהתבקשו במקור הוחלפו לקוד IATA תקין כשהיו קודי עיר/טעות (MIL->MXP,
- * LON->LHR, GOA->GOI), וכפילות אחת (ATH) הוסרה.
- *
- * Default fallback route list (~40 popular TLV destinations) used only when WATCHED_ROUTES
- * isn't set, so scanning starts without extra configuration.
- */
-const DEFAULT_WATCHED_ROUTES =
-  'TLV-BCN,TLV-FCO,TLV-ATH,TLV-MXP,TLV-PRG,TLV-BUD,TLV-LIS,TLV-CDG,TLV-AMS,TLV-BER,' +
-  'TLV-VIE,TLV-IST,TLV-DXB,TLV-BKK,TLV-PMI,TLV-RHO,TLV-HER,TLV-LCA,TLV-TBS,TLV-BUS,' +
-  'TLV-SOF,TLV-KRK,TLV-WAW,TLV-NAP,TLV-VCE,TLV-MAD,TLV-LHR,TLV-SKG,TLV-TIA,TLV-BEG,' +
-  'TLV-ZAG,TLV-SPU,TLV-OTP,TLV-EVN,TLV-BOM,TLV-GOI,TLV-CMB,TLV-MLE,TLV-ZNZ';
-
-/** מפענח את משתנה הסביבה WATCHED_ROUTES (פורמט: "TLV-BCN,TLV-FCO") לרשימת מסלולים לסריקה */
-function parseWatchedRoutes(env = process.env) {
-  const raw = env.WATCHED_ROUTES || DEFAULT_WATCHED_ROUTES;
-  const daysAhead = Number(env.SCAN_DATE_OFFSET_DAYS || 30);
-  const date = new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-
-  return raw
-    .split(',')
-    .map((pair) => pair.trim())
-    .filter(Boolean)
-    .map((pair) => {
-      const [origin, destination] = pair.split('-');
-      return { origin, destination, date };
-    })
-    .filter((r) => r.origin && r.destination);
-}
 
 async function main() {
   const app = createApp();
@@ -81,6 +54,21 @@ async function main() {
     };
     runScan();
     setInterval(runScan, intervalMinutes * 60 * 1000);
+  }
+
+  // "דילים פופולריים היום" (חבילות טיסה+מלון) — מתעדכנים כל 30 דק', זמינים למשתמש שלא ענה
+  // שאלון. אם Travelpayouts לא מוגדר, ה-engine מדלג בעדינות (לא ממציא נתונים).
+  const packageDeps = buildPackageDeps(sourceRegistry);
+  if (packageDeps.travelpayoutsAdapter) {
+    const runPackageRefresh = () => {
+      refreshPopularPackages(packageDeps).catch((err) =>
+        console.error('[deal-radar-pro] Popular package refresh failed:', err.message)
+      );
+    };
+    runPackageRefresh();
+    setInterval(runPackageRefresh, POPULAR_PACKAGES_INTERVAL_MINUTES * 60 * 1000);
+  } else {
+    console.warn('[deal-radar-pro] Travelpayouts not configured — popular package generation is disabled.');
   }
 
   app.listen(PORT, () => {

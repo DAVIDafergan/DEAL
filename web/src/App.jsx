@@ -1,16 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import { useLanguage } from './context/LanguageContext.jsx';
 import { NowProvider } from './context/NowContext.jsx';
-import { fetchDeals, fetchPublicConfig } from './api/client.js';
+import { fetchDeals, fetchPublicConfig, fetchPopularPackages } from './api/client.js';
 import { filterDeals } from './utils/filterDeals.js';
 import { Header } from './components/Header.jsx';
 import { DealsGrid } from './components/DealsGrid.jsx';
 import { FilterBar } from './components/FilterBar.jsx';
+import { PackagesStrip } from './components/PackagesStrip.jsx';
+import { QuestionnaireModal } from './components/questionnaire/QuestionnaireModal.jsx';
+import { PersonalizedResultsModal } from './components/questionnaire/PersonalizedResultsModal.jsx';
 import { WorldHeatmap } from './components/heatmap/WorldHeatmap.jsx';
 import { LiveDealsCounter } from './components/heatmap/LiveDealsCounter.jsx';
 import { DealsFeedSidebar } from './components/heatmap/DealsFeedSidebar.jsx';
 
 const POLL_INTERVAL_MS = 20000; // רענון תקופתי כדי שהמפה תרגיש "חיה" ולא תצלום קפוא
+const POPULAR_PACKAGES_POLL_MS = 5 * 60 * 1000; // המנוע ברקע מרענן כל 30 דק' — מספיק לבדוק כל 5
 
 // אין כאן סטטיסטיקות פנימיות (כמה נסרק/נשלח) — הכל בעמוד מכוון ללחיצה, לא ל"דוח" על המערכת.
 export function App() {
@@ -24,10 +29,35 @@ export function App() {
   const [typeFilter, setTypeFilter] = useState(null);
   const [budgetFilter, setBudgetFilter] = useState(null);
 
+  const [popularPackages, setPopularPackages] = useState([]);
+  const [isQuestionnaireOpen, setIsQuestionnaireOpen] = useState(false);
+  const [personalizedPackages, setPersonalizedPackages] = useState(null);
+
   useEffect(() => {
     fetchPublicConfig()
       .then(setPackageConfig)
       .catch(() => setPackageConfig(null));
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    function loadPackages() {
+      fetchPopularPackages()
+        .then((res) => {
+          if (isMounted) setPopularPackages(res.packages || []);
+        })
+        .catch(() => {
+          if (isMounted) setPopularPackages([]);
+        });
+    }
+
+    loadPackages();
+    const intervalId = setInterval(loadPackages, POPULAR_PACKAGES_POLL_MS);
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
   }, []);
 
   useEffect(() => {
@@ -70,6 +100,10 @@ export function App() {
     setBudgetFilter(null);
   }
 
+  function handleQuestionnaireResults(packages) {
+    setPersonalizedPackages(packages);
+  }
+
   return (
     <NowProvider>
       <Header />
@@ -85,6 +119,14 @@ export function App() {
           <DealsFeedSidebar deals={deals} />
         </div>
       </section>
+
+      <section className="container" style={{ textAlign: 'center', paddingTop: 28 }}>
+        <button type="button" className="questionnaire-open-button" onClick={() => setIsQuestionnaireOpen(true)}>
+          {t.questionnaireOpenButton}
+        </button>
+      </section>
+
+      <PackagesStrip title={t.popularPackagesTitle} packages={popularPackages} />
 
       <section className="filter-section container">
         <FilterBar
@@ -111,6 +153,18 @@ export function App() {
           packageConfig={packageConfig}
         />
       </main>
+
+      <AnimatePresence>
+        {isQuestionnaireOpen && (
+          <QuestionnaireModal onClose={() => setIsQuestionnaireOpen(false)} onResults={handleQuestionnaireResults} />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {personalizedPackages !== null && (
+          <PersonalizedResultsModal packages={personalizedPackages} onClose={() => setPersonalizedPackages(null)} />
+        )}
+      </AnimatePresence>
     </NowProvider>
   );
 }

@@ -28,6 +28,22 @@ export function fetchPublicConfig() {
   return getJson('/config');
 }
 
+export function fetchPopularPackages() {
+  return getJson('/packages/popular');
+}
+
+export async function submitQuestionnaire(answers) {
+  const res = await fetch(`${API_BASE}/packages/personalized`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(answers),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to generate personalized packages (status ${res.status})`);
+  }
+  return res.json();
+}
+
 export async function createPersonalRadar(payload) {
   const res = await fetch(`${API_BASE}/personal-radar`, {
     method: 'POST',

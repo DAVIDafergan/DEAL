@@ -8,6 +8,7 @@ import personalRadarRouter from './routes/personalRadar.js';
 import statsRouter from './routes/stats.js';
 import imagesRouter from './routes/images.js';
 import configRouter from './routes/config.js';
+import packagesRouter from './routes/packages.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // תיקיית ה-build הסטטי של ה-frontend (נוצרת על ידי `npm run build` בתיקיית web)
@@ -27,6 +28,7 @@ export function createApp() {
   app.use('/api/stats', statsRouter);
   app.use('/api/images', imagesRouter);
   app.use('/api/config', configRouter);
+  app.use('/api/packages', packagesRouter);
 
   // נתיב /api/* שלא תאם שום router — תמיד JSON, לעולם לא index.html
   app.use('/api', (_req, res) => {

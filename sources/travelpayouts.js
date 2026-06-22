@@ -83,6 +83,60 @@ export class TravelpayoutsAdapter extends FlightSourceInterface {
       .map((offer) => this._normalize(offer, origin, destination, date, currency));
   }
 
+  /**
+   * חיפוש טיסה הלוך-חזור (round trip) — לצורך מנוע החבילות. נפרד מ-searchFlights() הרגיל
+   * (one-way) כדי לא לשנות התנהגות קיימת של סריקת האנומליות. אותו endpoint, רק עם תאריך
+   * חזור ו-one_way=false.
+   */
+  async searchRoundTripFlights(origin, destination, departureDate, returnDate) {
+    if (!this.isConfigured()) {
+      throw new Error('TravelpayoutsAdapter is not configured: missing TRAVELPAYOUTS_API_TOKEN / TRAVELPAYOUTS_MARKER');
+    }
+
+    let response;
+    try {
+      response = await axios.get(TRAVELPAYOUTS_API_URL, {
+        params: {
+          origin,
+          destination,
+          departure_at: departureDate,
+          return_at: returnDate,
+          currency: 'usd',
+          token: this.apiToken,
+          limit: 10,
+          sorting: 'price',
+          one_way: false,
+        },
+        timeout: REQUEST_TIMEOUT_MS,
+      });
+    } catch (err) {
+      if (err.response?.status === 429) return [];
+      throw new Error(`TravelpayoutsAdapter round-trip request failed: ${err.message}`);
+    }
+
+    const offers = response?.data?.data;
+    if (!Array.isArray(offers) || offers.length === 0) return [];
+
+    const currency = response.data.currency || 'usd';
+
+    return offers
+      .filter((offer) => offer && typeof offer.price === 'number')
+      .map((offer) => this._normalizeRoundTrip(offer, origin, destination, departureDate, returnDate, currency));
+  }
+
+  /** מתרגם הצעת הלוך-חזור גולמית — שדות return_* נוספים מעבר ל-_normalize() הרגיל */
+  _normalizeRoundTrip(offer, origin, destination, departureDate, returnDate, currency) {
+    const base = this._normalize(offer, origin, destination, departureDate, currency);
+    return {
+      ...base,
+      returnDate: offer.return_at ? offer.return_at.slice(0, 10) : returnDate,
+      returnDepartureTime: offer.return_at || null,
+      // אין לנו משך זמן אמין למקטע החזור מה-API — לא ממציאים זמן הגעה
+      returnArrivalTime: null,
+      returnStops: Number(offer.return_transfers ?? 0),
+    };
+  }
+
   /** מתרגם הצעת מחיר גולמית מ-Travelpayouts למבנה האחיד שמשותף לכל מקורות הנתונים */
   _normalize(offer, origin, destination, date, currency) {
     const durationMinutes = Number.isFinite(offer.duration) ? offer.duration : null;

@@ -1166,3 +1166,311 @@ button {
     padding: 32px 0 20px;
   }
 }
+
+/* ---------- questionnaire entry button ---------- */
+
+.questionnaire-open-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 22px;
+  border: none;
+  border-radius: 999px;
+  background: var(--gradient-accent);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 10px 26px -10px rgba(239, 68, 68, 0.55);
+}
+
+/* ---------- questionnaire modal ---------- */
+
+.questionnaire-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(5, 6, 10, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.questionnaire-modal {
+  width: 100%;
+  max-width: 420px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.questionnaire-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.questionnaire-modal__step-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.questionnaire-modal__close {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.questionnaire-modal__loading,
+.questionnaire-modal__error {
+  text-align: center;
+  font-size: 0.92rem;
+  color: var(--color-text-secondary);
+  padding: 24px 0;
+}
+
+.questionnaire-modal__back {
+  align-self: flex-start;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 2px 0;
+}
+
+/* ---------- question step ---------- */
+
+.question-step__title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  margin: 0 0 16px;
+  text-align: center;
+}
+
+.question-step__options {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+/* ---------- choice card ---------- */
+
+.choice-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 88px;
+  padding: 14px 10px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.choice-card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+}
+
+.choice-card.is-selected {
+  border-color: transparent;
+  background: var(--gradient-accent);
+  color: #fff;
+}
+
+/* ---------- packages strip ("מוקדי דילים") ---------- */
+
+.packages-strip-section {
+  padding: 28px 0;
+}
+
+.packages-strip__title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  margin: 0 0 14px;
+}
+
+.packages-strip__empty {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.packages-strip {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scroll-snap-type: x proximity;
+}
+
+.packages-strip__item {
+  flex-shrink: 0;
+  width: 240px;
+  scroll-snap-align: start;
+}
+
+@media (min-width: 720px) {
+  .packages-strip__item {
+    width: 270px;
+  }
+}
+
+/* ---------- package card ---------- */
+
+.package-card {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--gradient-card);
+  border: 1px solid var(--color-border-subtle);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.package-card--compact {
+  cursor: pointer;
+}
+
+.package-card__media {
+  height: 110px;
+  position: relative;
+}
+
+.package-card__media::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(10, 11, 16, 0) 40%, rgba(10, 11, 16, 0.9) 100%);
+}
+
+.package-card__city {
+  position: absolute;
+  bottom: 10px;
+  inset-inline-start: 14px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  z-index: 2;
+}
+
+.package-card__body {
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.package-card__route {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.package-card__summary {
+  font-size: 0.86rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.package-card__people {
+  font-size: 0.74rem;
+  color: var(--color-text-muted);
+  margin: 0 0 4px;
+}
+
+.package-card__price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.package-card__price {
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.package-card__price-label {
+  font-size: 0.74rem;
+  color: var(--color-text-muted);
+}
+
+.package-card__compact-hint {
+  font-size: 0.7rem;
+  color: var(--color-accent-from);
+  font-weight: 600;
+  margin: 6px 0 0;
+}
+
+.package-card__actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.package-card__action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.package-card__disclaimer {
+  font-size: 0.62rem;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+  margin: 8px 0 0;
+}
+
+/* ---------- personalized results modal ---------- */
+
+.results-modal {
+  width: 100%;
+  max-width: 480px;
+  max-height: 88vh;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.results-modal__list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}

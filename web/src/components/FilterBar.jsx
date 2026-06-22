@@ -2,11 +2,11 @@ import { motion } from 'framer-motion';
 import { useLanguage } from '../context/LanguageContext.jsx';
 
 const AUDIENCE_OPTIONS = ['couples', 'families', 'solo', 'friends'];
-const TYPE_OPTIONS = ['beach', 'city', 'nature', 'shopping'];
+const TYPE_OPTIONS = ['beach', 'city', 'nature', 'shopping', 'culture'];
 const BUDGET_OPTIONS = ['500', '1000', '2000'];
 
 const AUDIENCE_LABEL_KEYS = { couples: 'audienceCouples', families: 'audienceFamilies', solo: 'audienceSolo', friends: 'audienceFriends' };
-const TYPE_LABEL_KEYS = { beach: 'typeBeach', city: 'typeCity', nature: 'typeNature', shopping: 'typeShopping' };
+const TYPE_LABEL_KEYS = { beach: 'typeBeach', city: 'typeCity', nature: 'typeNature', shopping: 'typeShopping', culture: 'typeCulture' };
 const BUDGET_LABEL_KEYS = { 500: 'budgetUnder500', 1000: 'budgetUnder1000', 2000: 'budgetUnder2000' };
 
 function FilterRow({ options, labelKeys, active, onToggle }) {

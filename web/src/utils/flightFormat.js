@@ -32,6 +32,14 @@ export function formatFlightTime(isoDateTime, lang, airportCode) {
   }).format(date);
 }
 
+/** תאריך קצר (יום+חודש בלבד, בלי שעה/יום בשבוע) — לשורת סיכום הלוך-חזור בכרטיס חבילה */
+export function formatShortDate(isoDateOnly, lang) {
+  if (!isoDateOnly) return null;
+  const date = new Date(`${isoDateOnly}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Intl.DateTimeFormat(resolveLocale(lang), { day: 'numeric', month: 'long', timeZone: 'UTC' }).format(date);
+}
+
 /** משך טיסה כולל, מתורגם — מחזיר null אם המקור לא דיווח משך (לא ממציאים) */
 export function formatDurationMinutes(minutes, t) {
   if (!Number.isFinite(minutes)) return null;
