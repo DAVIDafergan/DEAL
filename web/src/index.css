@@ -599,10 +599,19 @@ button {
 
 .filter-row {
   display: flex;
+  align-items: center;
   gap: 8px;
   overflow-x: auto;
   padding-bottom: 2px;
   scrollbar-width: none;
+}
+
+.filter-row__divider {
+  flex-shrink: 0;
+  width: 1px;
+  height: 22px;
+  background: var(--color-border);
+  margin: 0 2px;
 }
 
 .filter-row::-webkit-scrollbar {
@@ -798,6 +807,13 @@ button {
   border: 1px solid rgba(255, 255, 255, 0.22);
 }
 
+.deal-card__badge--cheapest {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #1a1306;
+  font-weight: 800;
+  box-shadow: 0 0 14px rgba(251, 191, 36, 0.6);
+}
+
 .deal-card__route {
   position: absolute;
   bottom: 12px;
@@ -853,6 +869,40 @@ button {
   font-size: 1.9rem;
   font-weight: 800;
   letter-spacing: -0.01em;
+  border-radius: 8px;
+  padding: 1px 4px;
+}
+
+.deal-card__price--flash-down {
+  color: #22c55e;
+  animation: price-flash-down 2.2s ease-out;
+}
+
+.deal-card__price--flash-up {
+  color: #f59e0b;
+  animation: price-flash-up 2.2s ease-out;
+}
+
+@keyframes price-flash-down {
+  0% {
+    background-color: rgba(34, 197, 94, 0.55);
+    box-shadow: 0 0 18px rgba(34, 197, 94, 0.85);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: none;
+  }
+}
+
+@keyframes price-flash-up {
+  0% {
+    background-color: rgba(245, 158, 11, 0.55);
+    box-shadow: 0 0 18px rgba(245, 158, 11, 0.85);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: none;
+  }
 }
 
 .deal-card__price-avg {
@@ -898,6 +948,16 @@ button {
   background: var(--gradient-accent);
   color: #fff;
   box-shadow: 0 8px 20px -8px rgba(239, 68, 68, 0.55);
+}
+
+.deal-card__actions--secondary {
+  margin-top: -2px;
+}
+
+.deal-card__actions--secondary .deal-card__action {
+  background: transparent;
+  border: 1px dashed var(--color-border);
+  font-size: 0.78rem;
 }
 
 /* ---------- expand toggle + flight details ---------- */
@@ -1508,4 +1568,83 @@ button {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+/* ---------- add-hotel dialog ---------- */
+
+.hotel-dialog {
+  width: 100%;
+  max-width: 380px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.hotel-dialog__media {
+  height: 120px;
+  border-radius: var(--radius-md);
+  position: relative;
+  overflow: hidden;
+}
+
+.hotel-dialog__media::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(10, 11, 16, 0) 40%, rgba(10, 11, 16, 0.9) 100%);
+}
+
+.hotel-dialog__city {
+  position: absolute;
+  bottom: 10px;
+  inset-inline-start: 14px;
+  font-weight: 700;
+  z-index: 2;
+}
+
+.hotel-dialog__dates {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.hotel-dialog__date-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+
+.hotel-dialog__date-label {
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+
+.hotel-dialog__date-value {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.hotel-dialog__note {
+  font-size: 0.68rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.hotel-dialog__search-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  border-radius: var(--radius-sm);
+  background: var(--gradient-accent);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.92rem;
 }

@@ -1,6 +1,5 @@
-import { motion } from 'framer-motion';
 import { useLanguage } from '../context/LanguageContext.jsx';
-import { buildHotelUrl, buildCarRentalUrl, buildEsimUrl } from '../utils/packageLinks.js';
+import { buildHotelUrl, buildCarRentalUrl, buildEsimUrl, getHotelStayDates } from '../utils/packageLinks.js';
 
 function BedIcon() {
   return (
@@ -35,6 +34,8 @@ function SimIcon() {
  * PackageBuilder — "בנה את החופשה שלך": צ'ק-ליסט עם הטיסה (כבר נבחרה) ולינקים נפרדים
  * למלון/רכב/eSIM באמצעות Travelpayouts, כל אחד עם ה-Marker. כל רכיב הוא הזמנה נפרדת
  * אצל הספק שלו — לא רכישה אחת מאוחדת (ראו ה-disclaimer בתחתית).
+ * תוכן בלבד, בלי אנימציית כניסה משלו — נטען עכשיו תמיד בתוך BuyPackageDialog שכבר מאנימט
+ * את עצמו (modal), כדי לא לקבל אנימציה כפולה.
  */
 export function PackageBuilder({ deal, packageConfig }) {
   const { t } = useLanguage();
@@ -43,17 +44,12 @@ export function PackageBuilder({ deal, packageConfig }) {
   const hotelUrl = buildHotelUrl(deal, marker);
   const carUrl = buildCarRentalUrl(deal, marker, packageConfig?.carRentalUrlTemplate);
   const esimUrl = buildEsimUrl(deal, marker, packageConfig?.esimUrlTemplate);
+  const { isEstimate: isHotelDatesEstimate } = getHotelStayDates(deal);
 
   if (!marker) return null;
 
   return (
-    <motion.div
-      className="package-builder"
-      initial={{ height: 0, opacity: 0 }}
-      animate={{ height: 'auto', opacity: 1 }}
-      exit={{ height: 0, opacity: 0 }}
-      transition={{ duration: 0.3, ease: 'easeInOut' }}
-    >
+    <div className="package-builder">
       <p className="package-builder__title">{t.packageBuilderTitle}</p>
 
       <ul className="package-builder__list">
@@ -70,7 +66,7 @@ export function PackageBuilder({ deal, packageConfig }) {
             <a href={hotelUrl} target="_blank" rel="noopener noreferrer" className="package-builder__link">
               {t.packageHotelButton}
             </a>
-            <span className="package-builder__note">{t.packageHotelDatesNote}</span>
+            {isHotelDatesEstimate && <span className="package-builder__note">{t.packageHotelDatesNote}</span>}
           </li>
         )}
 
@@ -98,6 +94,6 @@ export function PackageBuilder({ deal, packageConfig }) {
       </ul>
 
       <p className="package-builder__disclaimer">{t.packageDisclaimer}</p>
-    </motion.div>
+    </div>
   );
 }

@@ -3,6 +3,19 @@ import { searchUnsplashPhoto, triggerUnsplashDownloadTracking } from './unsplash
 
 const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 יום — תמונות Unsplash לא משתנות, אין סיבה לרענן לעיתים קרובות
 
+let hasWarnedMissingKey = false;
+
+/** מזהיר פעם אחת בלבד (לא spam בלוג) שאין UNSPLASH_ACCESS_KEY — בדקו ב-Railway Variables */
+function warnMissingKeyOnce() {
+  if (hasWarnedMissingKey) return;
+  hasWarnedMissingKey = true;
+  console.warn(
+    '[destinationImages] UNSPLASH_ACCESS_KEY is not set — destination cards will show the gradient ' +
+      'placeholder instead of a real photo. If you set it in Railway Variables and still see this, ' +
+      'the env var isn\'t reaching this service (check the variable name/typos and redeploy).'
+  );
+}
+
 /**
  * DestinationImageService — תמונת יעד אמיתית מ-Unsplash, עם cache ב-MySQL כדי:
  *   1. לא לעבור את מכסת ה-rate-limit של Unsplash (50 בקשות/שעה ב-tier החינמי).
@@ -25,17 +38,23 @@ export async function getDestinationImage(iataCode, cityNameEn, accessKey) {
     console.error(`[destinationImages] Cache read failed for ${iataCode}:`, err.message);
   }
 
-  if (!accessKey) return null;
+  if (!accessKey) {
+    warnMissingKeyOnce();
+    return null;
+  }
 
   let photo;
   try {
     photo = await searchUnsplashPhoto(`${cityNameEn} city`, accessKey);
   } catch (err) {
-    console.error(`[destinationImages] Unsplash request failed for ${iataCode}:`, err.message);
+    console.error(`[destinationImages] Unsplash request failed for ${iataCode} — key IS configured, so this is a real error (bad key, rate limit, network):`, err.message);
     return null;
   }
 
-  if (!photo) return null;
+  if (!photo) {
+    console.warn(`[destinationImages] Unsplash returned no results for "${cityNameEn} city" (${iataCode}) — key is configured and the request succeeded, just no matching photo.`);
+    return null;
+  }
 
   try {
     await pool.query(

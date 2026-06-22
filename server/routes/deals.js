@@ -9,11 +9,15 @@ function resolveLang(query) {
   return SUPPORTED_LANGS.includes(lang) ? lang : 'en';
 }
 
-/** GET /api/deals?lang=he|en|es — רשימת הדילים הפעילים (anomaly + live_price) */
+/**
+ * GET /api/deals?lang=he|en|es&sorted=true — רשימת הדילים הפעילים (anomaly + live_price).
+ * sorted=true: מחיר עולה (הזול ביותר ראשון). בלי הפרמטר: העדכני ביותר ראשון (feed/מפה).
+ */
 router.get('/', async (req, res) => {
   const lang = resolveLang(req.query);
-  const deals = await listDeals(lang);
-  res.json({ lang, deals });
+  const sorted = req.query.sorted === 'true';
+  const deals = await listDeals(lang, { sorted });
+  res.json({ lang, deals, sorted });
 });
 
 /** GET /api/deals/:id?lang=he|en|es — פרטי דיל בודד */

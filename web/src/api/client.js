@@ -8,8 +8,8 @@ async function getJson(path) {
   return res.json();
 }
 
-export function fetchDeals(lang) {
-  return getJson(`/deals?lang=${lang}`);
+export function fetchDeals(lang, { sorted = false } = {}) {
+  return getJson(`/deals?lang=${lang}${sorted ? '&sorted=true' : ''}`);
 }
 
 export function fetchStats() {

@@ -8,7 +8,7 @@ const gridVariants = {
   visible: { transition: { staggerChildren: 0.08 } },
 };
 
-export function DealsGrid({ deals, isLoading, hasActiveFilters = false, packageConfig = null }) {
+export function DealsGrid({ deals, isLoading, hasActiveFilters = false, packageConfig = null, cheapestDealId = null }) {
   const { t } = useLanguage();
 
   if (isLoading) {
@@ -29,7 +29,7 @@ export function DealsGrid({ deals, isLoading, hasActiveFilters = false, packageC
     <motion.div className="deals-grid" variants={gridVariants} initial="hidden" animate="visible">
       <AnimatePresence>
         {deals.map((deal) => (
-          <DealCard key={deal.id} deal={deal} packageConfig={packageConfig} />
+          <DealCard key={deal.id} deal={deal} packageConfig={packageConfig} isCheapest={deal.id === cheapestDealId} />
         ))}
       </AnimatePresence>
     </motion.div>

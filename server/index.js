@@ -52,7 +52,7 @@ async function main() {
   } else if (watchedRoutes.length === 0) {
     console.warn('[deal-radar-pro] No WATCHED_ROUTES configured — scanning is disabled.');
   } else {
-    const intervalMinutes = Number(process.env.SCAN_INTERVAL_MINUTES || 5);
+    const intervalMinutes = Number(process.env.SCAN_INTERVAL_MINUTES || 15);
     // כל מסלול עושה כעת 2 קריאות API (one-way + round-trip enrichment) — סריקה תכופה על ~40
     // מסלולים יכולה לצרוך מכסה גדולה. מזהירים בלוג כדי שזה לא יתפוס בהפתעה.
     const estimatedCallsPerHour = Math.round((watchedRoutes.length * 2 * 60) / intervalMinutes);
@@ -86,6 +86,17 @@ async function main() {
     setInterval(runPackageRefresh, POPULAR_PACKAGES_INTERVAL_MINUTES * 60 * 1000);
   } else {
     console.warn('[deal-radar-pro] Travelpayouts not configured — popular package generation is disabled.');
+  }
+
+  // אישור מפורש בלוג אם UNSPLASH_ACCESS_KEY הגיע לשרת — הדרך הכי ישירה לבדוק ב-Railway אם
+  // ה-Variable שהגדרתם בכלל "נתפס" (ולא רק נשמר ב-UI בלי שה-deploy הריץ אותו).
+  if (process.env.UNSPLASH_ACCESS_KEY) {
+    console.log('[deal-radar-pro] UNSPLASH_ACCESS_KEY is set — destination photos enabled.');
+  } else {
+    console.warn(
+      '[deal-radar-pro] UNSPLASH_ACCESS_KEY is NOT set — destination cards will show the gradient ' +
+        'placeholder instead of a real photo. Set it in Railway Variables and redeploy if you want photos.'
+    );
   }
 
   app.listen(PORT, () => {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { useCountUp } from '../hooks/useCountUp.js';
@@ -9,8 +9,11 @@ import { CountdownTimer } from './heatmap/CountdownTimer.jsx';
 import { UpdatedAgoLabel } from './UpdatedAgoLabel.jsx';
 import { FlightDetails } from './FlightDetails.jsx';
 import { DestinationImage } from './DestinationImage.jsx';
-import { PackageBuilder } from './PackageBuilder.jsx';
+import { AddHotelDialog } from './AddHotelDialog.jsx';
+import { BuyPackageDialog } from './BuyPackageDialog.jsx';
 import { formatShortDate } from '../utils/flightFormat.js';
+
+const PRICE_FLASH_DURATION_MS = 2200;
 
 /** הופך מחרוזת מסלול לגוון צבע יציב, כדי שלכל מסלול יהיה placeholder גרדיאנט עקבי */
 function hueFromRoute(route) {
@@ -32,16 +35,32 @@ const cardVariants = {
  *   - anomaly: badge הנחה בוער, Risk gauge, טיימר מעקב, אזהרת סיכון.
  *   - live_price: badge "מחיר הזול ביותר" רגוע יותר, "עודכן לפני X" במקום טיימר/אזהרה
  *     (אין כאן ניתוח סיכון אמיתי — זה פשוט המחיר הנוכחי).
+ * isCheapest: הדיל הזול ביותר ברשימה המוצגת כרגע מקבל badge זהוב נפרד.
+ * המחיר עצמו "מבריק" בירוק/כתום כשהוא משתנה בין רענון לרענון (ירד/עלה, בהתאמה).
  */
-export function DealCard({ deal, packageConfig = null }) {
+export function DealCard({ deal, packageConfig = null, isCheapest = false }) {
   const { t, lang } = useLanguage();
   const [shareStatus, setShareStatus] = useState(null);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isPackageOpen, setIsPackageOpen] = useState(false);
+  const [isHotelDialogOpen, setIsHotelDialogOpen] = useState(false);
+  const [isPackageDialogOpen, setIsPackageDialogOpen] = useState(false);
   const animatedPrice = useCountUp(Math.round(deal.price));
   const hue = hueFromRoute(`${deal.origin}${deal.destination}`);
   const isAnomaly = deal.type === 'anomaly';
   const discountPercent = isAnomaly ? getDiscountPercent(deal) : 0;
+
+  // מעקב שינוי מחיר בין רענון לרענון — ירד = ירוק, עלה = כתום, אנימציית "זוהר" קצרה וברורה
+  const previousPriceRef = useRef(deal.price);
+  const [priceFlash, setPriceFlash] = useState(null); // 'up' | 'down' | null
+
+  useEffect(() => {
+    if (previousPriceRef.current !== deal.price) {
+      setPriceFlash(deal.price < previousPriceRef.current ? 'down' : 'up');
+      previousPriceRef.current = deal.price;
+      const timeout = setTimeout(() => setPriceFlash(null), PRICE_FLASH_DURATION_MS);
+      return () => clearTimeout(timeout);
+    }
+  }, [deal.price]);
 
   // הלוך-חזור מוצג רק אם יש נתון אמיתי (returnDate) — קיים ל-live_price כשהמקור תומך בכך,
   // לא קיים ל-anomaly (שם נשאר one-way במכוון, ראו DealScanner). לא ממציאים תאריך חזור.
@@ -78,8 +97,11 @@ export function DealCard({ deal, packageConfig = null }) {
         }}
       >
         <DestinationImage iataCode={deal.destination} />
-        {isAnomaly && discountPercent > 0 && <span className="deal-card__badge deal-card__badge--hot">-{discountPercent}%</span>}
-        {!isAnomaly && <span className="deal-card__badge deal-card__badge--calm">{t.bestPriceBadge}</span>}
+        {isCheapest && <span className="deal-card__badge deal-card__badge--cheapest">★ {t.cheapestBadge}</span>}
+        {!isCheapest && isAnomaly && discountPercent > 0 && (
+          <span className="deal-card__badge deal-card__badge--hot">-{discountPercent}%</span>
+        )}
+        {!isCheapest && !isAnomaly && <span className="deal-card__badge deal-card__badge--calm">{t.bestPriceBadge}</span>}
         <span className={`deal-card__route ${isRoundTrip ? 'deal-card__route--roundtrip' : ''}`}>{routeLine}</span>
       </div>
 
@@ -88,7 +110,10 @@ export function DealCard({ deal, packageConfig = null }) {
         <p className="deal-card__desc">{deal.description}</p>
 
         <div className="deal-card__price-row">
-          <span className="deal-card__price">
+          <span
+            className={`deal-card__price ${priceFlash ? `deal-card__price--flash-${priceFlash}` : ''}`}
+            key={priceFlash ? `flash-${deal.price}` : undefined}
+          >
             {animatedPrice} {deal.currency}
           </span>
           {isAnomaly && deal.movingAverage && (
@@ -126,30 +151,6 @@ export function DealCard({ deal, packageConfig = null }) {
 
         <AnimatePresence initial={false}>{isExpanded && <FlightDetails deal={deal} />}</AnimatePresence>
 
-        {packageConfig?.travelpayoutsMarker && (
-          <>
-            <button
-              type="button"
-              className="deal-card__expand-toggle deal-card__package-toggle"
-              aria-expanded={isPackageOpen}
-              onClick={() => setIsPackageOpen((prev) => !prev)}
-            >
-              <span>{t.packageToggleButton}</span>
-              <motion.span
-                className="deal-card__expand-chevron"
-                animate={{ rotate: isPackageOpen ? 180 : 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                ⌄
-              </motion.span>
-            </button>
-
-            <AnimatePresence initial={false}>
-              {isPackageOpen && <PackageBuilder deal={deal} packageConfig={packageConfig} />}
-            </AnimatePresence>
-          </>
-        )}
-
         <div className="deal-card__actions">
           <motion.button
             type="button"
@@ -172,7 +173,40 @@ export function DealCard({ deal, packageConfig = null }) {
             </motion.a>
           )}
         </div>
+
+        {packageConfig?.travelpayoutsMarker && (
+          <div className="deal-card__actions deal-card__actions--secondary">
+            <motion.button
+              type="button"
+              className="deal-card__action"
+              whileTap={{ scale: 0.96 }}
+              onClick={() => setIsHotelDialogOpen(true)}
+            >
+              {t.addHotelButton}
+            </motion.button>
+            <motion.button
+              type="button"
+              className="deal-card__action"
+              whileTap={{ scale: 0.96 }}
+              onClick={() => setIsPackageDialogOpen(true)}
+            >
+              {t.buyPackageButton}
+            </motion.button>
+          </div>
+        )}
       </div>
+
+      <AnimatePresence>
+        {isHotelDialogOpen && (
+          <AddHotelDialog deal={deal} marker={packageConfig?.travelpayoutsMarker} onClose={() => setIsHotelDialogOpen(false)} />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isPackageDialogOpen && (
+          <BuyPackageDialog deal={deal} packageConfig={packageConfig} onClose={() => setIsPackageDialogOpen(false)} />
+        )}
+      </AnimatePresence>
     </motion.article>
   );
 }

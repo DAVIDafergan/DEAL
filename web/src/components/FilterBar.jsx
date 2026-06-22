@@ -37,20 +37,10 @@ function FilterPill({ value, label, isActive, onToggle }) {
   );
 }
 
-function FilterRow({ options, labelKeys, active, onToggle }) {
-  const { t } = useLanguage();
-  return (
-    <div className="filter-row">
-      {options.map((value) => (
-        <FilterPill key={value} value={value} label={t[labelKeys[value]]} isActive={active === value} onToggle={onToggle} />
-      ))}
-    </div>
-  );
-}
-
 /**
- * FilterBar — שורות כפתורי סינון מהירים מתחת למפה: קהל / סוג יעד / תקציב.
- * כל קבוצה היא single-select עם toggle-לכיבוי (לחיצה על כפתור פעיל מנקה אותו).
+ * FilterBar — שורה אופקית אחת ברורה לכל כפתורי הסינון (קהל + סוג יעד + תקציב), עם הפרדה
+ * עדינה בין הקבוצות. לא 3 שורות נפרדות — הכל יחד, גלילה אופקית אם צריך (נוח גם בנייד וגם
+ * במחשב). כל קבוצה היא single-select עם toggle-לכיבוי.
  */
 export function FilterBar({ audience, type, budget, onChangeAudience, onChangeType, onChangeBudget, onClear }) {
   const { t } = useLanguage();
@@ -58,9 +48,23 @@ export function FilterBar({ audience, type, budget, onChangeAudience, onChangeTy
 
   return (
     <div className="filter-bar">
-      <FilterRow options={AUDIENCE_OPTIONS} labelKeys={AUDIENCE_LABEL_KEYS} active={audience} onToggle={onChangeAudience} />
-      <FilterRow options={TYPE_OPTIONS} labelKeys={TYPE_LABEL_KEYS} active={type} onToggle={onChangeType} />
-      <FilterRow options={BUDGET_OPTIONS} labelKeys={BUDGET_LABEL_KEYS} active={budget} onToggle={onChangeBudget} />
+      <div className="filter-row filter-row--unified">
+        {AUDIENCE_OPTIONS.map((value) => (
+          <FilterPill key={`a-${value}`} value={value} label={t[AUDIENCE_LABEL_KEYS[value]]} isActive={audience === value} onToggle={onChangeAudience} />
+        ))}
+
+        <span className="filter-row__divider" aria-hidden="true" />
+
+        {TYPE_OPTIONS.map((value) => (
+          <FilterPill key={`t-${value}`} value={value} label={t[TYPE_LABEL_KEYS[value]]} isActive={type === value} onToggle={onChangeType} />
+        ))}
+
+        <span className="filter-row__divider" aria-hidden="true" />
+
+        {BUDGET_OPTIONS.map((value) => (
+          <FilterPill key={`b-${value}`} value={value} label={t[BUDGET_LABEL_KEYS[value]]} isActive={budget === value} onToggle={onChangeBudget} />
+        ))}
+      </div>
 
       {hasActiveFilters && (
         <button type="button" className="filter-clear" onClick={onClear}>

@@ -19,6 +19,11 @@ function buildLivePriceId(origin, destination) {
   return `live_${origin}_${destination}`.toUpperCase();
 }
 
+// קצת יותר מ-2 מחזורי סריקה (15 דק' כל אחד, ברירת המחדל) — נותן מרווח לפספוס מחזור אחד בלי
+// "להעלים" דיל מיד. live_price שלא רוענן בחלון הזה כבר לא בטוח מדויק, אז לא מציגים אותו —
+// זה מה שגורם לדילים "שנחסלו" להיעלם מהתצוגה במקום להישאר תקועים עם מחיר ישן.
+const LIVE_PRICE_FRESHNESS_WINDOW_MS = 35 * 60 * 1000;
+
 /**
  * @param {{type: 'anomaly'|'live_price', offer: object, analysis: object|null, narrative: {he,en,es}}} dealData
  */
@@ -102,11 +107,28 @@ export async function addDeal({ type, offer, analysis = null, narrative }) {
   });
 }
 
-/** מחזיר את כל הדילים (שני הסוגים), עם הנרטיב מתורגם לשפה המבוקשת בלבד, מהעדכני ביותר */
-export async function listDeals(lang = 'en') {
+/**
+ * מחזיר את כל הדילים (שני הסוגים), עם הנרטיב מתורגם לשפה המבוקשת בלבד.
+ * live_price שלא התעדכן בחלון הרענון האחרון מוחרג בעדינות (לא "נתקע" עם מחיר ישן) —
+ * anomaly נשאר ללא הגבלת גיל, בכוונה (זה פיד היסטורי, לא "מלאי זמין כרגע").
+ *
+ * @param {string} lang
+ * @param {{sorted?: boolean}} options - sorted=true: מחיר עולה (הזול ביותר ראשון).
+ *   ברירת מחדל (false): העדכני ביותר ראשון — מתאים לפיד/מפה שרוצים "מה נכנס עכשיו".
+ */
+export async function listDeals(lang = 'en', { sorted = false } = {}) {
   try {
     const pool = getPool();
-    const [rows] = await pool.query('SELECT * FROM deals ORDER BY updated_at DESC LIMIT 500');
+    const orderClause = sorted ? 'ORDER BY price ASC' : 'ORDER BY updated_at DESC';
+    const staleCutoff = new Date(Date.now() - LIVE_PRICE_FRESHNESS_WINDOW_MS);
+
+    const [rows] = await pool.query(
+      `SELECT * FROM deals
+       WHERE type = 'anomaly' OR (type = 'live_price' AND updated_at >= ?)
+       ${orderClause}
+       LIMIT 500`,
+      [staleCutoff]
+    );
     return rows.map((row) => projectRow(row, lang));
   } catch (err) {
     console.error('[dealsStore] Failed to list deals:', err.message);

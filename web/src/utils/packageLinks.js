@@ -1,4 +1,4 @@
-const HOTEL_STAY_NIGHTS = 5; // הנחת ברירת מחדל לאורך חופשה — אין לנו תאריך חזרה (חיפוש one-way), לא נתון אמיתי
+const HOTEL_STAY_NIGHTS = 5; // הנחת ברירת מחדל לאורך חופשה — רק כשאין תאריך חזרה אמיתי
 
 function addDays(isoDate, days) {
   const date = new Date(isoDate);
@@ -7,11 +7,27 @@ function addDays(isoDate, days) {
   return date.toISOString().slice(0, 10);
 }
 
+/**
+ * תאריכי צ'ק-אין/אאוט למלון. אם יש לדיל returnDate אמיתי (live_price הלוך-חזור — ראו
+ * DealScanner) משתמשים בו כ-checkOut, כי זה תאריך החזרה האמיתי של המשתמש. אחרת (anomaly,
+ * one-way במכוון) נופלים להערכה של 5 לילות, ומסמנים isEstimate=true כדי שה-UI יבהיר שזו
+ * הערכה ולא תאריך חזרה אמיתי.
+ */
+export function getHotelStayDates(deal) {
+  const checkIn = deal.departureDate || null;
+
+  if (deal.returnDate) {
+    return { checkIn, checkOut: deal.returnDate, isEstimate: false };
+  }
+
+  const checkOut = checkIn ? addDays(checkIn, HOTEL_STAY_NIGHTS) : null;
+  return { checkIn, checkOut, isEstimate: true };
+}
+
 /** Hotellook (Travelpayouts) — פורמט לינק ידוע ויציב, עובד מיד עם ה-Marker, בלי תצורה נוספת */
 export function buildHotelUrl(deal, marker) {
   if (!marker || !deal.destination) return null;
-  const checkIn = deal.departureDate;
-  const checkOut = checkIn ? addDays(checkIn, HOTEL_STAY_NIGHTS) : null;
+  const { checkIn, checkOut } = getHotelStayDates(deal);
 
   const params = new URLSearchParams({ marker, destination: deal.destination, adults: '2' });
   if (checkIn) params.set('checkIn', checkIn);
