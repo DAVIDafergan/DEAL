@@ -4,6 +4,16 @@ import { FlightSourceInterface } from './FlightSourceInterface.js';
 const AMADEUS_AUTH_URL = 'https://test.api.amadeus.com/v1/security/oauth2/token';
 const AMADEUS_SEARCH_URL = 'https://test.api.amadeus.com/v2/shopping/flight-offers';
 
+/** מפענח משך זמן בפורמט ISO8601 ("PT3H45M") לדקות. מחזיר null אם הפורמט לא תקין — לא ממציא ערך */
+function parseIso8601DurationToMinutes(iso) {
+  if (!iso) return null;
+  const match = /^PT(?:(\d+)H)?(?:(\d+)M)?$/.exec(iso);
+  if (!match) return null;
+  const hours = Number(match[1] || 0);
+  const minutes = Number(match[2] || 0);
+  return hours * 60 + minutes;
+}
+
 /**
  * AmadeusAdapter — official Amadeus Self-Service API integration (free tier, test environment).
  * Uses OAuth2 client-credentials flow. No scraping, no unofficial endpoints.
@@ -73,14 +83,19 @@ export class AmadeusAdapter extends FlightSourceInterface {
   /** מתרגם תשובת Amadeus הגולמית למבנה האחיד שמשותף לכל מקורות הנתונים */
   _normalize(offer, origin, destination, date) {
     const firstItinerary = offer.itineraries?.[0];
-    const firstSegment = firstItinerary?.segments?.[0];
-    const stops = (firstItinerary?.segments?.length || 1) - 1;
+    const segments = firstItinerary?.segments || [];
+    const firstSegment = segments[0];
+    const lastSegment = segments[segments.length - 1];
+    const stops = (segments.length || 1) - 1;
 
     return {
       source: this.name,
       origin,
       destination,
       departureDate: date,
+      departureTime: firstSegment?.departure?.at || null,
+      arrivalTime: lastSegment?.arrival?.at || null,
+      durationMinutes: parseIso8601DurationToMinutes(firstItinerary?.duration),
       price: Number(offer.price?.total ?? offer.price?.grandTotal ?? 0),
       currency: offer.price?.currency || 'USD',
       stops,

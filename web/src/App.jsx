@@ -1,22 +1,34 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLanguage } from './context/LanguageContext.jsx';
 import { NowProvider } from './context/NowContext.jsx';
-import { fetchDeals, fetchStats } from './api/client.js';
+import { fetchDeals, fetchPublicConfig } from './api/client.js';
+import { filterDeals } from './utils/filterDeals.js';
 import { Header } from './components/Header.jsx';
-import { StatsBar } from './components/StatsBar.jsx';
 import { DealsGrid } from './components/DealsGrid.jsx';
+import { FilterBar } from './components/FilterBar.jsx';
 import { WorldHeatmap } from './components/heatmap/WorldHeatmap.jsx';
 import { LiveDealsCounter } from './components/heatmap/LiveDealsCounter.jsx';
 import { DealsFeedSidebar } from './components/heatmap/DealsFeedSidebar.jsx';
 
 const POLL_INTERVAL_MS = 20000; // רענון תקופתי כדי שהמפה תרגיש "חיה" ולא תצלום קפוא
 
+// אין כאן סטטיסטיקות פנימיות (כמה נסרק/נשלח) — הכל בעמוד מכוון ללחיצה, לא ל"דוח" על המערכת.
 export function App() {
   const { lang, t } = useLanguage();
   const [deals, setDeals] = useState([]);
-  const [stats, setStats] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [packageConfig, setPackageConfig] = useState(null);
   const isFirstLoadRef = useRef(true);
+
+  const [audienceFilter, setAudienceFilter] = useState(null);
+  const [typeFilter, setTypeFilter] = useState(null);
+  const [budgetFilter, setBudgetFilter] = useState(null);
+
+  useEffect(() => {
+    fetchPublicConfig()
+      .then(setPackageConfig)
+      .catch(() => setPackageConfig(null));
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -24,11 +36,10 @@ export function App() {
     function load() {
       if (isFirstLoadRef.current) setIsLoading(true);
 
-      return Promise.all([fetchDeals(lang), fetchStats()])
-        .then(([dealsRes, statsRes]) => {
+      return fetchDeals(lang)
+        .then((dealsRes) => {
           if (!isMounted) return;
           setDeals(dealsRes.deals || []);
-          setStats(statsRes);
         })
         .catch(() => {
           if (isMounted && isFirstLoadRef.current) setDeals([]);
@@ -48,6 +59,17 @@ export function App() {
     };
   }, [lang]);
 
+  const filteredDeals = useMemo(
+    () => filterDeals(deals, { audience: audienceFilter, type: typeFilter, budget: budgetFilter }),
+    [deals, audienceFilter, typeFilter, budgetFilter]
+  );
+
+  function handleClearFilters() {
+    setAudienceFilter(null);
+    setTypeFilter(null);
+    setBudgetFilter(null);
+  }
+
   return (
     <NowProvider>
       <Header />
@@ -64,14 +86,30 @@ export function App() {
         </div>
       </section>
 
+      <section className="filter-section container">
+        <FilterBar
+          audience={audienceFilter}
+          type={typeFilter}
+          budget={budgetFilter}
+          onChangeAudience={setAudienceFilter}
+          onChangeType={setTypeFilter}
+          onChangeBudget={setBudgetFilter}
+          onClear={handleClearFilters}
+        />
+      </section>
+
       <main className="container">
         <section className="page-hero">
           <h1>{t.heroTitle}</h1>
           <p>{t.heroSubtitle}</p>
         </section>
 
-        <StatsBar stats={stats} />
-        <DealsGrid deals={deals} isLoading={isLoading} />
+        <DealsGrid
+          deals={filteredDeals}
+          isLoading={isLoading}
+          hasActiveFilters={Boolean(audienceFilter || typeFilter || budgetFilter)}
+          packageConfig={packageConfig}
+        />
       </main>
     </NowProvider>
   );

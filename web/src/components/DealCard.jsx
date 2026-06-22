@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { useCountUp } from '../hooks/useCountUp.js';
 import { getDiscountPercent } from '../utils/dealHeat.js';
@@ -7,6 +7,9 @@ import { shareDeal } from '../utils/share.js';
 import { RiskGauge } from './RiskGauge.jsx';
 import { CountdownTimer } from './heatmap/CountdownTimer.jsx';
 import { UpdatedAgoLabel } from './UpdatedAgoLabel.jsx';
+import { FlightDetails } from './FlightDetails.jsx';
+import { DestinationImage } from './DestinationImage.jsx';
+import { PackageBuilder } from './PackageBuilder.jsx';
 
 /** הופך מחרוזת מסלול לגוון צבע יציב, כדי שלכל מסלול יהיה placeholder גרדיאנט עקבי */
 function hueFromRoute(route) {
@@ -20,6 +23,7 @@ function hueFromRoute(route) {
 const cardVariants = {
   hidden: { opacity: 0, y: 24 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: 'easeOut' } },
+  exit: { opacity: 0, scale: 0.92, transition: { duration: 0.22, ease: 'easeIn' } },
 };
 
 /**
@@ -28,9 +32,11 @@ const cardVariants = {
  *   - live_price: badge "מחיר הזול ביותר" רגוע יותר, "עודכן לפני X" במקום טיימר/אזהרה
  *     (אין כאן ניתוח סיכון אמיתי — זה פשוט המחיר הנוכחי).
  */
-export function DealCard({ deal }) {
+export function DealCard({ deal, packageConfig = null }) {
   const { t } = useLanguage();
   const [shareStatus, setShareStatus] = useState(null);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isPackageOpen, setIsPackageOpen] = useState(false);
   const animatedPrice = useCountUp(Math.round(deal.price));
   const hue = hueFromRoute(`${deal.origin}${deal.destination}`);
   const isAnomaly = deal.type === 'anomaly';
@@ -58,6 +64,7 @@ export function DealCard({ deal }) {
           background: `linear-gradient(135deg, hsl(${hue}, 65%, 38%), hsl(${(hue + 50) % 360}, 70%, 22%))`,
         }}
       >
+        <DestinationImage iataCode={deal.destination} />
         {isAnomaly && discountPercent > 0 && <span className="deal-card__badge deal-card__badge--hot">-{discountPercent}%</span>}
         {!isAnomaly && <span className="deal-card__badge deal-card__badge--calm">{t.bestPriceBadge}</span>}
         <span className="deal-card__route">
@@ -88,6 +95,48 @@ export function DealCard({ deal }) {
           </>
         ) : (
           <UpdatedAgoLabel updatedAt={deal.updatedAt} className="deal-card__updated" />
+        )}
+
+        <button
+          type="button"
+          className="deal-card__expand-toggle"
+          aria-expanded={isExpanded}
+          onClick={() => setIsExpanded((prev) => !prev)}
+        >
+          <span>{t.flightDetailsButton}</span>
+          <motion.span
+            className="deal-card__expand-chevron"
+            animate={{ rotate: isExpanded ? 180 : 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            ⌄
+          </motion.span>
+        </button>
+
+        <AnimatePresence initial={false}>{isExpanded && <FlightDetails deal={deal} />}</AnimatePresence>
+
+        {packageConfig?.travelpayoutsMarker && (
+          <>
+            <button
+              type="button"
+              className="deal-card__expand-toggle deal-card__package-toggle"
+              aria-expanded={isPackageOpen}
+              onClick={() => setIsPackageOpen((prev) => !prev)}
+            >
+              <span>{t.packageToggleButton}</span>
+              <motion.span
+                className="deal-card__expand-chevron"
+                animate={{ rotate: isPackageOpen ? 180 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                ⌄
+              </motion.span>
+            </button>
+
+            <AnimatePresence initial={false}>
+              {isPackageOpen && <PackageBuilder deal={deal} packageConfig={packageConfig} />}
+            </AnimatePresence>
+          </>
         )}
 
         <div className="deal-card__actions">

@@ -54,6 +54,33 @@ export function isDbReady() {
   return ready;
 }
 
+/**
+ * הוספת עמודה לטבלה קיימת בצורה בטוחה — בודקים אם העמודה כבר קיימת לפני ALTER, כדי שזה יעבוד
+ * גם על טבלת deals שכבר פרוסה ב-Railway (CREATE TABLE IF NOT EXISTS לא מוסיף עמודות לטבלה
+ * שכבר קיימת, אז צריך migration נפרד לכל עמודה חדשה שמתווספת בהמשך).
+ *
+ * Safely adds a column to an existing table — checks existence first so this also works
+ * against an already-deployed `deals` table (CREATE TABLE IF NOT EXISTS won't add columns
+ * to a table that already exists; new columns need an explicit migration like this one).
+ */
+async function ensureColumn(connection, table, column, definition) {
+  const [rows] = await connection.query(
+    `SELECT COUNT(*) AS count FROM information_schema.columns
+     WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?`,
+    [table, column]
+  );
+  if (rows[0].count === 0) {
+    await connection.query(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+    console.log(`[deal-radar-pro] Migrated: added column ${table}.${column}`);
+  }
+}
+
+const MIGRATIONS = [
+  (connection) => ensureColumn(connection, 'deals', 'departure_at', 'DATETIME NULL'),
+  (connection) => ensureColumn(connection, 'deals', 'arrival_at', 'DATETIME NULL'),
+  (connection) => ensureColumn(connection, 'deals', 'duration_minutes', 'INT NULL'),
+];
+
 const SCHEMA_STATEMENTS = [
   `CREATE TABLE IF NOT EXISTS price_history (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -91,6 +118,14 @@ const SCHEMA_STATEMENTS = [
     sent_at DATETIME NOT NULL,
     INDEX idx_deals_sent_sent_at (sent_at)
   ) ENGINE=InnoDB`,
+  `CREATE TABLE IF NOT EXISTS destination_images (
+    iata_code VARCHAR(8) PRIMARY KEY,
+    image_url TEXT NULL,
+    thumb_url TEXT NULL,
+    attribution_name VARCHAR(255) NULL,
+    attribution_url TEXT NULL,
+    fetched_at DATETIME NOT NULL
+  ) ENGINE=InnoDB`,
 ];
 
 /**
@@ -117,6 +152,9 @@ export async function connectWithRetry({ maxAttempts = Infinity, baseDelayMs = 2
         try {
           for (const statement of SCHEMA_STATEMENTS) {
             await connection.query(statement);
+          }
+          for (const migration of MIGRATIONS) {
+            await migration(connection);
           }
         } finally {
           connection.release();

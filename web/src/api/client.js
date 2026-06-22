@@ -16,6 +16,18 @@ export function fetchStats() {
   return getJson('/stats');
 }
 
+/** מחזיר null בעדינות אם אין תמונה (404) — לא נחשב שגיאה, פשוט נופלים ל-gradient placeholder */
+export async function fetchDestinationImage(iataCode) {
+  const res = await fetch(`${API_BASE}/images/${iataCode}`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Request to /images/${iataCode} failed with status ${res.status}`);
+  return res.json();
+}
+
+export function fetchPublicConfig() {
+  return getJson('/config');
+}
+
 export async function createPersonalRadar(payload) {
   const res = await fetch(`${API_BASE}/personal-radar`, {
     method: 'POST',

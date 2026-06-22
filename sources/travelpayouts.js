@@ -5,6 +5,14 @@ const TRAVELPAYOUTS_API_URL = 'https://api.travelpayouts.com/aviasales/v3/prices
 const AVIASALES_BASE_URL = 'https://www.aviasales.com';
 const REQUEST_TIMEOUT_MS = 10000;
 
+/** מוסיף דקות לזמן ISO ומחזיר ISO חדש. מחזיר null אם אחד מהקלטים לא תקין — לא ממציא זמן הגעה */
+function addMinutesToIso(isoString, minutes) {
+  if (!isoString || !Number.isFinite(minutes)) return null;
+  const date = new Date(isoString);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Date(date.getTime() + minutes * 60000).toISOString();
+}
+
 /**
  * TravelpayoutsAdapter — אינטגרציה רשמית עם Travelpayouts Flight Data API (מבוסס Aviasales).
  * אין web scraping — רק קריאת API רשמית עם טוקן שותפים (Partner API token).
@@ -77,11 +85,16 @@ export class TravelpayoutsAdapter extends FlightSourceInterface {
 
   /** מתרגם הצעת מחיר גולמית מ-Travelpayouts למבנה האחיד שמשותף לכל מקורות הנתונים */
   _normalize(offer, origin, destination, date, currency) {
+    const durationMinutes = Number.isFinite(offer.duration) ? offer.duration : null;
+
     return {
       source: this.name,
       origin,
       destination,
       departureDate: offer.departure_at ? offer.departure_at.slice(0, 10) : date,
+      departureTime: offer.departure_at || null,
+      arrivalTime: addMinutesToIso(offer.departure_at, durationMinutes),
+      durationMinutes,
       price: Number(offer.price),
       currency: currency.toUpperCase(),
       stops: Number(offer.transfers ?? 0),

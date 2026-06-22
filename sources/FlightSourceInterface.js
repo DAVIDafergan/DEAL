@@ -29,6 +29,9 @@ export class FlightSourceInterface {
  * @property {string} origin
  * @property {string} destination
  * @property {string} departureDate - ISO date
+ * @property {string|null} departureTime - full ISO datetime of departure, if the source provides it; otherwise null (never fabricated)
+ * @property {string|null} arrivalTime   - full ISO datetime of final arrival, if derivable from the source; otherwise null
+ * @property {number|null} durationMinutes - total itinerary duration in minutes, if the source provides it; otherwise null
  * @property {number} price         - total price as a plain number
  * @property {string} currency      - ISO currency code, e.g. "USD"
  * @property {number} stops

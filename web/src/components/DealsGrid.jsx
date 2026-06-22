@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { DealCard } from './DealCard.jsx';
 import { SkeletonCard } from './SkeletonCard.jsx';
@@ -8,7 +8,7 @@ const gridVariants = {
   visible: { transition: { staggerChildren: 0.08 } },
 };
 
-export function DealsGrid({ deals, isLoading }) {
+export function DealsGrid({ deals, isLoading, hasActiveFilters = false, packageConfig = null }) {
   const { t } = useLanguage();
 
   if (isLoading) {
@@ -22,14 +22,16 @@ export function DealsGrid({ deals, isLoading }) {
   }
 
   if (deals.length === 0) {
-    return <p className="deal-card__desc">{t.empty}</p>;
+    return <p className="deal-card__desc">{hasActiveFilters ? t.noFilteredResults : t.empty}</p>;
   }
 
   return (
     <motion.div className="deals-grid" variants={gridVariants} initial="hidden" animate="visible">
-      {deals.map((deal) => (
-        <DealCard key={deal.id} deal={deal} />
-      ))}
+      <AnimatePresence>
+        {deals.map((deal) => (
+          <DealCard key={deal.id} deal={deal} packageConfig={packageConfig} />
+        ))}
+      </AnimatePresence>
     </motion.div>
   );
 }
