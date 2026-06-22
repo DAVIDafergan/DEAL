@@ -1,36 +1,30 @@
-import { motion } from 'framer-motion';
 import { useLanguage } from '../context/LanguageContext.jsx';
-import { PackageBuilder } from './PackageBuilder.jsx';
+import { BundleModal } from './BundleModal.jsx';
+import { buildHotelUrl, buildCarRentalUrl, buildEsimUrl } from '../utils/packageLinks.js';
 
-/** BuyPackageDialog — עוטף את PackageBuilder (4 הבחירות: טיסה+מלון+רכב+SIM) בדיאלוג מסודר */
+/**
+ * BuyPackageDialog — בונה את רשימת הפריטים (טיסה + כל לינק נוסף שיש לו URL אמיתי: מלון/רכב/
+ * eSIM) ומעביר ל-BundleModal הגנרי. בלי breakdown כאן בכוונה: דילי ה-grid (anomaly/live_price)
+ * הם טיסה בודדת — יש לנו רק מחיר טיסה אמיתי (כבר מוצג על הכרטיס), אין לנו מחיר מלון אמיתי
+ * כדי להציג total הגיוני שמשלב את שניהם, אז לא בונים breakdown מזויף. ה-breakdown האמיתי
+ * (טיסה+מלון, שני המחירים אמיתיים) קיים רק בפיד הווייב — ראו web/src/vibe/DealSlide.jsx.
+ */
 export function BuyPackageDialog({ deal, packageConfig, onClose }) {
   const { t } = useLanguage();
+  const marker = packageConfig?.travelpayoutsMarker;
 
-  return (
-    <motion.div
-      className="questionnaire-overlay"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
-    >
-      <motion.div
-        className="results-modal glass-panel"
-        onClick={(event) => event.stopPropagation()}
-        initial={{ scale: 0.92, opacity: 0, y: 16 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.92, opacity: 0, y: 16 }}
-        transition={{ type: 'spring', stiffness: 280, damping: 26 }}
-      >
-        <div className="questionnaire-modal__header">
-          <span className="questionnaire-modal__step-label">{t.buyPackageButton}</span>
-          <button type="button" className="questionnaire-modal__close" onClick={onClose} aria-label={t.questionnaireCloseButton}>
-            ×
-          </button>
-        </div>
+  if (!marker) return null;
 
-        <PackageBuilder deal={deal} packageConfig={packageConfig} />
-      </motion.div>
-    </motion.div>
-  );
+  const hotelUrl = buildHotelUrl(deal, marker);
+  const carUrl = buildCarRentalUrl(deal, marker, packageConfig?.carRentalUrlTemplate);
+  const esimUrl = buildEsimUrl(deal, marker, packageConfig?.esimUrlTemplate);
+
+  const items = [
+    deal.bookingUrl && { key: 'flight', icon: '✈️', labelKey: 'packageFlightLabel', url: deal.bookingUrl, color: 'blue' },
+    hotelUrl && { key: 'hotel', icon: '🏨', labelKey: 'packageHotelButton', url: hotelUrl, color: 'green' },
+    carUrl && { key: 'car', icon: '🚗', labelKey: 'packageCarButton', url: carUrl, color: 'orange' },
+    esimUrl && { key: 'esim', icon: '📱', labelKey: 'packageEsimButton', url: esimUrl, color: 'purple' },
+  ].filter(Boolean);
+
+  return <BundleModal title={t.buyPackageButton} items={items} onClose={onClose} />;
 }
