@@ -5,8 +5,9 @@ import { DealBreakdown } from './DealBreakdown.jsx';
 
 /**
  * BundleModal — דיאלוג "קנה חבילה" גנרי: breakdown אופציונלי (רק כש-יש מחיר אמיתי לכל
- * הרכיבים שמוצגים בו) + כפתורים צבעוניים, אחד לכל רכיב (טיסה/מלון/רכב/eSIM), שכל אחד
- * פותח deep link אמיתי בטאב חדש ומסומן ב-✓ אחרי לחיצה. "All set" מוצג כשכולם נלחצו.
+ * הרכיבים שמוצגים בו) + כפתור אחד לכל רכיב (טיסה/מלון/רכב/eSIM), כולם באותו עיצוב/צבע
+ * אחיד (לא צבעוני-לפי-סוג — פשוט ומקצועי) — מובחנים רק ב-icon+label. כל לחיצה פותחת
+ * deep link אמיתי בטאב חדש ומסומנת ב-✓. "All set" מוצג כשכולם נלחצו.
  * כל רכיב הוא הזמנה נפרדת אצל הספק שלו — לא רכישה אחת מאוחדת (ראו ה-disclaimer בתחתית).
  */
 export function BundleModal({ title, breakdown = null, items, onClose }) {
@@ -54,7 +55,7 @@ export function BundleModal({ title, breakdown = null, items, onClose }) {
               <motion.button
                 key={item.key}
                 type="button"
-                className={`bundle-modal__item bundle-modal__item--${item.color} ${isDone ? 'is-done' : ''}`}
+                className={`bundle-modal__item ${isDone ? 'is-done' : ''}`}
                 whileTap={{ scale: 0.96 }}
                 onClick={() => handleItemClick(item)}
               >

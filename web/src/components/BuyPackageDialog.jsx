@@ -20,10 +20,10 @@ export function BuyPackageDialog({ deal, packageConfig, onClose }) {
   const esimUrl = buildEsimUrl(deal, marker, packageConfig?.esimUrlTemplate);
 
   const items = [
-    deal.bookingUrl && { key: 'flight', icon: '✈️', labelKey: 'packageFlightLabel', url: deal.bookingUrl, color: 'blue' },
-    hotelUrl && { key: 'hotel', icon: '🏨', labelKey: 'packageHotelButton', url: hotelUrl, color: 'green' },
-    carUrl && { key: 'car', icon: '🚗', labelKey: 'packageCarButton', url: carUrl, color: 'orange' },
-    esimUrl && { key: 'esim', icon: '📱', labelKey: 'packageEsimButton', url: esimUrl, color: 'purple' },
+    deal.bookingUrl && { key: 'flight', icon: '✈️', labelKey: 'packageFlightLabel', url: deal.bookingUrl },
+    hotelUrl && { key: 'hotel', icon: '🏨', labelKey: 'packageHotelButton', url: hotelUrl },
+    carUrl && { key: 'car', icon: '🚗', labelKey: 'packageCarButton', url: carUrl },
+    esimUrl && { key: 'esim', icon: '📱', labelKey: 'packageEsimButton', url: esimUrl },
   ].filter(Boolean);
 
   return <BundleModal title={t.buyPackageButton} items={items} onClose={onClose} />;

@@ -765,6 +765,7 @@ button {
 .deal-card__media {
   height: 130px;
   position: relative;
+  background: var(--gradient-card);
 }
 
 .deal-card__media::after {
@@ -1137,14 +1138,14 @@ button {
 .bundle-modal {
   width: 100%;
   max-width: 400px;
-  padding: 20px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
 .bundle-modal__hint {
-  font-size: 0.74rem;
+  font-size: 0.8rem;
   color: var(--color-text-muted);
   margin: 0;
 }
@@ -1152,43 +1153,29 @@ button {
 .bundle-modal__items {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .bundle-modal__item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
-  border-radius: var(--radius-sm);
+  gap: 12px;
+  min-height: 52px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
   border: 1px solid transparent;
+  background: var(--gradient-accent);
   color: #fff;
   font-weight: 700;
-  font-size: 0.9rem;
-}
-
-.bundle-modal__item--blue {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-}
-
-.bundle-modal__item--green {
-  background: linear-gradient(135deg, #22c55e, #16a34a);
-}
-
-.bundle-modal__item--purple {
-  background: linear-gradient(135deg, #a855f7, #9333ea);
-}
-
-.bundle-modal__item--orange {
-  background: linear-gradient(135deg, #f97316, #ea580c);
+  font-size: 0.95rem;
 }
 
 .bundle-modal__item.is-done {
-  opacity: 0.6;
+  opacity: 0.55;
 }
 
 .bundle-modal__item-icon {
-  font-size: 1.15rem;
+  font-size: 1.2rem;
 }
 
 .bundle-modal__item-label {
@@ -1524,6 +1511,7 @@ button {
 .package-card__media {
   height: 110px;
   position: relative;
+  background: var(--gradient-card);
 }
 
 .package-card__media::after {

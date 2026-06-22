@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useLanguage } from '../context/LanguageContext.jsx';
 
@@ -21,8 +21,9 @@ const buttonVariants = {
 };
 
 /**
- * VibeOnboarding — מסך הכניסה ל"ווייב פיד" (/feed): שאלה אחת, ארבעה כפתורי ענק, Fade Out
- * חלק ומעבר לפיד (/feed/:vibe). Zero friction בכוונה — בלי טקסט מסביר, בלי שדות קלט.
+ * VibeOnboarding — מסך הבית (/): שאלה אחת, ארבעה כפתורי ענק, Fade Out חלק ומעבר לפיד
+ * (/:vibe). Zero friction בכוונה — בלי טקסט מסביר, בלי שדות קלט, בלי כפתורים אחרים —
+ * חוץ מלינק קטן ולא בולט ל-/search (גריד/מפה/שאלון הישנים), לפי הנחיה מפורשת.
  */
 export function VibeOnboarding() {
   const { t } = useLanguage();
@@ -31,7 +32,7 @@ export function VibeOnboarding() {
 
   function handleSelect(vibeKey) {
     setSelectedVibe(vibeKey);
-    setTimeout(() => navigate(`/feed/${vibeKey}`), 380);
+    setTimeout(() => navigate(`/${vibeKey}`), 380);
   }
 
   return (
@@ -59,6 +60,10 @@ export function VibeOnboarding() {
           </motion.button>
         ))}
       </div>
+
+      <Link to="/search" className="vibe-onboarding__search-link">
+        {t.searchNavLabel}
+      </Link>
     </motion.div>
   );
 }

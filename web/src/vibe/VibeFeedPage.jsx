@@ -6,7 +6,7 @@ import { NowProvider } from '../context/NowContext.jsx';
 import { DealSlide } from './DealSlide.jsx';
 
 /**
- * VibeFeedPage — הפיד עצמו (/feed/:vibe): גלילה אנכית מלאת-מסך עם scroll-snap טבעי של
+ * VibeFeedPage — הפיד עצמו (/:vibe): גלילה אנכית מלאת-מסך עם scroll-snap טבעי של
  * הדפדפן (לא ספריית swipe חיצונית) — זה מה שנותן "swipe up/down חלק ומדויק, אין lag" בלי
  * קוד מותאם-אישית לזיהוי מחוות. כל שקף הוא DealSlide אחד (100vh).
  * עטוף ב-NowProvider משלו: זה route נפרד מ-App.jsx (לא מקונן בתוכו), אז אין לו גישה
@@ -54,7 +54,7 @@ export function VibeFeedPage() {
     return (
       <div className="vibe-feed-page vibe-feed-page--centered">
         <p>{t.feedEmptyMessage}</p>
-        <button type="button" className="vibe-feed-page__back-button" onClick={() => navigate('/feed')}>
+        <button type="button" className="vibe-feed-page__back-button" onClick={() => navigate('/')}>
           {t.vibeBackButton}
         </button>
       </div>
@@ -64,7 +64,7 @@ export function VibeFeedPage() {
   return (
     <NowProvider>
       <div className="vibe-feed-page">
-        <button type="button" className="vibe-feed-page__back-button vibe-feed-page__back-button--floating" onClick={() => navigate('/feed')}>
+        <button type="button" className="vibe-feed-page__back-button vibe-feed-page__back-button--floating" onClick={() => navigate('/')}>
           {t.vibeBackButton}
         </button>
         <div className="vibe-feed-page__scroller">

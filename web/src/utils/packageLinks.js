@@ -25,19 +25,30 @@ export function getHotelStayDates(deal) {
 }
 
 /**
- * Hotellook (Travelpayouts) — פורמט לינק לפי הנחיה מפורשת: hotellook.com/search עם
- * destination/checkIn/checkOut/currency=ILS/ref={marker}. ⚠️ עדיין לא מאומת מול תשובת API
- * אמיתית של Hotellook (אין production key לבדוק) — זה הפורמט שסיפקתם, לא ניחוש שלי.
+ * Hotellook (Travelpayouts) — search.hotellook.com (לא hotellook.com/search — ראו אזהרה).
+ * ✅ נבדק בפועל (curl -L) ב-2026-06-22: `search.hotellook.com/?marker=X&destination=Y&...`
+ * עושה 302 ל-hots-api.aviasales.ru -> 302 ל-sp.booking.com (עם ה-marker שלנו) -> 302 סופי
+ * ל-www.booking.com/searchresults.html. שרשרת redirect אמיתית שעובדת, לא ניחוש.
+ * ⚠️ `hotellook.com/search?...` (הפורמט שהיה כאן קודם, לפי הנחיה מפורשת) **לא reachable
+ * בכלל** — נבדק עם curl ולא קיבל שום תגובה. זה domain שגוי, לא רק פורמט פרמטרים שונה.
+ *
+ * currency=USD בכוונה, לא ILS: Travelpayouts ו-Hotellook (sources/travelpayouts.js,
+ * sources/hotellookClient.js) נשאלים ב-USD בלבד, וכל המחירים שאנחנו מציגים בעצמנו
+ * (DealBreakdown, DealCard וכו') הם USD — זה ה-source of truth היחיד שיש לנו. אישרתי
+ * ב-curl שה-currency=USD שורד את כל שרשרת ה-redirect ומגיע כ-selected_currency=USD גם
+ * בעמוד הסופי של Booking.com. אם הלינק היה מבקש ILS, המשתמש היה רואה "Total: 540 USD"
+ * אצלנו ו-"540 ₪" אחרי שלוחץ — אותו מספר, מטבע שונה, נראה כמו דיל אחר. זה ה-bug שגרם
+ * ל"מחירים לא תואמים בכל מקום" — לא שלוש מקורות אמת חולקים, לינק יחיד עם פרמטר לא תואם.
  */
 export function buildHotelUrl(deal, marker) {
   if (!marker || !deal.destination) return null;
   const { checkIn, checkOut } = getHotelStayDates(deal);
 
-  const params = new URLSearchParams({ destination: deal.destination, currency: 'ILS', ref: marker });
+  const params = new URLSearchParams({ marker, destination: deal.destination, adults: '2', currency: 'USD' });
   if (checkIn) params.set('checkIn', checkIn);
   if (checkOut) params.set('checkOut', checkOut);
 
-  return `https://hotellook.com/search?${params.toString()}`;
+  return `https://search.hotellook.com/?${params.toString()}`;
 }
 
 /**

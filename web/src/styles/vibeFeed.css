@@ -52,6 +52,14 @@
   font-weight: 700;
 }
 
+.vibe-onboarding__search-link {
+  margin-top: 8px;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  text-decoration: underline;
+  text-decoration-color: var(--color-border);
+}
+
 /* ---------- feed page + scroller ---------- */
 
 .vibe-feed-page {
@@ -115,6 +123,7 @@
 .deal-slide__media {
   position: absolute;
   inset: 0;
+  background: var(--color-heatmap-bg);
 }
 
 .deal-slide__video {

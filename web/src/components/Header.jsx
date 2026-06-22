@@ -14,7 +14,7 @@ export function Header() {
           <span className="brand-sub">{t.brandSub}</span>
         </div>
         <div className="top-bar__actions">
-          <Link to="/feed" className="top-bar__vibe-link">
+          <Link to="/" className="top-bar__vibe-link">
             {t.vibeFeedNavLabel}
           </Link>
           <LanguageSwitcher />

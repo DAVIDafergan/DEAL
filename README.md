@@ -251,14 +251,17 @@ round-trip ל-live-price) — ⚠️ עם `SCAN_INTERVAL_MINUTES=5` (ברירת 
 קובץ התמונה עצמו נכשל לטעון (`onError`). ה-gradient placeholder (per-destination, לא generic)
 ממשיך לעבוד תמיד כ-fallback, ול-`<img>` יש `loading="lazy"`.
 
-## Vibe Feed (`/feed`) — פיד מסך-מלא בסטייל TikTok
+## Vibe Feed (`/`) — פיד מסך-מלא בסטייל TikTok, עכשיו הבית
 
-מסך/route חדש **בנוסף** לעמוד הבית הקיים (לא מחליף אותו — `/` נשאר כמו שהיה: heatmap, רשת,
-פילטרים, שאלון). `/feed` מציג שאלון-ווייב אחד (urban/beach/nature/romantic, 4 כפתורי ענק,
-`web/src/vibe/VibeOnboarding.jsx`), ואז עובר ל-`/feed/:vibe` — פיד גלילה אנכית מלא-מסך
-(scroll-snap טבעי של הדפדפן, לא ספריית swipe חיצונית — זה מה שנותן גלילה חלקה בלי lag).
+⚠️ **שינוי routing**: בסבב קודם `/feed` היה route חדש **בנוסף** לעמוד הבית (heatmap/רשת/
+פילטרים/שאלון שנשאר ב-`/`). זה התהפך לפי הנחיה מפורשת: **`/` הוא עכשיו הפיד**
+(`web/src/vibe/VibeOnboarding.jsx` — שאלון-ווייב אחד, 4 כפתורי ענק, urban/beach/nature/
+romantic), ועובר ל-`/:vibe` — פיד גלילה אנכית מלא-מסך (scroll-snap טבעי של הדפדפן, לא
+ספריית swipe חיצונית). עמוד הבית הישן (heatmap/רשת/פילטרים/שאלון, `App.jsx`) **לא נמחק** —
+זמין ב-`/search`, מקושר רק כלינק קטן ולא בולט מ-`VibeOnboarding` (`searchNavLabel`), בדיוק
+לפי "אופציונלי, לא ב-front". `Header.jsx` (חלק מ-`/search`) מקשר בחזרה ל-`/`.
 
-**הנתונים אמיתיים, לא דמה**: כל כרטיס בפיד (`core/vibes/vibeFeedEngine.js`) הוא חיפוש טיסה
+**הנתונים אמיתיים, לא דמה**: כל כרטיס בפיד (זמין ב-`/:vibe`, נבנה ע"י `core/vibes/vibeFeedEngine.js`) הוא חיפוש טיסה
 הלוך-חזור אמיתי (Travelpayouts) + מלון אמיתי (Hotellook, best-effort) ליעד שמתאים לווייב לפי
 התיוג העורכי הקיים (`web/src/data/destinationTags.js` — אותו תיוג ששירת את כפתורי הסינון
 בעמוד הבית, לא מערכת תיוג נפרדת). המחיר-לאדם מחושב מ-טיסה+מלון אמיתיים בלבד, בדיוק כמו
@@ -271,11 +274,31 @@ round-trip ל-live-price) — ⚠️ עם `SCAN_INTERVAL_MINUTES=5` (ברירת 
 משותף, גם בגריד וגם בפיד) מציג רק שורות עם מחיר אמיתי — בדיוק העיקרון שכבר היה ב-README הזה
 תחת "בנה חבילה" מאז ההתחלה.
 
+### "מחירים לא תואמים" — ה-root cause שנמצא ותוקן
+
+חיפשתי במפורש (לא הנחתי) דרך כל שלושת המקורות שהוזכרו: `sources/travelpayouts.js` שואל
+`currency: 'usd'`, `sources/hotellookClient.js` שואל `currency: 'usd'`, `card.currency` מוגדר
+`'USD'` ב-`vibeFeedEngine.js`, וכל מקום שמציג מחיר (`DealBreakdown`, `DealCard` וכו') מציג
+`{currency}` שמגיע מאותו מקור — **שלושת ה"מקורות" באמת מסכימים, אין שלוש "אמיתות" מתחרות**.
+
+הבאג האמיתי היה ב-`buildHotelUrl` (`packageLinks.js`): הלינק ל-Hotellook ביקש `currency=ILS`
+(לפי הנחיה מפורשת מסבב קודם) בזמן שכל מה שאנחנו מציגים בעצמנו הוא USD — משתמש היה רואה
+"Total: 540 USD" אצלנו, ואז "540 ₪" אחרי שלוחץ (אותו מספר, מטבע אחר, נראה כמו דיל שונה).
+תוקן ל-`currency=USD`, ואישרתי ב-`curl -L` שזה שורד את כל שרשרת ה-redirect עד הדף הסופי.
+
+**באג שני, חשוב יותר, שנמצא בבדיקה**: `https://hotellook.com/search?...` (הדומיין שהיה כאן,
+גם הוא לפי הנחיה מפורשת) **לא reachable בכלל** — נבדק עם `curl`, אין שום תגובה. הפורמט הנכון
+שעובד בפועל: `https://search.hotellook.com/?marker=X&destination=Y&checkIn=Z&checkOut=W&
+adults=2&currency=USD` — אישרתי ב-`curl -L` ש-302 ל-`hotels-api.aviasales.ru` (עם ה-marker)
+ואז 302 ל-`sp.booking.com` (`selected_currency=USD` מאושר בתשובה) ואז landing סופי ב-
+`www.booking.com/searchresults.html`. שרשרת redirect אמיתית ועובדת, לא ניחוש. תוקן ב-`buildHotelUrl`.
+
 **"הזמן את הטיול עכשיו"**: לחיצה פותחת **מיד** את `BundleModal.jsx` (בלי אנימציית טעינה —
 זו בקשה מפורשת משני סבבים: גם "בלי delay" וגם "modal עם breakdown+4 כפתורים", ששניהם
 מתיישבים יחד כל עוד ה-modal עצמו נפתח instant). המודאל מציג: `DealBreakdown` (טיסה+מלון,
-שני המחירים אמיתיים — ראו למעלה) ו-4 כפתורים צבעוניים (טיסה/מלון/רכב/eSIM, רכב+eSIM
-מחושבים בצד הלקוח מ-`packageConfig` כמו ב-`BuyPackageDialog`). לא בונה URL מומצא בסטייל
+שני המחירים אמיתיים — ראו למעלה) ו-4 כפתורים (טיסה/מלון/רכב/eSIM, רכב+eSIM מחושבים בצד
+הלקוח מ-`packageConfig` כמו ב-`BuyPackageDialog`) — **כולם באותו צבע/עיצוב אחיד** (לא צבעוני
+לפי סוג, ראו "עיצוב מינימליסטי" למטה), מובחנים רק ב-icon+label. לא בונה URL מומצא בסטייל
 `booking.com/checkout?hotel_id=...` (אין לנו גישת API ל-Booking.com) — הכפתורים פותחים
 את לינקי Aviasales/Hotellook **האמיתיים** (`card.flightBookingUrl`/`card.hotelBookingUrl`,
 כבר עם ה-marker), עם `console.log` של כל URL לדיבוג.
@@ -291,9 +314,20 @@ round-trip ל-live-price) — ⚠️ עם `SCAN_INTERVAL_MINUTES=5` (ברירת 
 מחיר X%" או "נשארו X חדרים" — אין לנו נתון היסטוריה אמיתי לכרטיסי הפיד (בניגוד ל-anomaly)
 שיתמוך בטענה כזו, ולא ממציאים אותה.
 
-### וידאו + מוזיקה + תמונות רקע — שרשרת fallback, בלי המתחה לקרוס
+### עיצוב מינימליסטי — לא "AI-looking"
 
-בלי שום מפתח: הפיד עובד מלא עם gradient+motion CSS במקום וידאו/תמונה, ובלי מוזיקת רקע. עם מפתחות:
+לפי הנחיה מפורשת ("לא AI, מקצועי וברור"), הוסרו שני אלמנטים שנראו "אקראיים/אמנותיים":
+- **gradient לפי-יעד (hue rotation)** בכל כרטיס (`DealCard.jsx`, `PackageCard.jsx`,
+  `DealSlide.jsx`) — כל יעד קיבל צבע אקראי-לכאורה (`hsl` מבוסס hash). הוחלף ברקע כהה אחיד
+  (`--gradient-card`/`--color-heatmap-bg`, אותם משתנים שכבר היו ב-theme.css) — נראה מכוון,
+  לא "דמו AI צבעוני".
+- **כפתורי `BundleModal` בארבעה צבעים** (כחול/ירוק/כתום/סגול, אחד לכל סוג רכיב) — הוחלף
+  בעיצוב אחיד אחד (`--gradient-accent`, צבע המותג הקיים) לכל הכפתורים, מובחנים רק ב-icon+label.
+
+### וידאו + תמונה + מוזיקה רקע — שרשרת fallback, בלי המתחה לקרוס
+
+בלי שום מפתח: הפיד עובד מלא עם רקע כהה אחיד (`--color-heatmap-bg`) + פעימת motion עדינה
+במקום וידאו/תמונה, ובלי מוזיקת רקע. עם מפתחות:
 - **`RUNWAY_API_KEY`** (`media/videoResolver.js`) — וידאו AI-generated. ⚠️ לא מאומת מול
   תשובת API אמיתית, אין מפתח Production לבדוק — אם הפורמט בפועל שונה, זה המקום הראשון לתקן.
 - **`PEXELS_API_KEY`** — וידאו אנכי אמיתי של היעד (`orientation: portrait`, quality `sd` כדי

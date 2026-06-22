@@ -12,9 +12,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <LanguageProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<App />} />
-          <Route path="/feed" element={<VibeOnboarding />} />
-          <Route path="/feed/:vibe" element={<VibeFeedPage />} />
+          <Route path="/" element={<VibeOnboarding />} />
+          <Route path="/:vibe" element={<VibeFeedPage />} />
+          <Route path="/search" element={<App />} />
         </Routes>
       </BrowserRouter>
     </LanguageProvider>

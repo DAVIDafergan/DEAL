@@ -6,15 +6,6 @@ import { formatShortDate } from '../utils/flightFormat.js';
 import { openAllPackageLinks } from '../utils/openAllPackageLinks.js';
 import { DestinationImage } from './DestinationImage.jsx';
 
-/** הופך מחרוזת מסלול לגוון צבע יציב — אותה לוגיקה כמו DealCard, לעקביות ויזואלית */
-function hueFromRoute(route) {
-  let hash = 0;
-  for (let i = 0; i < route.length; i += 1) {
-    hash = (hash * 31 + route.charCodeAt(i)) % 360;
-  }
-  return hash;
-}
-
 const cardVariants = {
   hidden: { opacity: 0, y: 24 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: 'easeOut' } },
@@ -30,7 +21,6 @@ const cardVariants = {
 export function PackageCard({ pkg, compact = false }) {
   const { t, lang } = useLanguage();
   const animatedPrice = useCountUp(Math.round(pkg.pricePerPerson));
-  const hue = hueFromRoute(`${pkg.origin}${pkg.destination}`);
 
   const departLabel = formatShortDate(pkg.departureDate, lang);
   const returnLabel = formatShortDate(pkg.returnDate, lang);
@@ -51,10 +41,7 @@ export function PackageCard({ pkg, compact = false }) {
       role={compact ? 'button' : undefined}
       tabIndex={compact ? 0 : undefined}
     >
-      <div
-        className="package-card__media"
-        style={{ background: `linear-gradient(135deg, hsl(${hue}, 65%, 38%), hsl(${(hue + 50) % 360}, 70%, 22%))` }}
-      >
+      <div className="package-card__media">
         <DestinationImage iataCode={pkg.destination} />
         <span className="package-card__city">{getCityName(pkg.destination, lang)}</span>
       </div>

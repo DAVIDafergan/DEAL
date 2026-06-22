@@ -15,15 +15,6 @@ import { buildHotelUrl } from '../utils/packageLinks.js';
 
 const PRICE_FLASH_DURATION_MS = 2200;
 
-/** הופך מחרוזת מסלול לגוון צבע יציב, כדי שלכל מסלול יהיה placeholder גרדיאנט עקבי */
-function hueFromRoute(route) {
-  let hash = 0;
-  for (let i = 0; i < route.length; i += 1) {
-    hash = (hash * 31 + route.charCodeAt(i)) % 360;
-  }
-  return hash;
-}
-
 const cardVariants = {
   hidden: { opacity: 0, y: 24 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: 'easeOut' } },
@@ -44,7 +35,6 @@ export function DealCard({ deal, packageConfig = null, isCheapest = false }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isPackageDialogOpen, setIsPackageDialogOpen] = useState(false);
   const animatedPrice = useCountUp(Math.round(deal.price));
-  const hue = hueFromRoute(`${deal.origin}${deal.destination}`);
   const isAnomaly = deal.type === 'anomaly';
   const discountPercent = isAnomaly ? getDiscountPercent(deal) : 0;
 
@@ -96,12 +86,7 @@ export function DealCard({ deal, packageConfig = null, isCheapest = false }) {
       whileHover={{ scale: 1.02 }}
       transition={{ type: 'spring', stiffness: 260, damping: 20 }}
     >
-      <div
-        className="deal-card__media"
-        style={{
-          background: `linear-gradient(135deg, hsl(${hue}, 65%, 38%), hsl(${(hue + 50) % 360}, 70%, 22%))`,
-        }}
-      >
+      <div className="deal-card__media">
         <DestinationImage iataCode={deal.destination} />
         {isCheapest && <span className="deal-card__badge deal-card__badge--cheapest">★ {t.cheapestBadge}</span>}
         {!isCheapest && isAnomaly && discountPercent > 0 && (

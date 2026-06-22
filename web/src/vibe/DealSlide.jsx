@@ -7,15 +7,6 @@ import { DealBreakdown } from '../components/DealBreakdown.jsx';
 import { BundleModal } from '../components/BundleModal.jsx';
 import { buildCarRentalUrl, buildEsimUrl } from '../utils/packageLinks.js';
 
-/** גוון יציב לפי יעד, כדי שה-gradient fallback (בלי וידאו) יהיה שונה ועקבי לכל יעד */
-function hueFromDestination(destination) {
-  let hash = 0;
-  for (let i = 0; i < destination.length; i += 1) {
-    hash = (hash * 31 + destination.charCodeAt(i)) % 360;
-  }
-  return hash;
-}
-
 /**
  * DealSlide — שקף אחד במסך מלא בפיד הווייב. רקע: וידאו אם יש card.videoUrl (אמיתי, לא
  * ממציאים), אחרת gradient+motion עדין לפי היעד — תמיד עובד, בלי תצורה. הוידאו רק מתנגן
@@ -30,7 +21,6 @@ export function DealSlide({ card, packageConfig = null }) {
   const [showGlitch, setShowGlitch] = useState(false);
   const [isBundleOpen, setIsBundleOpen] = useState(false);
   const hasShownGlitchRef = useRef(false);
-  const hue = hueFromDestination(card.destination);
 
   useEffect(() => {
     const el = slideRef.current;
@@ -60,10 +50,10 @@ export function DealSlide({ card, packageConfig = null }) {
   const esimUrl = marker ? buildEsimUrl(dealLike, marker, packageConfig?.esimUrlTemplate) : null;
 
   const bundleItems = [
-    card.flightBookingUrl && { key: 'flight', icon: '✈️', labelKey: 'packageFlightLabel', url: card.flightBookingUrl, color: 'blue' },
-    card.hotelBookingUrl && { key: 'hotel', icon: '🏨', labelKey: 'packageHotelButton', url: card.hotelBookingUrl, color: 'green' },
-    carUrl && { key: 'car', icon: '🚗', labelKey: 'packageCarButton', url: carUrl, color: 'orange' },
-    esimUrl && { key: 'esim', icon: '📱', labelKey: 'packageEsimButton', url: esimUrl, color: 'purple' },
+    card.flightBookingUrl && { key: 'flight', icon: '✈️', labelKey: 'packageFlightLabel', url: card.flightBookingUrl },
+    card.hotelBookingUrl && { key: 'hotel', icon: '🏨', labelKey: 'packageHotelButton', url: card.hotelBookingUrl },
+    carUrl && { key: 'car', icon: '🚗', labelKey: 'packageCarButton', url: carUrl },
+    esimUrl && { key: 'esim', icon: '📱', labelKey: 'packageEsimButton', url: esimUrl },
   ].filter(Boolean);
 
   const breakdown = {
@@ -79,10 +69,7 @@ export function DealSlide({ card, packageConfig = null }) {
 
   return (
     <section ref={slideRef} className="deal-slide">
-      <div
-        className="deal-slide__media"
-        style={{ background: `linear-gradient(160deg, hsl(${hue}, 60%, 30%), hsl(${(hue + 40) % 360}, 65%, 14%))` }}
-      >
+      <div className="deal-slide__media">
         {card.videoUrl && isActive ? (
           <video
             className="deal-slide__video"
