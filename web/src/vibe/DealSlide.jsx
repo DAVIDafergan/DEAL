@@ -5,6 +5,8 @@ import { GlitchDropOverlay } from './GlitchDropOverlay.jsx';
 import { UrgencyBanner } from './UrgencyBanner.jsx';
 import { BundleModal } from '../components/BundleModal.jsx';
 import { buildCarRentalUrl, buildEsimUrl } from '../utils/packageLinks.js';
+import { formatShortDate } from '../utils/flightFormat.js';
+import { getCurrencySymbol } from '../utils/currency.js';
 
 /**
  * DealSlide — שקף אחד במסך מלא בפיד הווייב. רקע: וידאו אם יש card.videoUrl (אמיתי, לא
@@ -17,7 +19,7 @@ import { buildCarRentalUrl, buildEsimUrl } from '../utils/packageLinks.js';
  * הכפתור פותח את ה-modal **ישירות, בלי אנימציית טעינה** (לפי הנחיה מפורשת).
  */
 export function DealSlide({ card, packageConfig = null }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const slideRef = useRef(null);
   const [isActive, setIsActive] = useState(false);
   const [showGlitch, setShowGlitch] = useState(false);
@@ -50,6 +52,8 @@ export function DealSlide({ card, packageConfig = null }) {
   const dealLike = { destination: card.destination, departureDate: card.departureDate };
   const carUrl = marker ? buildCarRentalUrl(dealLike, marker, packageConfig?.carRentalUrlTemplate) : null;
   const esimUrl = marker ? buildEsimUrl(dealLike, marker, packageConfig?.esimUrlTemplate) : null;
+  const currencySymbol = getCurrencySymbol(card.currency);
+  const hasRealHotel = card.hotelTotalPrice !== null && card.hotelTotalPrice !== undefined;
 
   const bundleItems = [
     card.flightBookingUrl && { key: 'flight', icon: '✈️', labelKey: 'packageFlightLabel', url: card.flightBookingUrl },
@@ -98,19 +102,29 @@ export function DealSlide({ card, packageConfig = null }) {
       <div className="deal-slide__overlay">
         <h2 className="deal-slide__title">{card.title}</h2>
 
-        <p className="deal-slide__bottom-line">
-          ✈️ {t.stopsLabel(card.flightStops ?? 0)}
-          {card.hotelName && ` · 🏨 ${card.hotelName}`}
-        </p>
-
-        <p className="deal-slide__total-price">
-          {Math.round(card.totalPrice)} {card.currency}
-          {card.peopleCount > 1 && (
-            <span className="deal-slide__per-person">
-              {' '}
-              · {Math.round(card.pricePerPerson)} {card.currency} {t.vibePerPersonLabel}
-            </span>
+        <div className="deal-slide__includes">
+          <p className="deal-slide__includes-item">
+            ✈️ {t.stopsLabel(card.flightStops ?? 0)}
+            {card.departureDate && card.returnDate && (
+              <> · {formatShortDate(card.departureDate, lang)} → {formatShortDate(card.returnDate, lang)}</>
+            )}
+          </p>
+          {hasRealHotel && (
+            <p className="deal-slide__includes-item">
+              🏨 {card.hotelName || t.breakdownHotelGenericLabel}
+              {card.hotelStars ? ` · ${card.hotelStars}★` : ''} · {t.nightsLabel(card.nights)}
+            </p>
           )}
+        </div>
+
+        {/* היררכיה ברורה: לאדם = הכי בולט, סה"כ לקבוצה = משני, לא על אותה שורה */}
+        <p className="deal-slide__price-per-person">
+          {Math.round(card.pricePerPerson)}
+          {currencySymbol} <span className="deal-slide__price-per-person-label">{t.vibePerPersonLabel}</span>
+        </p>
+        <p className="deal-slide__price-total">
+          {t.breakdownTotalLabel} {t.packageForPeopleLabel(card.peopleCount)}: {Math.round(card.totalPrice)}
+          {currencySymbol} · {t.flightAndHotelTag}
         </p>
 
         <UrgencyBanner updatedAt={card.updatedAt} />

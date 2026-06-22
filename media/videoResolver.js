@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { buildVibeAwareQuery } from './vibeQueryTerms.js';
 
 const PEXELS_SEARCH_URL = 'https://api.pexels.com/videos/search';
 const REQUEST_TIMEOUT_MS = 10000;
@@ -17,12 +18,15 @@ const EMPTY_RESULT = { videoUrl: null, posterUrl: null };
  *   3. בלי שום מפתח: מחזיר { videoUrl: null, posterUrl: null } במכוון — לא ממציאים URL
  *      לוידאו שאין לנו. ה-UI (DealSlide) נופל ל-photo/gradient+motion CSS.
  *
+ * cityNameEn + vibe נשלחים יחד ל-query (לא שם העיר בלבד) — שם עיר לבדו יכול להחזיר תוצאה
+ * לא קשורה (למשל מבנה תעשייתי במקום נוף חוף ליעד-חוף). ראו media/vibeQueryTerms.js.
+ *
  * @returns {Promise<{videoUrl: string|null, posterUrl: string|null}>}
  */
-export async function resolveVideoForDestination(cityNameEn, env = process.env) {
+export async function resolveVideoForDestination(cityNameEn, vibe, env = process.env) {
   if (env.RUNWAY_API_KEY) {
     try {
-      const videoUrl = await generateRunwayVideo(cityNameEn, env.RUNWAY_API_KEY);
+      const videoUrl = await generateRunwayVideo(cityNameEn, vibe, env.RUNWAY_API_KEY);
       if (videoUrl) return { videoUrl, posterUrl: null };
     } catch (err) {
       console.error(`[videoResolver] Runway generation failed for "${cityNameEn}":`, err.message);
@@ -31,7 +35,7 @@ export async function resolveVideoForDestination(cityNameEn, env = process.env) 
 
   if (env.PEXELS_API_KEY) {
     try {
-      const result = await searchPexelsVideo(cityNameEn, env.PEXELS_API_KEY);
+      const result = await searchPexelsVideo(cityNameEn, vibe, env.PEXELS_API_KEY);
       if (result) return result;
     } catch (err) {
       console.error(`[videoResolver] Pexels search failed for "${cityNameEn}":`, err.message);
@@ -41,11 +45,11 @@ export async function resolveVideoForDestination(cityNameEn, env = process.env) 
   return EMPTY_RESULT;
 }
 
-async function generateRunwayVideo(cityNameEn, apiKey) {
+async function generateRunwayVideo(cityNameEn, vibe, apiKey) {
   const createRes = await axios.post(
     'https://api.dev.runwayml.com/v1/image_to_video',
     {
-      promptText: `Cinematic vertical 8-second travel video of ${cityNameEn}, sunny, vibrant, aerial`,
+      promptText: `Cinematic vertical 8-second travel video of ${buildVibeAwareQuery(cityNameEn, vibe)}, sunny, vibrant`,
       ratio: '768:1280',
     },
     { headers: { Authorization: `Bearer ${apiKey}`, 'X-Runway-Version': '2024-11-06' }, timeout: REQUEST_TIMEOUT_MS }
@@ -69,9 +73,9 @@ async function generateRunwayVideo(cityNameEn, apiKey) {
   return null; // timed out — הקורא יפול ל-Pexels/gradient
 }
 
-async function searchPexelsVideo(cityNameEn, apiKey) {
+async function searchPexelsVideo(cityNameEn, vibe, apiKey) {
   const res = await axios.get(PEXELS_SEARCH_URL, {
-    params: { query: `${cityNameEn} travel`, orientation: 'portrait', per_page: 1 },
+    params: { query: buildVibeAwareQuery(cityNameEn, vibe), orientation: 'portrait', per_page: 1 },
     headers: { Authorization: apiKey },
     timeout: REQUEST_TIMEOUT_MS,
   });

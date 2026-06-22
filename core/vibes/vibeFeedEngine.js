@@ -80,7 +80,10 @@ async function buildFeedCard({ vibe, destination, isGlitchDrop, deps }) {
   let videoUrl = null;
   let videoPosterUrl = null;
   try {
-    const video = await resolveVideoForDestination(cityNameEn);
+    // vibe מועבר ל-query (ראו media/vibeQueryTerms.js) — שם עיר בלבד יכול להחזיר תוצאה לא
+    // קשורה (למשל מבנה תעשייתי במקום נוף חוף). וידאו לא חולק cache בין ווייבים (בניגוד
+    // לתמונה, ראו photoResolver.js), אז אין סיכון "זיהום" בין ווייבים על אותו יעד.
+    const video = await resolveVideoForDestination(cityNameEn, vibe);
     videoUrl = await persistMediaUrl(video.videoUrl);
     videoPosterUrl = video.posterUrl; // תמונת preview, כבר hosted חיצונית — לא צריך להעלות מחדש
   } catch (err) {
