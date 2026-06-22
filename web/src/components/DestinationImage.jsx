@@ -62,12 +62,12 @@ export function DestinationImage({ iataCode }) {
       {image.attributionName && (
         <a
           className="destination-image__credit"
-          href={image.attributionUrl || 'https://unsplash.com'}
+          href={image.attributionUrl || (image.source === 'pexels' ? 'https://www.pexels.com' : 'https://unsplash.com')}
           target="_blank"
           rel="noopener noreferrer"
           onClick={(event) => event.stopPropagation()}
         >
-          {image.attributionName} / Unsplash
+          {image.attributionName} / {image.source === 'pexels' ? 'Pexels' : 'Unsplash'}
         </a>
       )}
     </>

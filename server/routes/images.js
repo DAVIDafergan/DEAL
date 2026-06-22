@@ -9,7 +9,10 @@ router.get('/:iataCode', async (req, res) => {
   const iataCode = req.params.iataCode.toUpperCase();
   const cityNameEn = getCityName(iataCode, 'en');
 
-  const image = await getDestinationImage(iataCode, cityNameEn, process.env.UNSPLASH_ACCESS_KEY);
+  const image = await getDestinationImage(iataCode, cityNameEn, {
+    pexelsApiKey: process.env.PEXELS_API_KEY,
+    unsplashAccessKey: process.env.UNSPLASH_ACCESS_KEY,
+  });
 
   if (!image) {
     return res.status(404).json({ error: 'No image available' });

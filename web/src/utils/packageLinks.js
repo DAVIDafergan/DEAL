@@ -24,16 +24,20 @@ export function getHotelStayDates(deal) {
   return { checkIn, checkOut, isEstimate: true };
 }
 
-/** Hotellook (Travelpayouts) — פורמט לינק ידוע ויציב, עובד מיד עם ה-Marker, בלי תצורה נוספת */
+/**
+ * Hotellook (Travelpayouts) — פורמט לינק לפי הנחיה מפורשת: hotellook.com/search עם
+ * destination/checkIn/checkOut/currency=ILS/ref={marker}. ⚠️ עדיין לא מאומת מול תשובת API
+ * אמיתית של Hotellook (אין production key לבדוק) — זה הפורמט שסיפקתם, לא ניחוש שלי.
+ */
 export function buildHotelUrl(deal, marker) {
   if (!marker || !deal.destination) return null;
   const { checkIn, checkOut } = getHotelStayDates(deal);
 
-  const params = new URLSearchParams({ marker, destination: deal.destination, adults: '2' });
+  const params = new URLSearchParams({ destination: deal.destination, currency: 'ILS', ref: marker });
   if (checkIn) params.set('checkIn', checkIn);
   if (checkOut) params.set('checkOut', checkOut);
 
-  return `https://search.hotellook.com/?${params.toString()}`;
+  return `https://hotellook.com/search?${params.toString()}`;
 }
 
 /**

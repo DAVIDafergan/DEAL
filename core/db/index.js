@@ -84,6 +84,7 @@ const MIGRATIONS = [
   (connection) => ensureColumn(connection, 'deals', 'return_stops', 'INT NULL'),
   (connection) => ensureColumn(connection, 'vibe_feed_cards', 'photo_url', 'TEXT NULL'),
   (connection) => ensureColumn(connection, 'vibe_feed_cards', 'video_poster_url', 'TEXT NULL'),
+  (connection) => ensureColumn(connection, 'destination_images', 'source', "VARCHAR(16) NULL"),
 ];
 
 const SCHEMA_STATEMENTS = [

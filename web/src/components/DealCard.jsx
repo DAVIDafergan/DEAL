@@ -9,9 +9,9 @@ import { CountdownTimer } from './heatmap/CountdownTimer.jsx';
 import { UpdatedAgoLabel } from './UpdatedAgoLabel.jsx';
 import { FlightDetails } from './FlightDetails.jsx';
 import { DestinationImage } from './DestinationImage.jsx';
-import { AddHotelDialog } from './AddHotelDialog.jsx';
 import { BuyPackageDialog } from './BuyPackageDialog.jsx';
 import { formatShortDate } from '../utils/flightFormat.js';
+import { buildHotelUrl } from '../utils/packageLinks.js';
 
 const PRICE_FLASH_DURATION_MS = 2200;
 
@@ -42,7 +42,6 @@ export function DealCard({ deal, packageConfig = null, isCheapest = false }) {
   const { t, lang } = useLanguage();
   const [shareStatus, setShareStatus] = useState(null);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isHotelDialogOpen, setIsHotelDialogOpen] = useState(false);
   const [isPackageDialogOpen, setIsPackageDialogOpen] = useState(false);
   const animatedPrice = useCountUp(Math.round(deal.price));
   const hue = hueFromRoute(`${deal.origin}${deal.destination}`);
@@ -80,6 +79,13 @@ export function DealCard({ deal, packageConfig = null, isCheapest = false }) {
       setShareStatus('copied');
       setTimeout(() => setShareStatus(null), 2000);
     }
+  }
+
+  // "הוסף מלון" — לא דיאלוג, פשוט פותח טאב חדש ישר ל-Hotellook עם התאריכים/יעד ממולאים
+  function handleAddHotel() {
+    const hotelUrl = buildHotelUrl(deal, packageConfig?.travelpayoutsMarker);
+    console.log('[DealCard] Add hotel URL:', hotelUrl);
+    if (hotelUrl) window.open(hotelUrl, '_blank', 'noopener,noreferrer');
   }
 
   return (
@@ -180,7 +186,7 @@ export function DealCard({ deal, packageConfig = null, isCheapest = false }) {
               type="button"
               className="deal-card__action"
               whileTap={{ scale: 0.96 }}
-              onClick={() => setIsHotelDialogOpen(true)}
+              onClick={handleAddHotel}
             >
               {t.addHotelButton}
             </motion.button>
@@ -195,12 +201,6 @@ export function DealCard({ deal, packageConfig = null, isCheapest = false }) {
           </div>
         )}
       </div>
-
-      <AnimatePresence>
-        {isHotelDialogOpen && (
-          <AddHotelDialog deal={deal} marker={packageConfig?.travelpayoutsMarker} onClose={() => setIsHotelDialogOpen(false)} />
-        )}
-      </AnimatePresence>
 
       <AnimatePresence>
         {isPackageDialogOpen && (

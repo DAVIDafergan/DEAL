@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { GlitchDropOverlay } from './GlitchDropOverlay.jsx';
-import { LockDealOverlay } from './LockDealOverlay.jsx';
 
 /** גוון יציב לפי יעד, כדי שה-gradient fallback (בלי וידאו) יהיה שונה ועקבי לכל יעד */
 function hueFromDestination(destination) {
@@ -23,7 +22,6 @@ export function DealSlide({ card }) {
   const slideRef = useRef(null);
   const [isActive, setIsActive] = useState(false);
   const [showGlitch, setShowGlitch] = useState(false);
-  const [lockState, setLockState] = useState('idle'); // 'idle' | 'locking'
   const hasShownGlitchRef = useRef(false);
   const hue = hueFromDestination(card.destination);
 
@@ -48,14 +46,16 @@ export function DealSlide({ card }) {
     }
   }, [isActive, card.isGlitchDrop]);
 
+  // ישיר — בלי אנימציית טעינה: בונה את הדיפ-לינקים (כבר עם ה-marker, מהשרת) ופותח טאב מיד.
   function handleLockDeal() {
-    setLockState('locking');
-  }
-
-  function handleLockComplete() {
-    setLockState('idle');
-    if (card.flightBookingUrl) window.open(card.flightBookingUrl, '_blank', 'noopener,noreferrer');
-    if (card.hotelBookingUrl) window.open(card.hotelBookingUrl, '_blank', 'noopener,noreferrer');
+    if (card.flightBookingUrl) {
+      console.log('[DealSlide] Opening flight deep link:', card.flightBookingUrl);
+      window.open(card.flightBookingUrl, '_blank', 'noopener,noreferrer');
+    }
+    if (card.hotelBookingUrl) {
+      console.log('[DealSlide] Opening hotel deep link:', card.hotelBookingUrl);
+      window.open(card.hotelBookingUrl, '_blank', 'noopener,noreferrer');
+    }
   }
 
   return (
@@ -100,10 +100,6 @@ export function DealSlide({ card }) {
       </div>
 
       {showGlitch && <GlitchDropOverlay caption={card.glitchCaption} />}
-
-      <AnimatePresence>
-        {lockState === 'locking' && <LockDealOverlay onComplete={handleLockComplete} />}
-      </AnimatePresence>
     </section>
   );
 }
