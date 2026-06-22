@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { listDeals, getDealById } from '../store/dealsStore.js';
+import { getVibeFeed, VIBES } from '../../core/vibes/vibeFeedEngine.js';
 
 const router = Router();
 const SUPPORTED_LANGS = ['he', 'en', 'es'];
@@ -18,6 +19,22 @@ router.get('/', async (req, res) => {
   const sorted = req.query.sorted === 'true';
   const deals = await listDeals(lang, { sorted });
   res.json({ lang, deals, sorted });
+});
+
+/**
+ * GET /api/deals/feed?vibe=urban|beach|nature|romantic&lang=he|en|es — כרטיסי ה"ווייב פיד".
+ * רשום לפני /:id בכוונה — אחרת "/feed" היה נתפס כ-:id ומחזיר 404 "Deal not found".
+ */
+router.get('/feed', async (req, res) => {
+  const lang = resolveLang(req.query);
+  const vibe = req.query.vibe;
+
+  if (!VIBES.includes(vibe)) {
+    return res.status(400).json({ error: `Invalid vibe. Must be one of: ${VIBES.join(', ')}` });
+  }
+
+  const cards = await getVibeFeed(vibe, lang);
+  res.json({ vibe, lang, cards });
 });
 
 /** GET /api/deals/:id?lang=he|en|es — פרטי דיל בודד */

@@ -12,6 +12,10 @@ export function fetchDeals(lang, { sorted = false } = {}) {
   return getJson(`/deals?lang=${lang}${sorted ? '&sorted=true' : ''}`);
 }
 
+export function fetchVibeFeed(vibe, lang) {
+  return getJson(`/deals/feed?vibe=${vibe}&lang=${lang}`);
+}
+
 export function fetchStats() {
   return getJson('/stats');
 }

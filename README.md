@@ -241,6 +241,43 @@ round-trip ל-live-price) — ⚠️ עם `SCAN_INTERVAL_MINUTES=5` (ברירת 
 קובץ התמונה עצמו נכשל לטעון (`onError`). ה-gradient placeholder (per-destination, לא generic)
 ממשיך לעבוד תמיד כ-fallback, ול-`<img>` יש `loading="lazy"`.
 
+## Vibe Feed (`/feed`) — פיד מסך-מלא בסטייל TikTok
+
+מסך/route חדש **בנוסף** לעמוד הבית הקיים (לא מחליף אותו — `/` נשאר כמו שהיה: heatmap, רשת,
+פילטרים, שאלון). `/feed` מציג שאלון-ווייב אחד (urban/beach/nature/romantic, 4 כפתורי ענק,
+`web/src/vibe/VibeOnboarding.jsx`), ואז עובר ל-`/feed/:vibe` — פיד גלילה אנכית מלא-מסך
+(scroll-snap טבעי של הדפדפן, לא ספריית swipe חיצונית — זה מה שנותן גלילה חלקה בלי lag).
+
+**הנתונים אמיתיים, לא דמה**: כל כרטיס בפיד (`core/vibes/vibeFeedEngine.js`) הוא חיפוש טיסה
+הלוך-חזור אמיתי (Travelpayouts) + מלון אמיתי (Hotellook, best-effort) ליעד שמתאים לווייב לפי
+התיוג העורכי הקיים (`web/src/data/destinationTags.js` — אותו תיוג ששירת את כפתורי הסינון
+בעמוד הבית, לא מערכת תיוג נפרדת). המחיר-לאדם מחושב מ-טיסה+מלון אמיתיים בלבד, בדיוק כמו
+`core/packages/packageEngine.js`. מתעדכן כל 4 שעות (`server/index.js`), נשמר בטבלת
+`vibe_feed_cards`, מוגש ב-`GET /api/deals/feed?vibe=X&lang=Y`.
+
+**"נעל את הדיל"**: לא בונה URL מומצא בסטייל `booking.com/checkout?hotel_id=...` (אין לנו
+גישת API ל-Booking.com, רק לינקי Travelpayouts/Hotellook) — האנימציה (טעינה 2 שניות +
+קונפטי, `web/src/vibe/LockDealOverlay.jsx`) מסתיימת בפתיחת הלינקים **האמיתיים** של Aviasales
+ו-Hotellook עם התאריכים/יעד כבר ממולאים — זה השווה-ערך האמיתי ביותר ל"הכל מוכן" שיש לנו.
+
+**אפקט "Live API Drop"**: מופיע פעם אחת לכרטיס (לא בלופ) אם `card.isGlitchDrop` (כל כרטיס
+חמישי בערך). הטקסט הוא אפקט אווירה ("🔴 LIVE — דיל פעיל ברגע זה"), **לא** טוען טענת "ירידת
+מחיר X%" או "נשארו X חדרים" — אין לנו נתון היסטוריה אמיתי לכרטיסי הפיד (בניגוד ל-anomaly)
+שיתמוך בטענה כזו, ולא ממציאים אותה.
+
+### וידאו + מוזיקה רקע — שרשרת fallback, בלי המתחה לקרוס
+
+בלי שום מפתח: הפיד עובד מלא עם gradient+motion CSS במקום וידאו, ובלי מוזיקת רקע. עם מפתחות:
+- **`RUNWAY_API_KEY`** (`media/videoResolver.js`) — וידאו AI-generated. ⚠️ לא מאומת מול
+  תשובת API אמיתית, אין מפתח Production לבדוק — אם הפורמט בפועל שונה, זה המקום הראשון לתקן.
+- **`PEXELS_API_KEY`** — fallback חינמי, וידאו אמיתי וקיים של היעד (לא AI).
+- **`MUBERT_API_KEY`** (`media/musicResolver.js`) — מוזיקת רקע AI לפי ווייב. ⚠️ גם זה לא מאומת.
+- **`AWS_S3_BUCKET`/`CLOUDINARY_URL`** (`media/cloudStorage.js`) — stub שקוף, לא מיושם בפועל
+  (מחזיר את ה-URL המקורי כמו שהוא) עד שתאשרו איזה provider — אין credentials לבדוק נגדו.
+
+**מה שכן מאומת**: הזרימה המלאה דרך MySQL אמיתי + HTTP אמיתי (mocked Travelpayouts/Hotellook),
+כולל ה-fallback ל-`null` (לא URL מומצא) כש-Runway/Pexels/Mubert לא מוגדרים.
+
 ## עקרון עיצוב: בלי סטטיסטיקות פנימיות למשתמש
 
 העמוד מכוון כולו ללחיצה. אין תצוגה של מדדים תפעוליים כמו "כמה דילים נשלחו" או "כמה מסלולים

@@ -7,8 +7,10 @@ import { connectWithRetry } from '../core/db/index.js';
 import { parseWatchedRoutes } from '../core/watchedRoutes.js';
 import { refreshPopularPackages } from '../core/packages/packageEngine.js';
 import { buildPackageDeps } from '../core/packages/packageDeps.js';
+import { refreshVibeFeed } from '../core/vibes/vibeFeedEngine.js';
 
 const POPULAR_PACKAGES_INTERVAL_MINUTES = 30;
+const VIBE_FEED_INTERVAL_MINUTES = 4 * 60; // כל 4 שעות, כמבוקש — לא צריך תכוף יותר, אלה לא טיסות בודדות
 
 const PORT = process.env.PORT || 3001;
 
@@ -86,6 +88,17 @@ async function main() {
     setInterval(runPackageRefresh, POPULAR_PACKAGES_INTERVAL_MINUTES * 60 * 1000);
   } else {
     console.warn('[deal-radar-pro] Travelpayouts not configured — popular package generation is disabled.');
+  }
+
+  // "ווייב פיד" (/feed) — כרטיסי טיסה+מלון+media לפי ווייב, מתעדכנים כל 4 שעות (לא צריך
+  // תכוף יותר; אלה ~8 יעדים לכל אחד מ-4 הווייבים, לא ~40 מסלולים). אם Travelpayouts לא
+  // מוגדר, ה-engine מדלג בעדינות (לא ממציא נתונים) — ראו refreshVibeFeed.
+  if (packageDeps.travelpayoutsAdapter) {
+    const runVibeFeedRefresh = () => {
+      refreshVibeFeed(packageDeps).catch((err) => console.error('[deal-radar-pro] Vibe feed refresh failed:', err.message));
+    };
+    runVibeFeedRefresh();
+    setInterval(runVibeFeedRefresh, VIBE_FEED_INTERVAL_MINUTES * 60 * 1000);
   }
 
   // אישור מפורש בלוג אם UNSPLASH_ACCESS_KEY הגיע לשרת — הדרך הכי ישירה לבדוק ב-Railway אם

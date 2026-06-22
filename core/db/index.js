@@ -157,6 +157,34 @@ const SCHEMA_STATEMENTS = [
     attribution_url TEXT NULL,
     fetched_at DATETIME NOT NULL
   ) ENGINE=InnoDB`,
+  `CREATE TABLE IF NOT EXISTS vibe_feed_cards (
+    id VARCHAR(64) PRIMARY KEY,
+    vibe VARCHAR(16) NOT NULL,
+    origin VARCHAR(8) NOT NULL,
+    destination VARCHAR(8) NOT NULL,
+    departure_date DATE NOT NULL,
+    return_date DATE NOT NULL,
+    nights INT NOT NULL,
+    people_count INT NOT NULL,
+    flight_price DECIMAL(10,2) NOT NULL,
+    flight_booking_url TEXT NULL,
+    flight_stops INT NULL,
+    flight_return_stops INT NULL,
+    hotel_name VARCHAR(255) NULL,
+    hotel_stars INT NULL,
+    hotel_total_price DECIMAL(10,2) NULL,
+    hotel_booking_url TEXT NULL,
+    total_price DECIMAL(10,2) NOT NULL,
+    price_per_person DECIMAL(10,2) NOT NULL,
+    currency VARCHAR(8) NOT NULL,
+    video_url TEXT NULL,
+    music_url TEXT NULL,
+    is_glitch_drop TINYINT(1) NOT NULL DEFAULT 0,
+    narrative_json JSON NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    INDEX idx_vibe_feed_vibe_updated (vibe, updated_at)
+  ) ENGINE=InnoDB`,
 ];
 
 /**

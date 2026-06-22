@@ -1,0 +1,266 @@
+/* ---------- Vibe Feed: onboarding + full-screen swipe feed (mobile-first, /feed route) ---------- */
+
+.vibe-onboarding {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  padding: 24px;
+  background: var(--color-heatmap-bg-gradient);
+  text-align: center;
+}
+
+.vibe-onboarding__title {
+  font-size: clamp(1.8rem, 7vw, 2.4rem);
+  font-weight: 800;
+  margin: 0;
+}
+
+.vibe-onboarding__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  width: 100%;
+  max-width: 380px;
+}
+
+.vibe-onboarding__button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 28px 12px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+}
+
+.vibe-onboarding__button:disabled {
+  opacity: 0.6;
+}
+
+.vibe-onboarding__emoji {
+  font-size: 2.6rem;
+  line-height: 1;
+}
+
+.vibe-onboarding__label {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+/* ---------- feed page + scroller ---------- */
+
+.vibe-feed-page {
+  position: relative;
+  height: 100vh;
+  background: var(--color-heatmap-bg);
+  overflow: hidden;
+}
+
+.vibe-feed-page--centered {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  text-align: center;
+  padding: 24px;
+  color: var(--color-text-secondary);
+}
+
+.vibe-feed-page__scroller {
+  height: 100%;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+}
+
+.vibe-feed-page__scroller::-webkit-scrollbar {
+  display: none;
+}
+
+.vibe-feed-page__back-button {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  border-radius: var(--radius-sm);
+  padding: 10px 18px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.vibe-feed-page__back-button--floating {
+  position: absolute;
+  top: 16px;
+  inset-inline-start: 16px;
+  z-index: 10;
+  background: rgba(16, 20, 34, 0.55);
+  backdrop-filter: blur(10px);
+}
+
+/* ---------- deal slide (one full-screen card) ---------- */
+
+.deal-slide {
+  position: relative;
+  height: 100vh;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  overflow: hidden;
+}
+
+.deal-slide__media {
+  position: absolute;
+  inset: 0;
+}
+
+.deal-slide__video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.deal-slide__motion-fallback {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(120% 80% at 50% 20%, rgba(255, 255, 255, 0.12), transparent 60%);
+}
+
+.deal-slide__overlay {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  padding: 28px 20px 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: linear-gradient(180deg, transparent 0%, rgba(5, 6, 10, 0.55) 35%, rgba(5, 6, 10, 0.92) 100%);
+}
+
+.deal-slide__title {
+  margin: 0;
+  font-size: clamp(1.7rem, 7vw, 2.2rem);
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+}
+
+.deal-slide__subtitle {
+  margin: 0;
+  white-space: pre-line;
+  font-size: 1rem;
+  line-height: 1.6;
+  font-weight: 600;
+  color: #fde68a;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
+}
+
+.deal-slide__lock-button {
+  margin-top: 6px;
+  min-height: 52px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(14px);
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+/* ---------- glitch drop effect ---------- */
+
+.glitch-drop {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+.glitch-drop__line {
+  position: absolute;
+  inset-inline: 0;
+  height: 2px;
+  background: rgba(239, 68, 68, 0.7);
+}
+
+.glitch-drop__line--1 {
+  top: 28%;
+  transform: translateX(-4%);
+}
+
+.glitch-drop__line--2 {
+  top: 64%;
+  transform: translateX(3%);
+}
+
+.glitch-drop__badge {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #ef4444;
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 14px rgba(239, 68, 68, 0.8);
+}
+
+.glitch-drop__caption {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+  text-align: center;
+  padding: 0 24px;
+}
+
+/* ---------- lock-deal overlay (loading + confetti) ---------- */
+
+.lock-deal-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: rgba(5, 6, 10, 0.82);
+  backdrop-filter: blur(6px);
+}
+
+.lock-deal-overlay__confetti {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.lock-deal-overlay__particle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.lock-deal-overlay__spinner {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.18);
+  border-top-color: var(--color-accent-from);
+}
+
+.lock-deal-overlay__message {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+}
