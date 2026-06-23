@@ -8,7 +8,7 @@ import { resolveMusicForVibe } from '../../media/musicResolver.js';
 import { persistMediaUrl } from '../../media/cloudStorage.js';
 import { buildVibeFeedNarrative } from '../../ai/vibeFeedNarrative.js';
 import { getWatchedDestinations } from '../watchedRoutes.js';
-import { upsertVibeFeedCard, listVibeFeedCards } from '../../server/store/vibeFeedStore.js';
+import { upsertVibeFeedCard, listVibeFeedCards, listAllVibesFeedCards } from '../../server/store/vibeFeedStore.js';
 
 const ORIGIN = 'TLV';
 const NIGHTS = 4;
@@ -32,6 +32,9 @@ const VIBE_MATCHERS = {
 };
 
 export const VIBES = Object.keys(VIBE_MATCHERS);
+// "ברירת מחדל" — כניסה ישירה לפיד בלי לבחור ווייב (לפי הנחיה מפורשת: "בלי מסך בחר ווייב חוסם").
+// סינון לפי ווייב ספציפי נשאר אופציה (תפריט בתוך הפיד), לא חובה בכניסה.
+export const ALL_VIBES_KEY = 'all';
 
 export function pickDestinationsForVibe(vibe, env = process.env, limit = CANDIDATES_PER_VIBE) {
   const matcher = VIBE_MATCHERS[vibe];
@@ -166,8 +169,9 @@ export async function refreshVibeFeed(deps) {
   }
 }
 
-/** משמש את GET /api/deals/feed?vibe=X&lang=Y */
+/** משמש את GET /api/deals/feed?vibe=X&lang=Y. vibe='all' = ברירת מחדל, ראו ALL_VIBES_KEY. */
 export async function getVibeFeed(vibe, lang) {
+  if (vibe === ALL_VIBES_KEY) return listAllVibesFeedCards(lang);
   if (!VIBES.includes(vibe)) return [];
   return listVibeFeedCards(vibe, lang);
 }

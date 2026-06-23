@@ -84,6 +84,36 @@ export async function listVibeFeedCards(vibe, lang = 'en') {
   }
 }
 
+/**
+ * "כל הווייבים" (כניסה ברירת מחדל לפיד, בלי לבחור ווייב מראש) — מאחד את כל 4 הווייבים,
+ * ממוין לפי מחיר עולה. יעד שמופיע בכמה ווייבים (למשל רודוס תחת beach וגם nature) מקבל
+ * שורה אחת בלבד — ה-SQL ממוין לפי מחיר לפני ה-dedupe ב-JS, אז "ראשון נראה" = הזול ביותר
+ * עבור היעד הזה, לא שרירותי.
+ */
+export async function listAllVibesFeedCards(lang = 'en') {
+  try {
+    const pool = getPool();
+    const cutoff = new Date(Date.now() - FRESHNESS_WINDOW_MS);
+    const [rows] = await pool.query(
+      'SELECT * FROM vibe_feed_cards WHERE updated_at >= ? ORDER BY price_per_person ASC',
+      [cutoff]
+    );
+
+    const seenDestinations = new Set();
+    const deduped = [];
+    for (const row of rows) {
+      if (seenDestinations.has(row.destination)) continue;
+      seenDestinations.add(row.destination);
+      deduped.push(row);
+    }
+
+    return deduped.map((row) => projectRow(row, lang));
+  } catch (err) {
+    console.error('[vibeFeedStore] Failed to list all-vibes feed cards:', err.message);
+    return [];
+  }
+}
+
 function projectRow(row, lang = 'en') {
   const narrative = parseNarrative(row.narrative_json);
   const localized = narrative?.[lang] || narrative?.en || {};

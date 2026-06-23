@@ -1,8 +1,8 @@
-import { Link } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { LanguageSwitcher } from './LanguageSwitcher.jsx';
 import { Logo } from './Logo.jsx';
 
+/** Header — חלק מטאב "טיסות" (BottomNav מטפל בניווט בין הטאבים, אין יותר צורך בלינק כפול). */
 export function Header() {
   const { t } = useLanguage();
 
@@ -14,9 +14,6 @@ export function Header() {
           <span className="brand-sub">{t.brandSub}</span>
         </div>
         <div className="top-bar__actions">
-          <Link to="/" className="top-bar__vibe-link">
-            {t.vibeFeedNavLabel}
-          </Link>
           <LanguageSwitcher />
         </div>
       </div>

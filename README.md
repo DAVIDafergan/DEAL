@@ -251,24 +251,34 @@ round-trip ל-live-price) — ⚠️ עם `SCAN_INTERVAL_MINUTES=5` (ברירת 
 קובץ התמונה עצמו נכשל לטעון (`onError`). ה-gradient placeholder (per-destination, לא generic)
 ממשיך לעבוד תמיד כ-fallback, ול-`<img>` יש `loading="lazy"`.
 
-## Vibe Feed (`/`) — פיד מסך-מלא בסטייל TikTok, עכשיו הבית
+## Vibe Feed + Bottom Nav (`/`) — פיד מסך-מלא בסטייל TikTok, עכשיו הבית
 
-⚠️ **שינוי routing**: בסבב קודם `/feed` היה route חדש **בנוסף** לעמוד הבית (heatmap/רשת/
-פילטרים/שאלון שנשאר ב-`/`). זה התהפך לפי הנחיה מפורשת: **`/` הוא עכשיו הפיד**
-(`web/src/vibe/VibeOnboarding.jsx` — שאלון-ווייב אחד, 4 כפתורי ענק, urban/beach/nature/
-romantic), ועובר ל-`/:vibe` — פיד גלילה אנכית מלא-מסך (scroll-snap טבעי של הדפדפן, לא
-ספריית swipe חיצונית). עמוד הבית הישן (heatmap/רשת/פילטרים/שאלון, `App.jsx`) **לא נמחק** —
-זמין ב-`/search`, מקושר רק כלינק קטן ולא בולט מ-`VibeOnboarding` (`searchNavLabel`), בדיוק
-לפי "אופציונלי, לא ב-front". `Header.jsx` (חלק מ-`/search`) מקשר בחזרה ל-`/`.
+⚠️ **שינוי routing נוסף** (היסטוריה: שתי הפיכות בנושא הזה — תועלת לדעת אם משהו מרגיש לא
+עקבי בהיסטוריית הקוד). הארכיטקטורה הסופית: `AppShell.jsx` הוא מעטפת **אחת** עם 3 טאבים
+קבועים (`web/src/components/BottomNav.jsx`, תפריט תחתון בסגנון טיקטוק/אינסטגרם):
+- **🎬 דילים** (`/`, `web/src/vibe/DealsTab.jsx`) — ברירת מחדל, **בלי שום מסך-בחירה חוסם**.
+  נכנס ישר לפיד עם `vibe=all` (כל הווייבים מאוחדים, ממוין מחיר עולה, deduped לפי יעד —
+  `listAllVibesFeedCards` ב-`vibeFeedStore.js`). בחירת ווייב ספציפי היא תפריט **אופציונלי**
+  בתוך הפיד (`VibeFilterMenu.jsx`, לא שלב כניסה) — `/urban`/`/beach`/`/nature`/`/romantic`
+  עדיין עובדים כ-URL-ים ישירים לווייב ספציפי.
+- **✈️ טיסות** (`/flights`) — עמוד הבית הישן (heatmap/רשת/פילטרים, `App.jsx`) ללא שינוי
+  תוכן, רק הוסר ממנו כפתור פתיחת השאלון (עבר לטאב הבא).
+- **🔍 חופשה מושלמת** (`/plan`, `PlanTab.jsx`) — השאלון (`QuestionnaireModal.jsx`) מוצג
+  **ישר** כתוכן הטאב, לא חוסם מאחורי כפתור.
 
-**הנתונים אמיתיים, לא דמה**: כל כרטיס בפיד (זמין ב-`/:vibe`, נבנה ע"י `core/vibes/vibeFeedEngine.js`) הוא חיפוש טיסה
+**שלושת הטאבים נשארים mounted כל הזמן** — `AppShell.jsx` מחליף תצוגה (display:none) ולא
+route/conditional-render, כדי שגלילה ב-feed (ומצב בטאבים האחרים) לא תתאפס במעבר טאב וחזרה.
+זו תכונה מובנית של אלגוריתם ה-reconciliation של React (אותו component type באותו מקום
+בעץ ב-render הבא = לא remount), לא טריק שדורש בדיקת דפדפן להוכיח.
+
+**הנתונים אמיתיים, לא דמה**: כל כרטיס בפיד נבנה ע"י `core/vibes/vibeFeedEngine.js`, חיפוש טיסה
 הלוך-חזור אמיתי (Travelpayouts) + מלון אמיתי (Hotellook, best-effort) ליעד שמתאים לווייב לפי
 התיוג העורכי הקיים (`web/src/data/destinationTags.js` — אותו תיוג ששירת את כפתורי הסינון
 בעמוד הבית, לא מערכת תיוג נפרדת). המחיר-לאדם מחושב מ-טיסה+מלון אמיתיים בלבד, בדיוק כמו
 `core/packages/packageEngine.js`. מתעדכן כל 30 דק' (`VIBE_FEED_INTERVAL_MINUTES`, ירד מ-4
 שעות לפי הנחיה מפורשת — ~64 קריאות Travelpayouts/שעה נוספות, בנוסף לסריקת המסלולים, עם
 אזהרת לוג אם זה אגרסיבי מדי), נשמר בטבלת
-`vibe_feed_cards`, מוגש ב-`GET /api/deals/feed?vibe=X&lang=Y`.
+`vibe_feed_cards`, מוגש ב-`GET /api/deals/feed?vibe=X&lang=Y` (X = `all` או אחד מ-4 הווייבים).
 
 **"ויסות מחירים" — `totalPrice`/`pricePerPerson` הם כבר source-of-truth יחיד**: לא הוספתי
 מחירי SIM/רכב מומצאים (₪15/₪40 קבועים) לסכום — אין לנו מחיר אמיתי לרכיבים האלה (Travelpayouts

@@ -1,64 +1,4 @@
-/* ---------- Vibe Feed: onboarding + full-screen swipe feed (mobile-first, /feed route) ---------- */
-
-.vibe-onboarding {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 40px;
-  padding: 24px;
-  background: var(--color-heatmap-bg-gradient);
-  text-align: center;
-}
-
-.vibe-onboarding__title {
-  font-size: clamp(1.8rem, 7vw, 2.4rem);
-  font-weight: 800;
-  margin: 0;
-}
-
-.vibe-onboarding__grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-  width: 100%;
-  max-width: 380px;
-}
-
-.vibe-onboarding__button {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 28px 12px;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text-primary);
-}
-
-.vibe-onboarding__button:disabled {
-  opacity: 0.6;
-}
-
-.vibe-onboarding__emoji {
-  font-size: 2.6rem;
-  line-height: 1;
-}
-
-.vibe-onboarding__label {
-  font-size: 1.05rem;
-  font-weight: 700;
-}
-
-.vibe-onboarding__search-link {
-  margin-top: 8px;
-  font-size: 0.78rem;
-  color: var(--color-text-muted);
-  text-decoration: underline;
-  text-decoration-color: var(--color-border);
-}
+/* ---------- Vibe Feed: full-screen swipe feed (mobile-first) ---------- */
 
 /* ---------- feed page + scroller ---------- */
 
@@ -70,6 +10,7 @@
 }
 
 .vibe-feed-page--centered {
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -101,13 +42,61 @@
   font-weight: 600;
 }
 
-.vibe-feed-page__back-button--floating {
+.vibe-feed-page__filter-bar {
   position: absolute;
   top: 16px;
   inset-inline-start: 16px;
   z-index: 10;
+}
+
+.vibe-filter-menu {
+  position: relative;
+}
+
+.vibe-filter-menu__trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
   background: rgba(16, 20, 34, 0.55);
   backdrop-filter: blur(10px);
+  color: var(--color-text-primary);
+  border-radius: var(--radius-sm);
+  padding: 9px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.vibe-filter-menu__dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  inset-inline-start: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 160px;
+  background: rgba(16, 18, 28, 0.97);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 6px;
+}
+
+.vibe-filter-menu__option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: start;
+}
+
+.vibe-filter-menu__option.is-active {
+  background: var(--gradient-accent);
+  color: #fff;
 }
 
 /* ---------- deal slide (one full-screen card) ---------- */
@@ -153,7 +142,8 @@
   position: absolute;
   inset-inline: 0;
   bottom: 0;
-  padding: 20px 16px 28px;
+  /* ריפוד תחתון = רגיל + גובה ה-bottom-nav הצף, כדי שכפתור "הזמן עכשיו" יישאר מעליו ולא יתנגש */
+  padding: 20px 16px calc(28px + var(--bottom-nav-height));
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -304,3 +294,58 @@
   padding: 0 24px;
 }
 
+
+/* ---------- app shell: persistent bottom nav + 3 tabs ---------- */
+
+:root {
+  --bottom-nav-height: 64px;
+}
+
+.app-shell-tabs__panel {
+  min-height: 100vh;
+}
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  inset-inline: 0;
+  z-index: 100;
+  display: flex;
+  height: var(--bottom-nav-height);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: rgba(10, 11, 16, 0.78);
+  backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.bottom-nav__item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: var(--color-text-muted);
+  transition: color 0.2s ease;
+}
+
+.bottom-nav__item.is-active {
+  color: var(--color-accent-from);
+}
+
+.bottom-nav__icon {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.bottom-nav__label {
+  font-size: 0.66rem;
+  font-weight: 600;
+}
+
+/* תוכן הטאבים האחרים (לא הפיד מסך-מלא) צריך ריפוד תחתון כדי שהתוכן האחרון לא יוסתר
+   מתחת ל-bottom-nav הצף */
+.plan-tab,
+.app-shell-tabs__panel > main {
+  padding-bottom: var(--bottom-nav-height);
+}
