@@ -1,6 +1,4 @@
 import { sourceRegistry } from '../../sources/index.js';
-import { searchCheapestHotel } from '../../sources/hotellookClient.js';
-import { getCityName } from '../../web/src/data/cityNames.js';
 import { buildHotelUrl, buildCarRentalUrl, buildEsimUrl } from '../../web/src/utils/packageLinks.js';
 
 function computeNights(departureDate, returnDate) {
@@ -10,24 +8,21 @@ function computeNights(departureDate, returnDate) {
 }
 
 /**
- * LiveDealBuilder — בונה דיל **בזמן אמת** ממש כשמשתמש לוחץ "הזמן", במקום להציג מה שב-DB
- * (שעלול להיות מ-cache לא מעודכן). שתי קריאות חיות, לא מה-DB שלנו:
- *   1. טיסה: sourceRegistry.searchAll/searchAllRoundTrip (sources/ — ייבוא בלבד, לא נערך).
- *   2. מלון: searchCheapestHotel (sources/hotellookClient.js — ייבוא בלבד, לא נערך).
- *      🔴 מאומת בפועל ב-curl (פעמים רבות, גם הסבב הזה): engine.hotellook.com מחזיר 404 על
- *      כל path — ה-API הזה לא פעיל. hotelTotalPrice/hotelName יהיו null בפועל **תמיד**
- *      היום, לא רק "כש-API לא מוגדר". זה לא מוסתר — UI מציג "ראו פרטים באתר" כש-null.
+ * LiveDealBuilder — בונה דיל **בזמן אמת**, לא מ-cache. **flight-only במכוון**: הוסר השלב
+ * שניסה לקרוא ל-searchCheapestHotel (sources/hotellookClient.js) — לא רק "ככה יצא", החלטה
+ * מפורשת אחרי שאומת **שוב** ב-curl (4 endpoint-ים שונים, כולם 404 מ-CloudFront, אותו pattern
+ * בדיוק) שכל ה-API הזה לא קיים יותר, לא תקלה זמנית/per-destination. דיל שמחיר המלון שלו תמיד
+ * null נראה כמו דיל לא שלם ("פרטים באתר" בלי מחיר) — פחות מבלבל להפסיק להתחזות שיש לנו
+ * מחיר מלון בכלל, ולהציג מחיר טיסה בלבד שבאמת אמין. הלינק לחיפוש מלון (buildHotelUrl,
+ * search.hotellook.com — אינטגרציה נפרדת, אישרה ב-curl שעובדת) **נשאר** מוצע, רק לא חלק
+ * מהמחיר/מה-breakdown המספרי. אם אי-פעם יתחבר מקור מחיר מלון אמיתי, זה המקום להחזיר את זה.
  *
- * ⚠️ ממצא חשוב על מחיר טיסה: ל-`prices_for_dates` (sources/travelpayouts.js) **אין** פרמטר
- * מספר-נוסעים בכלל בבקשה — המחיר שמוחזר הוא מחיר **לנוסע בודד** (זו הסיבה שאין פרמטר
- * `adults`: ה-API לא תומך בלוח-זמנים/מחיר לכמה נוסעים יחד). לכן `flightPrice * peopleCount`
- * הוא חישוב המחיר האמיתי לכל הנוסעים, לא `flightPrice` כמו שהוא. **שים לב**: vibeFeedEngine.js
- * ו-packageEngine.js (שלא נערכו הסבב הזה — מערכות נפרדות, לא בסקופ) מחשבים totalPrice בלי
- * הכפלה הזו (peopleCount=2 שם, totalPrice=flightTotal+hotelTotal בלי ×2 על הטיסה) — כדאי
- * לדעת שזה אותו פער פוטנציאלי, גם אם לא תוקן שם הסבב הזה (לא התבקש, ושינוי נוסחת מחיר
- * במערכת קיימת בלי לבקש זה סיכון לא מוצדק).
+ * ⚠️ ממצא על מחיר טיסה: ל-`prices_for_dates` (sources/travelpayouts.js) **אין** פרמטר
+ * מספר-נוסעים בכלל בבקשה — המחיר שמוחזר הוא מחיר **לנוסע בודד**. לכן `flightPrice *
+ * peopleCount` הוא חישוב המחיר האמיתי לכל הנוסעים. vibeFeedEngine.js/packageEngine.js
+ * (לא נערכו) לא עושים את ההכפלה הזו — ראו README לפירוט.
  */
-export async function buildLiveDeal({ origin, destination, departureDate, returnDate, peopleCount = 2, marker, carRentalUrlTemplate, esimUrlTemplate, hotellookApiToken }) {
+export async function buildLiveDeal({ origin, destination, departureDate, returnDate, peopleCount = 2, marker, carRentalUrlTemplate, esimUrlTemplate }) {
   const nights = computeNights(departureDate, returnDate);
 
   let liveOffers = [];
@@ -46,23 +41,6 @@ export async function buildLiveDeal({ origin, destination, departureDate, return
   const cheapestFlight = liveOffers.reduce((min, offer) => (offer.price < min.price ? offer : min));
   const flightPricePerPerson = cheapestFlight.price;
   const flightTotal = flightPricePerPerson * peopleCount;
-
-  let hotel = null;
-  if (nights) {
-    try {
-      hotel = await searchCheapestHotel({
-        cityNameEn: getCityName(destination, 'en'),
-        checkIn: departureDate,
-        checkOut: returnDate,
-        apiToken: hotellookApiToken,
-      });
-    } catch (err) {
-      console.error(`[liveDealBuilder] Live hotel search failed for ${destination}:`, err.message);
-    }
-  }
-
-  const hotelTotal = hotel?.totalPriceUsd ?? null;
-  const totalPrice = flightTotal + (hotelTotal ?? 0);
   const dealLike = { destination, departureDate, returnDate };
 
   return {
@@ -77,17 +55,12 @@ export async function buildLiveDeal({ origin, destination, departureDate, return
     flightTotal,
     flightBookingUrl: cheapestFlight.bookingUrl || null,
     flightStops: cheapestFlight.stops ?? null,
-    hotelName: hotel?.hotelName ?? null,
-    hotelStars: hotel?.stars ?? null,
-    hotelBreakfastIncluded: hotel?.breakfastIncluded ?? null,
-    hotelTotalPrice: hotelTotal,
-    // לינק חיפוש המלון (search.hotellook.com) עובד גם בלי מחיר אמיתי מ-cache.json (שתי
-    // אינטגרציות נפרדות — ראו packageLinks.js) — מציעים אותו תמיד, לא רק כש-hotel נמצא.
+    // לינק חיפוש מלון בלבד — לא מחיר. ראו ההערה למעלה למה הוסר ניסיון מחיר מלון בכלל.
     hotelBookingUrl: buildHotelUrl(dealLike, marker, peopleCount),
     carRentalUrl: buildCarRentalUrl(dealLike, marker, carRentalUrlTemplate),
     esimUrl: buildEsimUrl(dealLike, marker, esimUrlTemplate),
-    totalPrice,
-    pricePerPerson: totalPrice / peopleCount,
+    totalPrice: flightTotal,
+    pricePerPerson: flightTotal / peopleCount,
     currency: 'USD',
     builtAt: new Date().toISOString(),
   };

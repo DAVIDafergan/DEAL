@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../context/LanguageContext.jsx';
-import { useCountUp } from '../hooks/useCountUp.js';
+import { useLiveDeal } from '../hooks/useLiveDeal.js';
 import { getDiscountPercent } from '../utils/dealHeat.js';
 import { shareDeal } from '../utils/share.js';
 import { RiskGauge } from './RiskGauge.jsx';
@@ -13,8 +13,6 @@ import { LiveDealModal } from './LiveDealModal.jsx';
 import { formatShortDate } from '../utils/flightFormat.js';
 import { buildHotelUrl } from '../utils/packageLinks.js';
 import { getCurrencySymbol } from '../utils/currency.js';
-
-const PRICE_FLASH_DURATION_MS = 2200;
 
 const cardVariants = {
   hidden: { opacity: 0, y: 24 },
@@ -28,30 +26,42 @@ const cardVariants = {
  *   - live_price: badge "מחיר הזול ביותר" רגוע יותר, "עודכן לפני X" במקום טיימר/אזהרה
  *     (אין כאן ניתוח סיכון אמיתי — זה פשוט המחיר הנוכחי).
  * isCheapest: הדיל הזול ביותר ברשימה המוצגת כרגע מקבל badge זהוב נפרד.
- * המחיר עצמו "מבריק" בירוק/כתום כשהוא משתנה בין רענון לרענון (ירד/עלה, בהתאמה).
+ *
+ * **המחיר נקבע לפני ההצגה, לא בלחיצה**: useLiveDeal נקרא כש-הכרטיס נכנס לתצוגה
+ * (IntersectionObserver, isVisible) — לא כש-לוחצים "הזמן". skeleton מוצג עד שה-קריאה
+ * החיה הראשונה חוזרת; מאז זה המחיר ה"נעול", הכפתור עובר ל-LiveDealModal עם **אותו** מחיר,
+ * בלי קריאה נוספת. ⚠️ שיקול עומס: viewport-gating מגביל קריאות חיות ל"מה שבפועל גלוי",
+ * אבל ברשת עמוסה (הרבה משתמשים גוללים בגריד במקביל) זה עדיין תוספת אמיתית מעל מחזור
+ * הסריקה הקיים — אם זה מסתבר אגרסיבי מדי ב-production, שווה לשקול להגביל רק ל-N הכרטיסים
+ * הזולים ביותר (הסבירים ביותר ללחיצה), לא לכל כרטיס שנכנס לתצוגה.
  */
 export function DealCard({ deal, packageConfig = null, isCheapest = false }) {
   const { t, lang } = useLanguage();
+  const cardRef = useRef(null);
+  const [isVisible, setIsVisible] = useState(false);
   const [shareStatus, setShareStatus] = useState(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isPackageDialogOpen, setIsPackageDialogOpen] = useState(false);
   const [isLiveDealOpen, setIsLiveDealOpen] = useState(false);
-  const animatedPrice = useCountUp(Math.round(deal.price));
   const isAnomaly = deal.type === 'anomaly';
   const discountPercent = isAnomaly ? getDiscountPercent(deal) : 0;
 
-  // מעקב שינוי מחיר בין רענון לרענון — ירד = ירוק, עלה = כתום, אנימציית "זוהר" קצרה וברורה
-  const previousPriceRef = useRef(deal.price);
-  const [priceFlash, setPriceFlash] = useState(null); // 'up' | 'down' | null
-
   useEffect(() => {
-    if (previousPriceRef.current !== deal.price) {
-      setPriceFlash(deal.price < previousPriceRef.current ? 'down' : 'up');
-      previousPriceRef.current = deal.price;
-      const timeout = setTimeout(() => setPriceFlash(null), PRICE_FLASH_DURATION_MS);
-      return () => clearTimeout(timeout);
-    }
-  }, [deal.price]);
+    const el = cardRef.current;
+    if (!el) return undefined;
+    const observer = new IntersectionObserver(([entry]) => setIsVisible(entry.isIntersecting), { threshold: 0.2 });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const { liveDeal, status, priceFlash } = useLiveDeal({
+    origin: deal.origin,
+    destination: deal.destination,
+    departureDate: deal.departureDate,
+    returnDate: deal.returnDate || null,
+    peopleCount: 2,
+    isActive: isVisible,
+  });
 
   // הלוך-חזור מוצג רק אם יש נתון אמיתי (returnDate) — קיים ל-live_price כשהמקור תומך בכך,
   // לא קיים ל-anomaly (שם נשאר one-way במכוון, ראו DealScanner). לא ממציאים תאריך חזור.
@@ -82,6 +92,7 @@ export function DealCard({ deal, packageConfig = null, isCheapest = false }) {
 
   return (
     <motion.article
+      ref={cardRef}
       id={`deal-${deal.id}`}
       className="deal-card"
       variants={cardVariants}
@@ -102,25 +113,37 @@ export function DealCard({ deal, packageConfig = null, isCheapest = false }) {
         <h3 className="deal-card__title">{deal.title}</h3>
         <p className="deal-card__desc">{deal.description}</p>
 
-        <div className="deal-card__price-row">
-          <span
-            className={`deal-card__price ${priceFlash ? `deal-card__price--flash-${priceFlash}` : ''}`}
-            key={priceFlash ? `flash-${deal.price}` : undefined}
-          >
-            {t.priceFromPrefix}
-            {animatedPrice}
-            {getCurrencySymbol(deal.currency)}
-          </span>
-          {isAnomaly && deal.movingAverage && (
-            <span className="deal-card__price-avg">
-              {t.avgPrice}: {Math.round(deal.movingAverage)} {deal.currency}
-            </span>
-          )}
-        </div>
-        {deal.updatedAt && (
-          <p className="deal-card__freshness">
-            {t.priceFreshnessLabel(new Date(deal.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}
-          </p>
+        {status === 'loading' && (
+          <div className="deal-card__price-skeleton">
+            <div className="deal-card__price-skeleton-bar" />
+          </div>
+        )}
+
+        {status === 'ready' && liveDeal && (
+          <>
+            <div className="deal-card__price-row">
+              <span
+                className={`deal-card__price ${priceFlash ? `deal-card__price--flash-${priceFlash}` : ''}`}
+                key={priceFlash ? `flash-${liveDeal.pricePerPerson}` : undefined}
+              >
+                {t.priceFromPrefix}
+                {Math.round(liveDeal.pricePerPerson)}
+                {getCurrencySymbol(liveDeal.currency)}
+              </span>
+              {isAnomaly && deal.movingAverage && (
+                <span className="deal-card__price-avg">
+                  {t.avgPrice}: {Math.round(deal.movingAverage)} {deal.currency}
+                </span>
+              )}
+            </div>
+            <p className="deal-card__freshness">
+              {t.priceFreshnessLabel(new Date(liveDeal.builtAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}
+            </p>
+          </>
+        )}
+
+        {(status === 'notFound' || status === 'error') && (
+          <p className="deal-card__price-unavailable">{t.dealNoLongerAvailableMessage}</p>
         )}
 
         {isAnomaly && (
@@ -164,6 +187,7 @@ export function DealCard({ deal, packageConfig = null, isCheapest = false }) {
               type="button"
               className="deal-card__action deal-card__action--buy"
               whileTap={{ scale: 0.96 }}
+              disabled={status !== 'ready'}
               onClick={() => setIsLiveDealOpen(true)}
             >
               {t.buyNowButton}
@@ -200,18 +224,7 @@ export function DealCard({ deal, packageConfig = null, isCheapest = false }) {
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {isLiveDealOpen && (
-          <LiveDealModal
-            origin={deal.origin}
-            destination={deal.destination}
-            departureDate={deal.departureDate}
-            returnDate={deal.returnDate || null}
-            peopleCount={2}
-            onClose={() => setIsLiveDealOpen(false)}
-          />
-        )}
-      </AnimatePresence>
+      <AnimatePresence>{isLiveDealOpen && <LiveDealModal liveDeal={liveDeal} onClose={() => setIsLiveDealOpen(false)} />}</AnimatePresence>
     </motion.article>
   );
 }

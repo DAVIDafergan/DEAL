@@ -89,7 +89,6 @@ router.get('/build-live', async (req, res) => {
     marker: deps.marker,
     carRentalUrlTemplate: deps.carRentalUrlTemplate,
     esimUrlTemplate: deps.esimUrlTemplate,
-    hotellookApiToken: deps.apiToken,
   });
   res.json(result);
 });

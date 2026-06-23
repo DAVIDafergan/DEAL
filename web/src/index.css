@@ -931,6 +931,25 @@ button {
   color: var(--color-text-muted);
 }
 
+.deal-card__price-skeleton {
+  padding: 4px 0;
+}
+
+.deal-card__price-skeleton-bar {
+  width: 45%;
+  height: 22px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--color-border-subtle) 25%, var(--color-border) 50%, var(--color-border-subtle) 75%);
+  background-size: 200% 100%;
+  animation: price-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.deal-card__price-unavailable {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
 /* ---------- deal card actions (mobile-first: big, thumb-friendly, full-width) ---------- */
 
 .deal-card__actions {
@@ -963,6 +982,12 @@ button {
   background: var(--gradient-accent);
   color: #fff;
   box-shadow: 0 8px 20px -8px rgba(239, 68, 68, 0.55);
+}
+
+.deal-card__action--buy:disabled {
+  opacity: 0.5;
+  box-shadow: none;
+  cursor: default;
 }
 
 .deal-card__actions--secondary {
@@ -1785,6 +1810,39 @@ button {
 
 .package-card__price-label {
   font-size: 0.74rem;
+  color: var(--color-text-muted);
+}
+
+.package-card__price--flash-up,
+.package-card__price--flash-down {
+  border-radius: 6px;
+  padding: 0 4px;
+}
+
+.package-card__price--flash-up {
+  animation: price-flash-up 2.2s ease-out;
+}
+
+.package-card__price--flash-down {
+  animation: price-flash-down 2.2s ease-out;
+}
+
+.package-card__price-skeleton {
+  padding: 4px 0;
+}
+
+.package-card__price-skeleton-bar {
+  width: 50%;
+  height: 24px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--color-border-subtle) 25%, var(--color-border) 50%, var(--color-border-subtle) 75%);
+  background-size: 200% 100%;
+  animation: price-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.package-card__price-unavailable {
+  font-size: 0.82rem;
+  font-weight: 600;
   color: var(--color-text-muted);
 }
 

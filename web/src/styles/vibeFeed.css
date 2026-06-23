@@ -206,6 +206,81 @@
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
 }
 
+/* ---------- price locked-before-display: skeleton + background-refresh flash ---------- */
+
+.deal-slide__price-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.deal-slide__price-skeleton-bar {
+  height: 14px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.08) 25%, rgba(255, 255, 255, 0.18) 50%, rgba(255, 255, 255, 0.08) 75%);
+  background-size: 200% 100%;
+  animation: price-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.deal-slide__price-skeleton-bar--lg {
+  width: 50%;
+  height: 28px;
+}
+
+.deal-slide__price-skeleton-bar--sm {
+  width: 70%;
+}
+
+@keyframes price-skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.deal-slide__price-unavailable {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.deal-slide__price-per-person--flash-up {
+  border-radius: 8px;
+  animation: deal-slide-price-flash-up 2.2s ease-out;
+}
+
+.deal-slide__price-per-person--flash-down {
+  border-radius: 8px;
+  animation: deal-slide-price-flash-down 2.2s ease-out;
+}
+
+@keyframes deal-slide-price-flash-up {
+  0% {
+    background-color: transparent;
+  }
+  15% {
+    background-color: rgba(245, 158, 11, 0.35);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+@keyframes deal-slide-price-flash-down {
+  0% {
+    background-color: transparent;
+  }
+  15% {
+    background-color: rgba(34, 197, 94, 0.35);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
 .deal-slide__lock-button {
   margin-top: 4px;
   min-height: 52px;
@@ -216,6 +291,11 @@
   color: #fff;
   font-size: 1.05rem;
   font-weight: 700;
+}
+
+.deal-slide__lock-button:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .deal-slide__quick-hint {

@@ -15,19 +15,25 @@ const squareVariants = {
 };
 
 /**
- * DealBreakdown — ריבוע נפרד לכל רכיב (טיסה/מלון/רכב), אנימציית stagger entrance, lucide
- * icons. רכב הוא **אופציה עם toggle**, לא מחיר מומצא: אין לנו מחיר אמיתי לרכב (לינק בלבד),
- * אז ה-toggle לא משנה את הסכום המספרי (זה היה דורש להמציא מספר) — הוא מוסיף שורת הערה
- * טקסטואלית מתחת לסכום ("+ רכב — מחיר באתר ההזמנה") ומסמן את הריבוע כ"נוסף לתוכנית", כך
- * שהמשתמש יודע שהוא בחר לכלול אותו כשיגיע לבחור מה לפתוח (ב-BundleModal). מלון: אם יש מחיר
- * אמיתי (היום אף פעם — Hotellook מאומת לא פעיל, ראו liveDealBuilder.js) מציג $/לילה ×לילות;
- * אם לא — "פרטים באתר", לא ממציאים.
+ * DealBreakdown — ריבוע נפרד לכל רכיב, אנימציית stagger entrance, lucide icons.
+ *
+ * מלון: ריבוע מוצג **רק אם יש מחיר אמיתי** (hotelTotalPrice לא null) — לא "פרטים באתר" בלי
+ * מחיר. שונה במכוון לפי דיווח על "מלון בלי מחיר נראה כמו דיל לא שלם, מבלבל": אם אין מחיר
+ * מלון, לא מציגים ריבוע מלון בכלל (לא placeholder), במקום זה לינק חיפוש המלון (כש-קיים)
+ * נשאר זמין בנפרד ב-BundleModal'ים items list — לא חלק מה-breakdown המספרי. נכון להיום זה
+ * תמיד המקרה (Hotellook מאומת לא פעיל — ראו core/validation/liveDealBuilder.js), אבל
+ * הקומפוננטה נשארת מוכנה לחזרה של מקור מחיר מלון אמיתי בעתיד (DealSlide.jsx עדיין מעביר
+ * hotelTotalPrice מ-vibeFeedEngine.js, מערכת נפרדת שלא נערכה).
+ *
+ * רכב הוא **אופציה עם toggle**, לא מחיר מומצא: אין לנו מחיר אמיתי לרכב (לינק בלבד), אז
+ * ה-toggle לא משנה את הסכום המספרי — הוא מוסיף שורת הערה טקסטואלית ("+ רכב — מחיר באתר
+ * ההזמנה") ומסמן את הריבוע כ"נוסף לתוכנית".
  */
 export function DealBreakdown({
   flightTotal,
-  hotelName,
-  hotelTotalPrice,
-  hotelStars,
+  hotelName = null,
+  hotelTotalPrice = null,
+  hotelStars = null,
   nights,
   currency,
   peopleCount = 1,
@@ -53,22 +59,20 @@ export function DealBreakdown({
           </span>
         </motion.div>
 
-        <motion.div className="deal-breakdown__square" variants={squareVariants}>
-          <Hotel className="deal-breakdown__square-icon" size={24} strokeWidth={1.8} />
-          <span className="deal-breakdown__square-label">
-            {hotelName || t.breakdownHotelGenericLabel}
-            {hotelStars ? ` · ${hotelStars}★` : ''}
-          </span>
-          {hasHotel ? (
+        {hasHotel && (
+          <motion.div className="deal-breakdown__square" variants={squareVariants}>
+            <Hotel className="deal-breakdown__square-icon" size={24} strokeWidth={1.8} />
+            <span className="deal-breakdown__square-label">
+              {hotelName || t.breakdownHotelGenericLabel}
+              {hotelStars ? ` · ${hotelStars}★` : ''}
+            </span>
             <span className="deal-breakdown__square-price">
               {Math.round(hotelPerNight)}
               {symbol}
               <small>{t.perNightSuffix}</small>
             </span>
-          ) : (
-            <span className="deal-breakdown__square-tag">{t.detailsOnSiteLabel}</span>
-          )}
-        </motion.div>
+          </motion.div>
+        )}
 
         {hasCarOption && (
           <motion.button

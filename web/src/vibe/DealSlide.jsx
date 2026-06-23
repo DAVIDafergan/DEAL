@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../context/LanguageContext.jsx';
+import { useLiveDeal } from '../hooks/useLiveDeal.js';
 import { GlitchDropOverlay } from './GlitchDropOverlay.jsx';
 import { UrgencyBanner } from './UrgencyBanner.jsx';
 import { LiveDealModal } from '../components/LiveDealModal.jsx';
@@ -8,16 +9,15 @@ import { formatShortDate } from '../utils/flightFormat.js';
 import { getCurrencySymbol } from '../utils/currency.js';
 
 /**
- * DealSlide — שקף אחד במסך מלא בפיד הווייב. רקע: וידאו אם יש card.videoUrl (אמיתי, לא
- * ממציאים), אחרת gradient+motion עדין — תמיד עובד, בלי תצורה. הוידאו רק מתנגן כשהשקף בפועל
- * גלוי (>50%, IntersectionObserver) — לא את כל 8 הסרטונים בבת אחת.
+ * DealSlide — שקף אחד במסך מלא בפיד הווייב. רקע: וידאו אם יש card.videoUrl, אחרת gradient
+ * עדין — תמיד עובד. הוידאו רק מתנגן כשהשקף בפועל גלוי (>50%, IntersectionObserver).
  *
- * התצוגה על השקף עצמו ("Bottom Line") מינימלית בכוונה: יעד, שורת טיסה+מלון קצרה, ומחיר
- * כולל בולט אחד — בלי breakdown מפורט עם אייקונים. ה-breakdown המפורט מוצג רק אחרי לחיצה
- * על הכפתור היחיד, בתוך LiveDealModal — שמרענן את הטיסה/מלון **בזמן אמת** (לא את card
- * המוצג, שיכול להיות עד 30 דק' ישן — ראו core/validation/liveDealBuilder.js) לפני שמראה
- * breakdown ולינקים. זה שינוי מ"פותח ישר בלי אנימציה" (הנחיה ישנה) ל"מראה חיפוש כן" —
- * לא חזרה לבעיה הקודמת (אנימציית טעינה מזויפת): כאן יש קריאת רשת אמיתית שרצה, לא delay מבוים.
+ * **המחיר נקבע לפני ההצגה, לא בלחיצה**: כש-isActive (השקף גלוי) הופך true, useLiveDeal
+ * קורא לטיסה החיה ברגע הזה — לא בלחיצת "הזמן". בזמן הטעינה הראשונה מוצג skeleton במקום
+ * מספר; ברגע ש-status==='ready', זה המחיר ה"נעול" — לחיצה על הכפתור פותחת את LiveDealModal
+ * עם **אותו** liveDeal שכבר מוצג, בלי קריאת רשת נוספת, כך שהמספר לא יכול להשתנות בין מה
+ * שהמשתמש ראה לבין מה שהוא רואה אחרי הלחיצה. כל עוד השקף נשאר גלוי, useLiveDeal מרענן ברקע
+ * (לא בלחיצה) ומסמן priceFlash אם המחיר השתנה — אנימציה עדינה, לא שינוי שקט.
  */
 export function DealSlide({ card }) {
   const { t, lang } = useLanguage();
@@ -48,8 +48,22 @@ export function DealSlide({ card }) {
     }
   }, [isActive, card.isGlitchDrop]);
 
+  const { liveDeal, status, priceFlash } = useLiveDeal({
+    origin: card.origin,
+    destination: card.destination,
+    departureDate: card.departureDate,
+    returnDate: card.returnDate,
+    peopleCount: card.peopleCount,
+    isActive,
+  });
+
   const currencySymbol = getCurrencySymbol(card.currency);
+  // הערה: hotel still sourced from card (vibeFeedEngine.js, נפרד, לא נערך) — מידע בלבד, לא
+  // חלק מהמחיר הנעול (liveDeal הוא flight-only, ראו liveDealBuilder.js).
   const hasRealHotel = card.hotelTotalPrice !== null && card.hotelTotalPrice !== undefined;
+  const flightStops = liveDeal?.flightStops ?? card.flightStops ?? 0;
+  const departureDate = liveDeal?.departureDate ?? card.departureDate;
+  const returnDate = liveDeal?.returnDate ?? card.returnDate;
 
   return (
     <section ref={slideRef} className="deal-slide">
@@ -80,40 +94,55 @@ export function DealSlide({ card }) {
 
         <div className="deal-slide__includes">
           <p className="deal-slide__includes-item">
-            ✈️ {t.stopsLabel(card.flightStops ?? 0)}
-            {card.departureDate && card.returnDate && (
-              <> · {formatShortDate(card.departureDate, lang)} → {formatShortDate(card.returnDate, lang)}</>
+            ✈️ {t.stopsLabel(flightStops)}
+            {departureDate && returnDate && (
+              <> · {formatShortDate(departureDate, lang)} → {formatShortDate(returnDate, lang)}</>
             )}
           </p>
           {hasRealHotel && (
             <p className="deal-slide__includes-item">
               🏨 {card.hotelName || t.breakdownHotelGenericLabel}
               {card.hotelStars ? ` · ${card.hotelStars}★` : ''} · {t.nightsLabel(card.nights)}
-              {/* ארוחת בוקר: רק אם Hotellook אמר במפורש (true/false) — null = לא ידוע, "פרטים באתר", לא ממציאים */}
               {card.hotelBreakfastIncluded === true && ` · ${t.breakfastIncludedLabel}`}
               {card.hotelBreakfastIncluded === null && ` · ${t.detailsOnSiteLabel}`}
             </p>
           )}
-          {card.hasCarRentalOption && <p className="deal-slide__includes-item">🚗 {t.carAvailableLabel}</p>}
+          {liveDeal?.carRentalUrl && <p className="deal-slide__includes-item">🚗 {t.carAvailableLabel}</p>}
         </div>
 
-        {/* היררכיה ברורה: לאדם = הכי בולט, סה"כ לקבוצה = משני, לא על אותה שורה */}
-        <p className="deal-slide__price-per-person">
-          {t.priceFromPrefix}
-          {Math.round(card.pricePerPerson)}
-          {currencySymbol} <span className="deal-slide__price-per-person-label">{t.vibePerPersonLabel}</span>
-        </p>
-        <p className="deal-slide__price-total">
-          {t.breakdownTotalLabel} {t.packageForPeopleLabel(card.peopleCount)}: {Math.round(card.totalPrice)}
-          {currencySymbol} · {t.flightAndHotelTag}
-        </p>
+        {status === 'loading' && (
+          <div className="deal-slide__price-skeleton">
+            <div className="deal-slide__price-skeleton-bar deal-slide__price-skeleton-bar--lg" />
+            <div className="deal-slide__price-skeleton-bar deal-slide__price-skeleton-bar--sm" />
+          </div>
+        )}
 
-        <UrgencyBanner updatedAt={card.updatedAt} />
+        {status === 'ready' && liveDeal && (
+          <>
+            {/* היררכיה ברורה: לאדם = הכי בולט, סה"כ לקבוצה = משני, לא על אותה שורה */}
+            <p className={`deal-slide__price-per-person ${priceFlash ? `deal-slide__price-per-person--flash-${priceFlash}` : ''}`}>
+              {t.priceFromPrefix}
+              {Math.round(liveDeal.pricePerPerson)}
+              {currencySymbol} <span className="deal-slide__price-per-person-label">{t.vibePerPersonLabel}</span>
+            </p>
+            <p className="deal-slide__price-total">
+              {t.breakdownTotalLabel} {t.packageForPeopleLabel(liveDeal.peopleCount)}: {Math.round(liveDeal.totalPrice)}
+              {currencySymbol}
+            </p>
+          </>
+        )}
+
+        {(status === 'notFound' || status === 'error') && (
+          <p className="deal-slide__price-unavailable">{t.dealNoLongerAvailableMessage}</p>
+        )}
+
+        <UrgencyBanner updatedAt={liveDeal?.builtAt || card.updatedAt} />
 
         <motion.button
           type="button"
           className="deal-slide__lock-button"
           whileTap={{ scale: 0.95 }}
+          disabled={status !== 'ready'}
           onClick={() => setIsLiveDealOpen(true)}
         >
           {t.lockDealButton}
@@ -124,16 +153,7 @@ export function DealSlide({ card }) {
       {showGlitch && <GlitchDropOverlay caption={card.glitchCaption} />}
 
       <AnimatePresence>
-        {isLiveDealOpen && (
-          <LiveDealModal
-            origin={card.origin}
-            destination={card.destination}
-            departureDate={card.departureDate}
-            returnDate={card.returnDate}
-            peopleCount={card.peopleCount}
-            onClose={() => setIsLiveDealOpen(false)}
-          />
-        )}
+        {isLiveDealOpen && <LiveDealModal liveDeal={liveDeal} onClose={() => setIsLiveDealOpen(false)} />}
       </AnimatePresence>
     </section>
   );
