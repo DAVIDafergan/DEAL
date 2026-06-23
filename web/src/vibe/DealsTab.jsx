@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { fetchVibeFeed, agentApi } from '../api/client.js';
 import { useLanguage } from '../context/LanguageContext.jsx';
+import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { DealSlide } from './DealSlide.jsx';
 import { AgentDealSlide } from './AgentDealSlide.jsx';
 import { VibeFilterMenu } from './VibeFilterMenu.jsx';
 import { ALL_VIBES_KEY } from './vibeConstants.js';
+import { UserCircle, LayoutDashboard } from 'lucide-react';
 
 // Interleave agent deals into live cards: 1 agent slide every N live slides
 function interleaveAgentDeals(liveCards, agentDeals, interval = 4) {
@@ -28,6 +31,8 @@ function interleaveAgentDeals(liveCards, agentDeals, interval = 4) {
  */
 export function DealsTab({ vibe = ALL_VIBES_KEY, onChangeVibe }) {
   const { t, lang } = useLanguage();
+  const { agent, token, loading: authLoading } = useAgentAuth();
+  const navigate = useNavigate();
   const [cards, setCards] = useState(null);
   const [agentDeals, setAgentDeals] = useState([]);
 
@@ -53,9 +58,31 @@ export function DealsTab({ vibe = ALL_VIBES_KEY, onChangeVibe }) {
 
   return (
     <div className="vibe-feed-page">
+      {/* Filter menu — top-left */}
       <div className="vibe-feed-page__filter-bar">
         <VibeFilterMenu activeVibe={vibe} onChange={onChangeVibe} />
       </div>
+
+      {/* Auth buttons — top-right */}
+      {!authLoading && (
+        <div className="vibe-feed-page__auth-bar">
+          {token && agent ? (
+            <Link to="/agent/dashboard" className="vibe-auth-btn vibe-auth-btn--agent">
+              <LayoutDashboard size={14} />
+              <span className="vibe-auth-btn__name">{agent.business_name}</span>
+            </Link>
+          ) : (
+            <>
+              <button className="vibe-auth-btn vibe-auth-btn--ghost" onClick={() => navigate('/agent/login')}>
+                {t.headerLoginButton || 'Login'}
+              </button>
+              <button className="vibe-auth-btn vibe-auth-btn--primary" onClick={() => navigate('/register')}>
+                {t.headerRegisterButton || 'Register'}
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       {cards === null && (
         <div className="vibe-feed-page--centered">

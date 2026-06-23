@@ -81,6 +81,103 @@ button {
   gap: 10px;
 }
 
+/* ---------- header auth buttons ---------- */
+
+.header-auth-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 13px;
+  border-radius: var(--radius-sm, 8px);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.header-auth-btn--primary {
+  background: var(--gradient-accent);
+  color: #fff;
+}
+
+.header-auth-btn--ghost {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+.header-auth-btn--ghost:hover {
+  color: var(--color-text-primary);
+  border-color: var(--color-text-secondary);
+}
+
+.header-auth-btn--dashboard {
+  background: rgba(249, 115, 22, 0.1);
+  border: 1px solid rgba(249, 115, 22, 0.3);
+  color: var(--color-accent-from);
+  max-width: 150px;
+}
+
+.header-auth-btn__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 110px;
+}
+
+/* ---------- vibe reel auth bar (top-right corner) ---------- */
+
+.vibe-feed-page__auth-bar {
+  position: absolute;
+  top: 16px;
+  inset-inline-end: 16px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vibe-auth-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  backdrop-filter: blur(10px);
+}
+
+.vibe-auth-btn--primary {
+  background: var(--gradient-accent);
+  color: #fff;
+}
+
+.vibe-auth-btn--ghost {
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.vibe-auth-btn--agent {
+  background: rgba(249, 115, 22, 0.25);
+  border: 1px solid rgba(249, 115, 22, 0.4);
+  color: var(--color-accent-from);
+  max-width: 140px;
+}
+
+.vibe-auth-btn__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 90px;
+}
+
 .logo {
   display: flex;
   align-items: center;
