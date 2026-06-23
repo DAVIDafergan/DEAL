@@ -8,17 +8,25 @@ let hasWarnedEndpointDown = false;
 /**
  * HotellookClient — אינטגרציה עם Hotellook Hotel Data API (חלק ממוצרי Travelpayouts).
  *
- * 🔴 נבדק בפועל ב-2026-06-22 עם curl, לא רק "לא מאומת": `engine.hotellook.com` (כל path,
- * כולל הroot) מחזיר 404 מ-CloudFront ("Error from cloudfront" ב-x-cache header) — סימן
- * ל-distribution שאין לו backend מוגדר מאחוריו, כלומר ה-endpoint הזה כבר לא פעיל. זה לא
- * עניין של token/auth — `Unauthorized` (לא 404) הוא מה שמתקבל מ-endpoint תקין אבל בלי
- * token, וזה לא מה שקרה כאן. בדקתי גם locations.json וכמה paths נוספים — כולם 404.
+ * 🔴 נבדק בפועל **שוב** ב-2026-06-23 עם curl (לא רק "לא מאומת", ולא הסתפקתי בזיכרון
+ * מבדיקה קודמת): `engine.hotellook.com` (כל path, כולל הroot, גם עם `token=` בפרמטרים)
+ * עדיין מחזיר 404 מ-CloudFront ("Error from cloudfront" ב-x-cache header) — אותו סימן
+ * מדויק כמו בבדיקה הקודמת, כלומר זה לא תקלה חולפת. זה לא עניין של token/auth —
+ * `Unauthorized` (לא 404) הוא מה שמתקבל מ-endpoint תקין אבל בלי token, וזה לא מה שקרה כאן.
  *
- * המשמעות בפועל: searchCheapestHotel תמיד מחזיר null היום (לא "אם אין token" — תמיד),
- * אז כל totalPrice בפועל הוא flight-only. זה לא bug בלוגיקת השילוב (vibeFeedEngine.js כבר
- * נכון: totalPrice = flight + hotel רק אם hotel נמצא) — זה מקור-נתונים שבור, ואין לי
- * תחליף אמיתי לו כרגע (לא ממציאים מחיר מלון). אם יש לכם endpoint/API key חדש של Hotellook
- * או חשבון Booking.com Affiliate אמיתי — זה המקום הראשון לחבר אותו.
+ * המשמעות בפועל: searchCheapestHotel תמיד מחזיר null היום, אז כל totalPrice בפועל הוא
+ * flight-only. זה לא bug בלוגיקת השילוב (vibeFeedEngine.js כבר נכון: totalPrice = flight +
+ * hotel רק אם hotel נמצא) — זה מקור-נתונים שבור, ואין לי תחליף אמיתי לו כרגע.
+ *
+ * ⚠️ **שני הנחות שלא ניתנות לאימות כרגע** (אין תשובת API אמיתית לבדוק נגדה):
+ *   1. `priceFrom` — הנחה: מחיר לכל השהייה (לא ללילה). אם זה שגוי בפועל ו-priceFrom הוא
+ *      מחיר-ללילה, totalPriceUsd למטה צריך להיות `priceFrom * nights`, לא `priceFrom` כמו
+ *      שהוא. **לא משנה את זה בלי ראיה** — שינוי "לבטח נכון" בלי לבדוק יכול להפוך הנחה אחת
+ *      (אולי נכונה) להנחה אחרת (אולי שגויה) בלי שום שיפור באמינות.
+ *   2. `breakfastIncluded`/דירוג-ציון (לא רק כוכבים) — שדות שלא ידוע אם/איך קיימים בתשובה
+ *      האמיתית. מוחזרים כ-null במכוון (לא ממציאים שם שדה) — ה-UI מציג "פרטים באתר" כשזה null.
+ * אם יש לכם endpoint/API key חדש של Hotellook או חשבון Booking.com Affiliate אמיתי — זה
+ * המקום הראשון לחבר אותו ולתקן את שתי ההנחות האלה מול תשובה אמיתית.
  */
 export async function searchCheapestHotel({ cityNameEn, checkIn, checkOut, apiToken }) {
   let response;
@@ -62,7 +70,10 @@ export async function searchCheapestHotel({ cityNameEn, checkIn, checkOut, apiTo
   return {
     hotelName: cheapest.hotelName || null,
     stars: cheapest.stars ?? null,
-    // הנחה: priceFrom הוא מחיר לכל השהייה (לא ללילה) — ראו אזהרה למעלה
+    // לא ידוע אם/באיזה שם שדה תשובה אמיתית תחזיר את זה — null במכוון, לא ממציאים. ה-UI
+    // מציג "פרטים באתר" כשזה null, ראו web/src/vibe/vibeConstants.js / DealSlide.jsx.
+    breakfastIncluded: cheapest.breakfastIncluded ?? null,
+    // הנחה: priceFrom הוא מחיר לכל השהייה (לא ללילה) — ראו אזהרה למעלה. לא מכפילים ב-nights.
     totalPriceUsd: cheapest.priceFrom,
     currency: 'usd',
   };

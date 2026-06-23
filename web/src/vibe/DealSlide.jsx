@@ -113,12 +113,17 @@ export function DealSlide({ card, packageConfig = null }) {
             <p className="deal-slide__includes-item">
               🏨 {card.hotelName || t.breakdownHotelGenericLabel}
               {card.hotelStars ? ` · ${card.hotelStars}★` : ''} · {t.nightsLabel(card.nights)}
+              {/* ארוחת בוקר: רק אם Hotellook אמר במפורש (true/false) — null = לא ידוע, "פרטים באתר", לא ממציאים */}
+              {card.hotelBreakfastIncluded === true && ` · ${t.breakfastIncludedLabel}`}
+              {card.hotelBreakfastIncluded === null && ` · ${t.detailsOnSiteLabel}`}
             </p>
           )}
+          {card.hasCarRentalOption && <p className="deal-slide__includes-item">🚗 {t.carAvailableLabel}</p>}
         </div>
 
         {/* היררכיה ברורה: לאדם = הכי בולט, סה"כ לקבוצה = משני, לא על אותה שורה */}
         <p className="deal-slide__price-per-person">
+          {t.priceFromPrefix}
           {Math.round(card.pricePerPerson)}
           {currencySymbol} <span className="deal-slide__price-per-person-label">{t.vibePerPersonLabel}</span>
         </p>

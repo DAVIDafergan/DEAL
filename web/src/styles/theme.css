@@ -47,4 +47,9 @@
   --shadow-card-hover: 0 16px 40px -12px rgba(239, 68, 68, 0.35);
 
   --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* גובה ה-bottom nav הצף (BottomNav.jsx) — מוגדר פעם אחת כאן, לא ב-vibeFeed.css, כדי
+     שכל CSS שתלוי בו (כפתורי שקפים, ריפוד תחתון של טאבים אחרים) יקבל אותו ערך בוודאות,
+     בלי תלות בסדר טעינת קבצים בין מודולי ה-CSS. */
+  --bottom-nav-height: 70px;
 }

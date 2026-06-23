@@ -1,24 +1,38 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { DealBreakdown } from './DealBreakdown.jsx';
+import { PurchaseTransitionOverlay } from './PurchaseTransitionOverlay.jsx';
+
+const TRANSITION_DURATION_MS = 900; // קצר וקבוע, לא מתחזה לחכות לתהליך אמיתי — ראו PurchaseTransitionOverlay.jsx
 
 /**
  * BundleModal — דיאלוג "קנה חבילה" גנרי: breakdown אופציונלי (רק כש-יש מחיר אמיתי לכל
  * הרכיבים שמוצגים בו) + כפתור אחד לכל רכיב (טיסה/מלון/רכב/eSIM), כולם באותו עיצוב/צבע
- * אחיד (לא צבעוני-לפי-סוג — פשוט ומקצועי) — מובחנים רק ב-icon+label. כל לחיצה פותחת
- * deep link אמיתי בטאב חדש ומסומנת ב-✓. "All set" מוצג כשכולם נלחצו.
- * כל רכיב הוא הזמנה נפרדת אצל הספק שלו — לא רכישה אחת מאוחדת (ראו ה-disclaimer בתחתית).
+ * אחיד (לא צבעוני-לפי-סוג — פשוט ומקצועי) — מובחנים רק ב-icon+label. לחיצה מציגה מסך מעבר
+ * קצר (PurchaseTransitionOverlay) ואז פותחת deep link אמיתי בטאב חדש, ומסומנת ב-✓.
+ * "All set" מוצג כשכולם נלחצו. כל רכיב הוא הזמנה נפרדת אצל הספק שלו — לא רכישה אחת
+ * מאוחדת (ראו ה-disclaimer בתחתית).
  */
 export function BundleModal({ title, breakdown = null, items, onClose }) {
   const { t } = useLanguage();
   const [clickedKeys, setClickedKeys] = useState(() => new Set());
+  const [pendingItem, setPendingItem] = useState(null);
   const allDone = items.length > 0 && items.every((item) => clickedKeys.has(item.key));
 
+  useEffect(() => {
+    if (!pendingItem) return undefined;
+    const timeout = setTimeout(() => {
+      console.log(`[BundleModal] Opening ${pendingItem.key} deep link:`, pendingItem.url);
+      window.open(pendingItem.url, '_blank', 'noopener,noreferrer');
+      setClickedKeys((prev) => new Set(prev).add(pendingItem.key));
+      setPendingItem(null);
+    }, TRANSITION_DURATION_MS);
+    return () => clearTimeout(timeout);
+  }, [pendingItem]);
+
   function handleItemClick(item) {
-    console.log(`[BundleModal] Opening ${item.key} deep link:`, item.url);
-    window.open(item.url, '_blank', 'noopener,noreferrer');
-    setClickedKeys((prev) => new Set(prev).add(item.key));
+    setPendingItem(item);
   }
 
   return (
@@ -57,6 +71,7 @@ export function BundleModal({ title, breakdown = null, items, onClose }) {
                 type="button"
                 className={`bundle-modal__item ${isDone ? 'is-done' : ''}`}
                 whileTap={{ scale: 0.96 }}
+                disabled={Boolean(pendingItem)}
                 onClick={() => handleItemClick(item)}
               >
                 <span className="bundle-modal__item-icon">{item.icon}</span>
@@ -70,6 +85,8 @@ export function BundleModal({ title, breakdown = null, items, onClose }) {
         {allDone && <p className="bundle-modal__success">{t.bundleModalAllSet}</p>}
 
         <p className="bundle-modal__disclaimer">{t.packageDisclaimer}</p>
+
+        <AnimatePresence>{pendingItem && <PurchaseTransitionOverlay />}</AnimatePresence>
       </motion.div>
     </motion.div>
   );

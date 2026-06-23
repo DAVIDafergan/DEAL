@@ -128,8 +128,14 @@ async function buildFeedCard({ vibe, destination, isGlitchDrop, deps }) {
     flightReturnStops: cheapestFlight.returnStops ?? null,
     hotelName: hotel?.hotelName ?? null,
     hotelStars: hotel?.stars ?? null,
+    // null אם Hotellook לא אמר (כרגע: תמיד, ה-API מאומת כלא פעיל) — לא ממציאים. ה-UI מציג
+    // "פרטים באתר" בדיוק כמו ל-stars/hotelName חסרים.
+    hotelBreakfastIncluded: hotel?.breakfastIncluded ?? null,
     hotelTotalPrice: hotelTotal,
     hotelBookingUrl: buildHotelUrl({ destination, departureDate, returnDate }, deps.marker) || '',
+    // רכב להשכרה — לינק בלבד, בלי מחיר אמיתי (ראו DealBreakdown.jsx). מוצג כ"זמין" בכרטיס
+    // הראשי כש-יש תבנית מוגדרת (TRAVELPAYOUTS_CAR_RENTAL_URL_TEMPLATE), לא רק בתוך ה-modal.
+    hasCarRentalOption: Boolean(deps.carRentalUrlTemplate && deps.marker),
     totalPrice,
     pricePerPerson,
     currency: 'USD',

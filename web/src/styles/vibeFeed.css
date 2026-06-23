@@ -142,8 +142,11 @@
   position: absolute;
   inset-inline: 0;
   bottom: 0;
-  /* ריפוד תחתון = רגיל + גובה ה-bottom-nav הצף, כדי שכפתור "הזמן עכשיו" יישאר מעליו ולא יתנגש */
-  padding: 20px 16px calc(28px + var(--bottom-nav-height));
+  /* ריפוד תחתון = רגיל + גובה ה-bottom-nav הצף + שולי ביטחון, כדי שכפתור "הזמן עכשיו"
+     יישאר ברור מעליו ולא יתנגש. בלי max-height/overflow כאן בכוונה — אינטראקציה בין
+     max-height קבוע ל-bottom-nav צף יכולה לחתוך תוכן בלי שזה ברור למה; עדיף שהקופסה
+     תגדל לפי תוכן בפועל. */
+  padding: 20px 16px calc(var(--bottom-nav-height) + 36px);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -157,8 +160,6 @@
     rgba(5, 6, 10, 0.95) 75%,
     rgba(5, 6, 10, 0.97) 100%
   );
-  max-height: 80vh;
-  overflow-y: auto;
 }
 
 .deal-slide__title {
@@ -296,10 +297,7 @@
 
 
 /* ---------- app shell: persistent bottom nav + 3 tabs ---------- */
-
-:root {
-  --bottom-nav-height: 64px;
-}
+/* --bottom-nav-height מוגדר ב-theme.css (משותף, לא כפול) */
 
 .app-shell-tabs__panel {
   min-height: 100vh;
@@ -313,34 +311,49 @@
   display: flex;
   height: var(--bottom-nav-height);
   padding-bottom: env(safe-area-inset-bottom, 0px);
-  background: rgba(10, 11, 16, 0.78);
-  backdrop-filter: blur(16px);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(9, 10, 15, 0.72);
+  backdrop-filter: blur(20px) saturate(140%);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 -8px 30px -12px rgba(0, 0, 0, 0.5);
 }
 
 .bottom-nav__item {
+  position: relative;
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 4px;
+  min-height: 100%;
   color: var(--color-text-muted);
-  transition: color 0.2s ease;
+  transition: color 0.25s ease;
 }
 
 .bottom-nav__item.is-active {
   color: var(--color-accent-from);
 }
 
-.bottom-nav__icon {
-  font-size: 1.3rem;
-  line-height: 1;
+.bottom-nav__icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .bottom-nav__label {
-  font-size: 0.66rem;
+  font-size: 0.68rem;
   font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.bottom-nav__indicator {
+  position: absolute;
+  bottom: 4px;
+  width: 28px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--gradient-accent);
+  box-shadow: 0 0 10px rgba(249, 115, 22, 0.65);
 }
 
 /* תוכן הטאבים האחרים (לא הפיד מסך-מלא) צריך ריפוד תחתון כדי שהתוכן האחרון לא יוסתר

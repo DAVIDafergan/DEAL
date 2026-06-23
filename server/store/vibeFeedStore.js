@@ -17,16 +17,18 @@ export async function upsertVibeFeedCard(card) {
       `INSERT INTO vibe_feed_cards (
          id, vibe, origin, destination, departure_date, return_date, nights, people_count,
          flight_price, flight_booking_url, flight_stops, flight_return_stops,
-         hotel_name, hotel_stars, hotel_total_price, hotel_booking_url,
-         total_price, price_per_person, currency, video_url, video_poster_url, photo_url,
-         music_url, is_glitch_drop, narrative_json, created_at, updated_at
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         hotel_name, hotel_stars, hotel_breakfast_included, hotel_total_price, hotel_booking_url,
+         has_car_rental_option, total_price, price_per_person, currency, video_url,
+         video_poster_url, photo_url, music_url, is_glitch_drop, narrative_json, created_at, updated_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE
          departure_date = VALUES(departure_date), return_date = VALUES(return_date),
          flight_price = VALUES(flight_price), flight_booking_url = VALUES(flight_booking_url),
          flight_stops = VALUES(flight_stops), flight_return_stops = VALUES(flight_return_stops),
          hotel_name = VALUES(hotel_name), hotel_stars = VALUES(hotel_stars),
+         hotel_breakfast_included = VALUES(hotel_breakfast_included),
          hotel_total_price = VALUES(hotel_total_price), hotel_booking_url = VALUES(hotel_booking_url),
+         has_car_rental_option = VALUES(has_car_rental_option),
          total_price = VALUES(total_price), price_per_person = VALUES(price_per_person),
          video_url = VALUES(video_url), video_poster_url = VALUES(video_poster_url),
          photo_url = VALUES(photo_url), music_url = VALUES(music_url),
@@ -46,8 +48,10 @@ export async function upsertVibeFeedCard(card) {
         card.flightReturnStops ?? null,
         card.hotelName || null,
         card.hotelStars ?? null,
+        card.hotelBreakfastIncluded === null || card.hotelBreakfastIncluded === undefined ? null : (card.hotelBreakfastIncluded ? 1 : 0),
         card.hotelTotalPrice ?? null,
         card.hotelBookingUrl || null,
+        card.hasCarRentalOption ? 1 : 0,
         card.totalPrice,
         card.pricePerPerson,
         card.currency || 'USD',
@@ -133,8 +137,10 @@ function projectRow(row, lang = 'en') {
     flightReturnStops: row.flight_return_stops ?? null,
     hotelName: row.hotel_name || null,
     hotelStars: row.hotel_stars ?? null,
+    hotelBreakfastIncluded: row.hotel_breakfast_included === null || row.hotel_breakfast_included === undefined ? null : Boolean(row.hotel_breakfast_included),
     hotelTotalPrice: numOrNull(row.hotel_total_price),
     hotelBookingUrl: row.hotel_booking_url || '',
+    hasCarRentalOption: Boolean(row.has_car_rental_option),
     totalPrice: numOrNull(row.total_price),
     pricePerPerson: numOrNull(row.price_per_person),
     currency: row.currency || 'USD',
