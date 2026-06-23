@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
-import { Check, ArrowLeft, ExternalLink } from 'lucide-react';
+import { Check, ArrowLeft } from 'lucide-react';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
-import { agentApi, billingApi } from '../api/client.js';
+import { agentApi } from '../api/client.js';
 import { useLanguage } from '../context/LanguageContext.jsx';
 
 const COUNTRY_CODES = [
@@ -80,7 +79,6 @@ export function AgentSettingsPage() {
   const { token, agent, loading, refreshAgent } = useAgentAuth();
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const [portalLoading, setPortalLoading] = useState(false);
 
   useEffect(() => {
     if (!loading && !token) navigate('/agent/login', { replace: true });
@@ -93,17 +91,6 @@ export function AgentSettingsPage() {
       await refreshAgent();
     } catch (err) {
       console.error('Save failed:', err.message);
-    }
-  }
-
-  async function openBillingPortal() {
-    setPortalLoading(true);
-    try {
-      const { url } = await billingApi.portal(token);
-      window.location.href = url;
-    } catch (err) {
-      alert(err.message);
-      setPortalLoading(false);
     }
   }
 
@@ -162,25 +149,6 @@ export function AgentSettingsPage() {
         <AutosaveField label={t.preferredCurrencyLabel || 'Preferred currency'} fieldKey="preferred_currency" value={agent.preferred_currency || 'USD'} onSave={saveField} />
       </section>
 
-      {/* Subscription */}
-      <section className="settings-card">
-        <h2 className="settings-card__title">{t.subscriptionTitle || 'Subscription'}</h2>
-        <p className="settings-card__info">{t.currentPlanLabel || 'Current plan'}: <strong>{agent.subscription_tier}</strong> ({agent.subscription_status})</p>
-        {agent.subscription_expires_at && (
-          <p className="settings-card__info">{t.expiresLabel || 'Renews'}: {new Date(agent.subscription_expires_at).toLocaleDateString()}</p>
-        )}
-        <motion.button
-          className="settings-card__billing-btn"
-          disabled={!agent.stripe_customer_id || portalLoading}
-          whileTap={{ scale: 0.97 }}
-          onClick={openBillingPortal}
-        >
-          <ExternalLink size={14} /> {portalLoading ? 'Opening…' : (t.manageBillingButton || 'Manage billing & invoices')}
-        </motion.button>
-        {!agent.stripe_customer_id && (
-          <p className="settings-card__note">{t.noBillingNote || 'Subscribe from the Dashboard to manage billing here.'}</p>
-        )}
-      </section>
     </div>
   );
 }

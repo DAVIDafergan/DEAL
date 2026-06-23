@@ -3,7 +3,7 @@ import { LanguageSwitcher } from './LanguageSwitcher.jsx';
 import { Logo } from './Logo.jsx';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { useNavigate, Link } from 'react-router-dom';
-import { LayoutDashboard, LogOut, UserCircle } from 'lucide-react';
+import { LayoutDashboard, LogOut, Heart } from 'lucide-react';
 
 export function Header() {
   const { t } = useLanguage();
@@ -18,6 +18,9 @@ export function Header() {
           <span className="brand-sub">{t.brandSub}</span>
         </div>
         <div className="top-bar__actions">
+          <Link to="/my/favorites" className="header-fav-btn" title="המועדפים שלי">
+            <Heart size={17} />
+          </Link>
           <LanguageSwitcher />
           {!loading && (
             token && agent ? (

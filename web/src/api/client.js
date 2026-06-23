@@ -131,14 +131,21 @@ export const billingApi = {
   portal: (token) => postJson('/billing/portal', {}, token),
 };
 
+const ADMIN_TOKEN_KEY = 'deal_radar_admin_token';
+
 export const adminApi = {
-  getPendingAgents: (pw) => getJson('/admin/agents/pending', pw),
-  getAllAgents: (pw) => getJson('/admin/agents', pw),
-  approveAgent: (pw, id) => postJson(`/admin/agents/${id}/approve`, {}, pw),
-  rejectAgent: (pw, id, reason) => postJson(`/admin/agents/${id}/reject`, { reason }, pw),
-  getPendingDeals: (pw) => getJson('/admin/deals/pending', pw),
-  getApprovedDeals: (pw) => getJson('/admin/deals/approved', pw),
-  approveDeal: (pw, id) => postJson(`/admin/deals/${id}/approve`, {}, pw),
-  rejectDeal: (pw, id, reason) => postJson(`/admin/deals/${id}/reject`, { reason }, pw),
-  deleteDeal: (pw, id) => deleteReq(`/admin/deals/${id}`, pw),
+  getToken: () => sessionStorage.getItem(ADMIN_TOKEN_KEY),
+  setToken: (t) => sessionStorage.setItem(ADMIN_TOKEN_KEY, t),
+  clearToken: () => sessionStorage.removeItem(ADMIN_TOKEN_KEY),
+  login: (username, password) => postJson('/admin/auth/login', { username, password }),
+
+  getPendingAgents: (tok) => getJson('/admin/agents/pending', tok),
+  getAllAgents: (tok) => getJson('/admin/agents', tok),
+  approveAgent: (tok, id) => postJson(`/admin/agents/${id}/approve`, {}, tok),
+  rejectAgent: (tok, id, reason) => postJson(`/admin/agents/${id}/reject`, { reason }, tok),
+  getPendingDeals: (tok) => getJson('/admin/deals/pending', tok),
+  getApprovedDeals: (tok) => getJson('/admin/deals/approved', tok),
+  approveDeal: (tok, id) => postJson(`/admin/deals/${id}/approve`, {}, tok),
+  rejectDeal: (tok, id, reason) => postJson(`/admin/deals/${id}/reject`, { reason }, tok),
+  deleteDeal: (tok, id) => deleteReq(`/admin/deals/${id}`, tok),
 };

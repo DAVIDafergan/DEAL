@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Flame, TrendingDown, ExternalLink } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Flame, TrendingDown } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { agentApi } from '../api/client.js';
 import { getCurrencySymbol } from '../utils/currency.js';
 import { DestinationImage } from './DestinationImage.jsx';
+import { DealDetailModal } from './DealDetailModal.jsx';
 
 const containerVariants = {
   hidden: {},
@@ -28,10 +29,11 @@ const badgePulse = {
   transition: { duration: 2.6, repeat: Infinity, ease: 'easeInOut' },
 };
 
-export function TopValueDeals() {
+export function TopValueDeals({ hero }) {
   const { t } = useLanguage();
   const [deals, setDeals] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState(null);
 
   useEffect(() => {
     agentApi.getTopValueDeals(5)
@@ -43,7 +45,7 @@ export function TopValueDeals() {
   if (!loading && deals.length === 0) return null;
 
   return (
-    <section className="top-value-deals container">
+    <section className={`top-value-deals container${hero ? ' top-value-deals--hero' : ''}`}>
       <h2 className="top-value-deals__title">
         <Flame size={22} color="var(--color-accent-from)" />
         {t.topValueDealsTitle || '5 Most Valuable Deals Today'}
@@ -72,6 +74,10 @@ export function TopValueDeals() {
               variants={cardVariants}
               whileHover={{ scale: 1.04, y: -4 }}
               transition={{ type: 'spring', stiffness: 280, damping: 22 }}
+              onClick={() => setSelected(deal)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={e => e.key === 'Enter' && setSelected(deal)}
             >
               <div className="top-value-card__media">
                 <DestinationImage iataCode={deal.destination} />
@@ -101,21 +107,18 @@ export function TopValueDeals() {
                 {deal.business_name && (
                   <span className="top-value-card__agent-label">✓ {deal.business_name}</span>
                 )}
-                {deal.purchase_link && (
-                  <a
-                    className="top-value-card__cta"
-                    href={deal.purchase_link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {t.bookNowLabel || 'Book now'} <ExternalLink size={12} />
-                  </a>
-                )}
+                <span className="top-value-card__tap-hint">{t.tapForDetails || 'לפרטים ←'}</span>
               </div>
             </motion.div>
           ))}
         </motion.div>
       )}
+
+      <AnimatePresence>
+        {selected && (
+          <DealDetailModal deal={selected} onClose={() => setSelected(null)} />
+        )}
+      </AnimatePresence>
     </section>
   );
 }

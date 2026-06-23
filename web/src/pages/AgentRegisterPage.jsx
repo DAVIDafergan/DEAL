@@ -46,6 +46,7 @@ export function AgentRegisterPage() {
   const [form, setForm] = useState({
     business_name: '', email: '', password: '', phone: '', whatsapp_number: '', contact_name: '',
   });
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   function set(key) { return (val) => setForm((f) => ({ ...f, [key]: val })); }
 
@@ -56,6 +57,7 @@ export function AgentRegisterPage() {
     else if (!/\S+@\S+\.\S+/.test(form.email)) errs.email = t.invalidEmail || 'Invalid email';
     if (!form.password) errs.password = t.requiredField || 'Required';
     else if (form.password.length < 8) errs.password = t.passwordTooShort || 'Minimum 8 characters';
+    if (!termsAccepted) errs.terms = t.termsRequired || 'יש לאשר את תנאי השימוש';
     return errs;
   }
 
@@ -144,6 +146,21 @@ export function AgentRegisterPage() {
                 onChange={set('whatsapp_number')}
                 hint="+972501234567"
               />
+              <label className="agent-form__terms-row">
+                <input
+                  type="checkbox"
+                  checked={termsAccepted}
+                  onChange={e => setTermsAccepted(e.target.checked)}
+                  className="agent-form__terms-checkbox"
+                />
+                <span className="agent-form__terms-text">
+                  {t.termsConsentPrefix || 'קראתי ואני מסכים/ה ל'}
+                  <Link to="/terms" target="_blank" className="agent-form__terms-link">{t.termsLink || 'תנאי שימוש'}</Link>
+                  {' '}{t.andLabel || 'ו'}
+                  <Link to="/privacy" target="_blank" className="agent-form__terms-link">{t.privacyLink || 'מדיניות פרטיות'}</Link>
+                </span>
+              </label>
+              {fieldErrors.terms && <p className="agent-form__error-msg">{fieldErrors.terms}</p>}
               <motion.button
                 type="button"
                 className="agent-form__btn agent-form__btn--primary"

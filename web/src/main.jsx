@@ -12,6 +12,8 @@ import { AgentSettingsPage } from './pages/AgentSettingsPage.jsx';
 import { AdminPage } from './pages/AdminPage.jsx';
 import { AgentPublicProfilePage } from './pages/AgentPublicProfilePage.jsx';
 import { FavoritesPage } from './pages/FavoritesPage.jsx';
+import { TermsPage } from './pages/TermsPage.jsx';
+import { PrivacyPage } from './pages/PrivacyPage.jsx';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
@@ -28,6 +30,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             <Route path="/agent/:slug" element={<AgentPublicProfilePage />} />
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/my/favorites" element={<FavoritesPage />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/*" element={<AppShell />} />
           </Routes>
         </BrowserRouter>

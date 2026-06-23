@@ -97,6 +97,8 @@ const MIGRATIONS = [
   (connection) => ensureColumn(connection, 'agent_deals', 'hotel_breakfast', 'TINYINT(1) NOT NULL DEFAULT 0'),
   (connection) => ensureColumn(connection, 'agent_deals', 'car_type', 'VARCHAR(60) NULL'),
   (connection) => ensureColumn(connection, 'agent_deals', 'car_company', 'VARCHAR(120) NULL'),
+  (connection) => ensureColumn(connection, 'agent_deals', 'departure_time', 'VARCHAR(5) NULL'),
+  (connection) => ensureColumn(connection, 'agent_deals', 'arrival_time', 'VARCHAR(5) NULL'),
 ];
 
 const SCHEMA_STATEMENTS = [

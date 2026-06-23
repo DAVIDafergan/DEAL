@@ -3,20 +3,20 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   PlusCircle, Settings, LogOut, CheckCircle, XCircle, TrendingUp,
-  MessageCircle, Home, Star, Zap, BarChart2, Trash2,
+  MessageCircle, Home, Zap, BarChart2, Trash2,
 } from 'lucide-react';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
-import { agentApi, billingApi } from '../api/client.js';
+import { agentApi } from '../api/client.js';
 import { DealWizard } from '../components/agent/DealWizard.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
+
+const SHOW_SUBSCRIPTION = false;
 
 const STATUS_ICON = {
   pending: <CheckCircle size={13} color="var(--color-text-muted)" />,
   approved: <CheckCircle size={13} color="var(--color-success,#22c55e)" />,
   rejected: <XCircle size={13} color="var(--color-error,#ef4444)" />,
 };
-
-const TIER_BADGE = { basic: '🥉 Basic', pro: '🥈 Pro', unlimited: '🥇 Unlimited' };
 
 const cardAnim = {
   hidden: { opacity: 0, y: 16 },
@@ -47,11 +47,8 @@ export function AgentDashboardPage() {
   const { token, agent, loading, logout } = useAgentAuth();
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const [tab, setTab] = useState('deals');
   const [deals, setDeals] = useState([]);
   const [dealsLoading, setDealsLoading] = useState(true);
-  const [plans, setPlans] = useState([]);
-  const [checkoutLoading, setCheckoutLoading] = useState(null);
   const [notification, setNotification] = useState(null);
   const [showWizard, setShowWizard] = useState(false);
 
@@ -65,21 +62,7 @@ export function AgentDashboardPage() {
       .then(({ deals: d }) => setDeals(d || []))
       .catch(() => setDeals([]))
       .finally(() => setDealsLoading(false));
-    billingApi.getPlans()
-      .then(({ plans: p }) => setPlans(p || []))
-      .catch(() => {});
   }, [token, showWizard]);
-
-  async function handleCheckout(tier) {
-    setCheckoutLoading(tier);
-    try {
-      const { url } = await billingApi.checkout(token, tier);
-      window.location.href = url;
-    } catch (err) {
-      notify(err.message, 'error');
-      setCheckoutLoading(null);
-    }
-  }
 
   function notify(msg, type = 'success') {
     setNotification({ msg, type });
@@ -103,9 +86,8 @@ export function AgentDashboardPage() {
     }
   }
 
-  const tierLimits = { basic: 5, pro: 20, unlimited: Infinity };
   const activeDeals = deals.filter(d => d.status !== 'rejected');
-  const dealLimit = agent ? (tierLimits[agent.subscription_tier] ?? 5) : 5;
+  const dealLimit = Infinity;
 
   if (loading) return (
     <div className="dash-loading">
@@ -180,9 +162,8 @@ export function AgentDashboardPage() {
 
       {/* Stat cards */}
       <div className="dash-stats container">
-        <StatCard icon={Star} label={t.subscriptionTitle || 'מנוי'} value={TIER_BADGE[agent?.subscription_tier] || 'Basic'} index={0} />
-        <StatCard icon={Zap} label={t.dealsUsedLabel || 'דילים'} value={`${activeDeals.length} / ${dealLimit === Infinity ? '∞' : dealLimit}`} accent index={1} />
-        <StatCard icon={BarChart2} label={t.leadsCountLabel || 'לידים החודש'} value={agent?.lead_count ?? 0} index={2} />
+        <StatCard icon={Zap} label={t.dealsUsedLabel || 'דילים פעילים'} value={activeDeals.length} accent index={0} />
+        <StatCard icon={BarChart2} label={t.leadsCountLabel || 'לידים החודש'} value={agent?.lead_count ?? 0} index={1} />
       </div>
 
       {/* Profile link */}
@@ -196,25 +177,14 @@ export function AgentDashboardPage() {
 
       {/* Tabs */}
       <div className="dash-tabs container">
-        {[
-          { key: 'deals', label: t.myDealsTitle || 'הדילים שלי' },
-          { key: 'subscription', label: t.subscriptionTitle || 'מנוי' },
-        ].map(tab_ => (
-          <button
-            key={tab_.key}
-            className={`dash-tab${tab === tab_.key ? ' is-active' : ''}`}
-            onClick={() => setTab(tab_.key)}
-          >
-            {tab_.label}
-            {tab_.key === 'deals' && activeDeals.length > 0 && (
-              <span className="dash-tab__badge">{activeDeals.length}</span>
-            )}
-          </button>
-        ))}
+        <div className="dash-tab is-active">
+          {t.myDealsTitle || 'הדילים שלי'}
+          {activeDeals.length > 0 && <span className="dash-tab__badge">{activeDeals.length}</span>}
+        </div>
       </div>
 
-      {/* Tab: deals */}
-      {tab === 'deals' && (
+      {/* Deals panel */}
+      {true && (
         <div className="dash-deals-panel container">
           <div className="dash-deals-header">
             <h2 className="dash-deals-title">{t.myDealsTitle || 'הדילים שלי'}</h2>
@@ -222,7 +192,6 @@ export function AgentDashboardPage() {
               className="dash-add-btn"
               whileTap={{ scale: 0.97 }}
               onClick={() => setShowWizard(true)}
-              disabled={activeDeals.length >= dealLimit}
             >
               <PlusCircle size={16} /> {t.addDealButton || 'הוסף דיל'}
             </motion.button>
@@ -283,35 +252,6 @@ export function AgentDashboardPage() {
         </div>
       )}
 
-      {/* Tab: subscription */}
-      {tab === 'subscription' && (
-        <div className="dash-sub-panel container">
-          <div className="dash-sub-info">
-            <div className="dash-sub-tier">{TIER_BADGE[agent?.subscription_tier] || 'Basic'}</div>
-            <p className="dash-sub-status">{t.subscriptionStatusLabel || 'סטטוס'}: <strong>{agent?.subscription_status}</strong></p>
-            {agent?.subscription_expires_at && (
-              <p className="dash-sub-expires">{t.expiresLabel || 'מתחדש'}: {new Date(agent.subscription_expires_at).toLocaleDateString('he-IL')}</p>
-            )}
-          </div>
-          <div className="dash-plans">
-            {plans.map(plan => (
-              <motion.button
-                key={plan.id}
-                className={`dash-plan-btn${agent?.subscription_tier === plan.id ? ' is-current' : ''}`}
-                disabled={agent?.subscription_tier === plan.id || checkoutLoading === plan.id || !plan.stripeConfigured}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => handleCheckout(plan.id)}
-                title={!plan.stripeConfigured ? 'Stripe לא מוגדר' : ''}
-              >
-                {plan.label} — ₪{plan.price}/{t.monthLabel || 'חודש'}
-                {plan.dealsLimit
-                  ? ` (${plan.dealsLimit} ${t.dealsLabel || 'דילים'})`
-                  : ` (${t.unlimitedLabel || 'ללא הגבלה'})`}
-              </motion.button>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

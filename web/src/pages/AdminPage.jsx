@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, XCircle, Eye, RefreshCw, ArrowLeft, Trash2, ChevronLeft, ChevronRight, User } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, RefreshCw, ArrowLeft, Trash2, ChevronLeft, ChevronRight, User, LogIn, LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { adminApi } from '../api/client.js';
 
-const ADMIN_PW = 'open';
 const AGENTS_PER_PAGE = 25;
 
 function DealPreview({ deal }) {
@@ -20,8 +19,7 @@ function DealPreview({ deal }) {
         {deal.airline && <span>✈ {deal.airline}</span>}
         {deal.hotel_name && <span>🏨 {deal.hotel_name}{deal.hotel_stars ? ` ${'★'.repeat(Number(deal.hotel_stars))}` : ''}</span>}
         {deal.car_type && <span>🚗 {deal.car_type}{deal.car_company ? ` · ${deal.car_company}` : ''}</span>}
-        {deal.quality_score !== null && <span>איכות: {Number(deal.quality_score).toFixed(1)}%</span>}
-        {deal.value_score !== null && <span>ערך: {Number(deal.value_score).toFixed(1)}% מהממוצע</span>}
+        {deal.click_count != null && <span>👆 {deal.click_count} קליקים</span>}
       </div>
     </div>
   );
@@ -31,40 +29,96 @@ function Pagination({ page, totalPages, onPage }) {
   if (totalPages <= 1) return null;
   return (
     <div className="admin-pagination">
-      <button
-        className="admin-pagination__btn"
-        disabled={page === 1}
-        onClick={() => onPage(page - 1)}
-      >
-        <ChevronRight size={16} />
-      </button>
+      <button className="admin-pagination__btn" disabled={page === 1} onClick={() => onPage(page - 1)}><ChevronRight size={16} /></button>
       {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-        <button
-          key={p}
-          className={`admin-pagination__btn${p === page ? ' is-active' : ''}`}
-          onClick={() => onPage(p)}
-        >
-          {p}
-        </button>
+        <button key={p} className={`admin-pagination__btn${p === page ? ' is-active' : ''}`} onClick={() => onPage(p)}>{p}</button>
       ))}
-      <button
-        className="admin-pagination__btn"
-        disabled={page === totalPages}
-        onClick={() => onPage(page + 1)}
+      <button className="admin-pagination__btn" disabled={page === totalPages} onClick={() => onPage(page + 1)}><ChevronLeft size={16} /></button>
+    </div>
+  );
+}
+
+function LoginScreen({ onLogin }) {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!username || !password) { setError('נדרשים שם משתמש וסיסמה'); return; }
+    setLoading(true);
+    setError('');
+    try {
+      const { token } = await adminApi.login(username, password);
+      adminApi.setToken(token);
+      onLogin(token);
+    } catch (err) {
+      setError(err.message || 'שגיאה בכניסה');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="admin-login-page" dir="rtl">
+      <motion.div
+        className="admin-login-card"
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
       >
-        <ChevronLeft size={16} />
-      </button>
+        <div className="admin-login-card__icon">
+          <LogIn size={28} />
+        </div>
+        <h1 className="admin-login-card__title">פאנל ניהול</h1>
+        <p className="admin-login-card__sub">Deal Radar Pro</p>
+        <form onSubmit={handleSubmit} className="admin-login-form">
+          <div className="admin-login-field">
+            <label>שם משתמש</label>
+            <input
+              type="text"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+              placeholder="admin"
+              autoComplete="username"
+              autoFocus
+            />
+          </div>
+          <div className="admin-login-field">
+            <label>סיסמה</label>
+            <input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="••••••••"
+              autoComplete="current-password"
+            />
+          </div>
+          {error && <p className="admin-login-error">{error}</p>}
+          <motion.button
+            type="submit"
+            className="admin-login-btn"
+            whileTap={{ scale: 0.97 }}
+            disabled={loading}
+          >
+            {loading ? 'מתחבר…' : 'כניסה'}
+          </motion.button>
+        </form>
+        <Link to="/" className="admin-login-back"><ArrowLeft size={14} /> דף הבית</Link>
+      </motion.div>
     </div>
   );
 }
 
 export function AdminPage() {
+  const [token, setToken] = useState(() => adminApi.getToken());
   const [tab, setTab] = useState('pending-agents');
   const [pendingAgents, setPendingAgents] = useState([]);
   const [allAgents, setAllAgents] = useState([]);
   const [pendingDeals, setPendingDeals] = useState([]);
   const [approvedDeals, setApprovedDeals] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [rejectId, setRejectId] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
   const [rejectTarget, setRejectTarget] = useState(null);
@@ -79,30 +133,39 @@ export function AdminPage() {
   }
 
   async function load() {
+    if (!token) return;
     setLoading(true);
     try {
       const [{ agents: pending }, { agents: all }, { deals: pDeals }, { deals: aDeals }] = await Promise.all([
-        adminApi.getPendingAgents(ADMIN_PW),
-        adminApi.getAllAgents(ADMIN_PW),
-        adminApi.getPendingDeals(ADMIN_PW),
-        adminApi.getApprovedDeals(ADMIN_PW),
+        adminApi.getPendingAgents(token),
+        adminApi.getAllAgents(token),
+        adminApi.getPendingDeals(token),
+        adminApi.getApprovedDeals(token),
       ]);
       setPendingAgents(pending || []);
       setAllAgents(all || []);
       setPendingDeals(pDeals || []);
       setApprovedDeals(aDeals || []);
     } catch (err) {
-      notify(err.message || 'שגיאה בטעינה', 'error');
+      if (err.message?.includes('401') || err.message?.includes('Unauthorized')) {
+        adminApi.clearToken();
+        setToken(null);
+      } else {
+        notify(err.message || 'שגיאה בטעינה', 'error');
+      }
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { if (token) load(); }, [token]);
+
+  function handleLogin(tok) { setToken(tok); }
+  function handleLogout() { adminApi.clearToken(); setToken(null); }
 
   async function approveAgent(id) {
     try {
-      await adminApi.approveAgent(ADMIN_PW, id);
+      await adminApi.approveAgent(token, id);
       notify('הסוכן אושר ✓');
       setPendingAgents(prev => prev.filter(a => a.id !== id));
       setAllAgents(prev => prev.map(a => a.id === id ? { ...a, status: 'approved' } : a));
@@ -111,7 +174,7 @@ export function AdminPage() {
 
   async function rejectAgent(id) {
     try {
-      await adminApi.rejectAgent(ADMIN_PW, id, rejectReason);
+      await adminApi.rejectAgent(token, id, rejectReason);
       notify('הסוכן נדחה');
       setPendingAgents(prev => prev.filter(a => a.id !== id));
       setAllAgents(prev => prev.map(a => a.id === id ? { ...a, status: 'rejected' } : a));
@@ -121,7 +184,7 @@ export function AdminPage() {
 
   async function approveDeal(id) {
     try {
-      await adminApi.approveDeal(ADMIN_PW, id);
+      await adminApi.approveDeal(token, id);
       notify('הדיל אושר ✓');
       setPendingDeals(prev => prev.filter(d => d.id !== id));
     } catch (err) { notify(err.message, 'error'); }
@@ -129,7 +192,7 @@ export function AdminPage() {
 
   async function rejectDeal(id) {
     try {
-      await adminApi.rejectDeal(ADMIN_PW, id, rejectReason);
+      await adminApi.rejectDeal(token, id, rejectReason);
       notify('הדיל נדחה');
       setPendingDeals(prev => prev.filter(d => d.id !== id));
       setRejectId(null); setRejectReason('');
@@ -138,16 +201,16 @@ export function AdminPage() {
 
   async function deleteDeal(id) {
     try {
-      await adminApi.deleteDeal(ADMIN_PW, id);
+      await adminApi.deleteDeal(token, id);
       notify('הדיל נמחק');
       setApprovedDeals(prev => prev.filter(d => d.id !== id));
       setDeleteConfirmId(null);
     } catch (err) { notify(err.message, 'error'); }
   }
 
-  function startReject(id, target) {
-    setRejectId(id); setRejectTarget(target); setRejectReason('');
-  }
+  function startReject(id, target) { setRejectId(id); setRejectTarget(target); setRejectReason(''); }
+
+  if (!token) return <LoginScreen onLogin={handleLogin} />;
 
   const totalAgentsPages = Math.ceil(allAgents.length / AGENTS_PER_PAGE);
   const pagedAgents = allAgents.slice((agentsPage - 1) * AGENTS_PER_PAGE, agentsPage * AGENTS_PER_PAGE);
@@ -165,13 +228,16 @@ export function AdminPage() {
       )}
 
       <div className="admin-page__header">
-        <Link to="/" className="admin-page__back-btn">
-          <ArrowLeft size={18} /> דף הבית
-        </Link>
+        <Link to="/" className="admin-page__back-btn"><ArrowLeft size={18} /> דף הבית</Link>
         <h1>פאנל ניהול</h1>
-        <button className="admin-page__refresh" onClick={load} disabled={loading}>
-          <RefreshCw size={16} className={loading ? 'spinning' : ''} />
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="admin-page__refresh" onClick={load} disabled={loading}>
+            <RefreshCw size={16} className={loading ? 'spinning' : ''} />
+          </button>
+          <button className="admin-page__refresh" onClick={handleLogout} title="התנתקות">
+            <LogOut size={16} />
+          </button>
+        </div>
       </div>
 
       <div className="admin-tabs">
@@ -179,19 +245,18 @@ export function AdminPage() {
           סוכנים ממתינים {pendingAgents.length > 0 && <span className="admin-tabs__badge">{pendingAgents.length}</span>}
         </button>
         <button className={`admin-tabs__btn${tab === 'all-agents' ? ' is-active' : ''}`} onClick={() => setTab('all-agents')}>
-          כל הסוכנים {allAgents.length > 0 && <span className="admin-tabs__badge admin-tabs__badge--neutral">{allAgents.length}</span>}
+          כל הסוכנים <span className="admin-tabs__badge admin-tabs__badge--neutral">{allAgents.length}</span>
         </button>
         <button className={`admin-tabs__btn${tab === 'pending-deals' ? ' is-active' : ''}`} onClick={() => setTab('pending-deals')}>
           דילים ממתינים {pendingDeals.length > 0 && <span className="admin-tabs__badge">{pendingDeals.length}</span>}
         </button>
         <button className={`admin-tabs__btn${tab === 'active-deals' ? ' is-active' : ''}`} onClick={() => setTab('active-deals')}>
-          דילים פעילים {approvedDeals.length > 0 && <span className="admin-tabs__badge admin-tabs__badge--neutral">{approvedDeals.length}</span>}
+          דילים פעילים <span className="admin-tabs__badge admin-tabs__badge--neutral">{approvedDeals.length}</span>
         </button>
       </div>
 
       {loading && <p style={{ textAlign: 'center', padding: 32, color: 'var(--color-text-muted)' }}>טוען…</p>}
 
-      {/* Pending agents */}
       {!loading && tab === 'pending-agents' && (
         <div className="admin-list">
           {pendingAgents.length === 0 && <p className="admin-list__empty">אין סוכנים ממתינים</p>}
@@ -224,7 +289,6 @@ export function AdminPage() {
         </div>
       )}
 
-      {/* All agents */}
       {!loading && tab === 'all-agents' && (
         <div className="admin-list">
           {allAgents.length === 0 && <p className="admin-list__empty">אין סוכנים</p>}
@@ -240,23 +304,18 @@ export function AdminPage() {
                     <span className={`admin-status ${cls}`}>{label}</span>
                   </div>
                   <span>{agent.contact_name} · {agent.email}</span>
-                  {agent.subscription_tier && <span>מנוי: {agent.subscription_tier} ({agent.subscription_status || 'לא פעיל'})</span>}
                   <span className="admin-row__date">{new Date(agent.created_at).toLocaleDateString('he-IL')}</span>
                 </div>
                 <AnimatePresence>
                   {isExpanded && (
                     <motion.div
                       className="admin-agent-detail"
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.22 }}
+                      initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.22 }}
                       onClick={e => e.stopPropagation()}
                     >
                       {agent.phone && <div className="admin-agent-detail__row"><span>טלפון:</span> {agent.phone}</div>}
                       <div className="admin-agent-detail__row"><span>לידים:</span> {agent.lead_count || 0}</div>
-                      <div className="admin-agent-detail__row"><span>סוג מנוי:</span> {agent.subscription_tier || '—'}</div>
-                      <div className="admin-agent-detail__row"><span>סטטוס מנוי:</span> {agent.subscription_status || '—'}</div>
                       <div className="admin-agent-detail__row">
                         <a href={`/agent/${agent.slug}`} target="_blank" rel="noopener noreferrer" className="admin-agent-detail__link">
                           <Eye size={12} /> פרופיל ציבורי
@@ -272,7 +331,6 @@ export function AdminPage() {
         </div>
       )}
 
-      {/* Pending deals */}
       {!loading && tab === 'pending-deals' && (
         <div className="admin-list">
           {pendingDeals.length === 0 && <p className="admin-list__empty">אין דילים ממתינים</p>}
@@ -299,16 +357,12 @@ export function AdminPage() {
         </div>
       )}
 
-      {/* Active/approved deals */}
       {!loading && tab === 'active-deals' && (
         <div className="admin-list">
           {approvedDeals.length === 0 && <p className="admin-list__empty">אין דילים פעילים</p>}
           {approvedDeals.map(deal => (
             <div key={deal.id} className="admin-row">
               <DealPreview deal={deal} />
-              <div className="admin-active-deal__meta">
-                <span className="admin-active-deal__clicks">👆 {deal.click_count || 0} קליקים</span>
-              </div>
               <div className="admin-row__actions">
                 {deleteConfirmId === deal.id ? (
                   <>
@@ -317,11 +371,7 @@ export function AdminPage() {
                     <button onClick={() => setDeleteConfirmId(null)}>ביטול</button>
                   </>
                 ) : (
-                  <motion.button
-                    className="admin-row__delete"
-                    whileTap={{ scale: 0.97 }}
-                    onClick={() => setDeleteConfirmId(deal.id)}
-                  >
+                  <motion.button className="admin-row__delete" whileTap={{ scale: 0.97 }} onClick={() => setDeleteConfirmId(deal.id)}>
                     <Trash2 size={14} /> מחק
                   </motion.button>
                 )}

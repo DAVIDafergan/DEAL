@@ -122,6 +122,8 @@ export function DealWizard({ onSuccess, onCancel }) {
 
   // Step 3 — flight
   const [airline, setAirline] = useState('');
+  const [departureTime, setDepartureTime] = useState('');
+  const [arrivalTime, setArrivalTime] = useState('');
   const [cabinBag, setCabinBag] = useState(true);
   const [checkedBag, setCheckedBag] = useState(false);
   const [meal, setMeal] = useState(false);
@@ -203,6 +205,8 @@ export function DealWizard({ onSuccess, onCancel }) {
         price: Number(price),
         currency,
         airline: airline || null,
+        departure_time: departureTime || null,
+        arrival_time: arrivalTime || null,
         includes_cabin_baggage: cabinBag ? 1 : 0,
         includes_checked_baggage: checkedBag ? 1 : 0,
         includes_meal: meal ? 1 : 0,
@@ -307,6 +311,26 @@ export function DealWizard({ onSuccess, onCancel }) {
                     <option value="other">{t.otherAirline || 'אחרת'}</option>
                   </select>
                 </div>
+                <div className="wizard-grid-2">
+                  <div className="wizard-field">
+                    <label className="wizard-label">{t.departureTimeLabel || '🛫 המראה'}</label>
+                    <input className="wizard-input" type="time" value={departureTime} onChange={e => setDepartureTime(e.target.value)} />
+                  </div>
+                  <div className="wizard-field">
+                    <label className="wizard-label">{t.arrivalTimeLabel || '🛬 נחיתה'}</label>
+                    <input className="wizard-input" type="time" value={arrivalTime} onChange={e => setArrivalTime(e.target.value)} />
+                  </div>
+                </div>
+                {departureTime && arrivalTime && (() => {
+                  const [dh, dm] = departureTime.split(':').map(Number);
+                  const [ah, am] = arrivalTime.split(':').map(Number);
+                  const mins = (ah * 60 + am) - (dh * 60 + dm);
+                  if (mins > 0) {
+                    const h = Math.floor(mins / 60), m = mins % 60;
+                    return <p className="wizard-flight-duration">⏱ {t.flightDurationLabel || 'משך טיסה'}: {h}:{String(m).padStart(2,'0')}</p>;
+                  }
+                  return null;
+                })()}
                 <div className="wizard-checkboxes">
                   <label className="wizard-checkbox">
                     <input type="checkbox" checked={cabinBag} onChange={e => setCabinBag(e.target.checked)} />
