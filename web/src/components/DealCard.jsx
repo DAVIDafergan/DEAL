@@ -6,12 +6,13 @@ import { getDiscountPercent } from '../utils/dealHeat.js';
 import { shareDeal } from '../utils/share.js';
 import { RiskGauge } from './RiskGauge.jsx';
 import { CountdownTimer } from './heatmap/CountdownTimer.jsx';
-import { UpdatedAgoLabel } from './UpdatedAgoLabel.jsx';
 import { FlightDetails } from './FlightDetails.jsx';
 import { DestinationImage } from './DestinationImage.jsx';
 import { BuyPackageDialog } from './BuyPackageDialog.jsx';
+import { LiveBookingButton } from './LiveBookingButton.jsx';
 import { formatShortDate } from '../utils/flightFormat.js';
 import { buildHotelUrl } from '../utils/packageLinks.js';
+import { getCurrencySymbol } from '../utils/currency.js';
 
 const PRICE_FLASH_DURATION_MS = 2200;
 
@@ -105,7 +106,9 @@ export function DealCard({ deal, packageConfig = null, isCheapest = false }) {
             className={`deal-card__price ${priceFlash ? `deal-card__price--flash-${priceFlash}` : ''}`}
             key={priceFlash ? `flash-${deal.price}` : undefined}
           >
-            {animatedPrice} {deal.currency}
+            {t.priceFromPrefix}
+            {animatedPrice}
+            {getCurrencySymbol(deal.currency)}
           </span>
           {isAnomaly && deal.movingAverage && (
             <span className="deal-card__price-avg">
@@ -113,15 +116,18 @@ export function DealCard({ deal, packageConfig = null, isCheapest = false }) {
             </span>
           )}
         </div>
+        {deal.updatedAt && (
+          <p className="deal-card__freshness">
+            {t.priceFreshnessLabel(new Date(deal.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}
+          </p>
+        )}
 
-        {isAnomaly ? (
+        {isAnomaly && (
           <>
             <RiskGauge score={deal.enforcementLikelihood} />
             <CountdownTimer createdAt={deal.createdAt} />
             <p className="deal-card__risk">{deal.riskWarning}</p>
           </>
-        ) : (
-          <UpdatedAgoLabel updatedAt={deal.updatedAt} className="deal-card__updated" />
         )}
 
         <button
@@ -153,17 +159,12 @@ export function DealCard({ deal, packageConfig = null, isCheapest = false }) {
           </motion.button>
 
           {deal.bookingUrl && (
-            <motion.a
-              href={deal.bookingUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="deal-card__action deal-card__action--buy"
-              whileTap={{ scale: 0.96 }}
-            >
+            <LiveBookingButton deal={deal} fallbackUrl={deal.bookingUrl} className="deal-card__action deal-card__action--buy">
               {t.buyNowButton}
-            </motion.a>
+            </LiveBookingButton>
           )}
         </div>
+        {deal.bookingUrl && <p className="deal-card__availability-note">{t.availabilityTrustNote}</p>}
 
         {packageConfig?.travelpayoutsMarker && (
           <div className="deal-card__actions deal-card__actions--secondary">

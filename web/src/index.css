@@ -919,8 +919,15 @@ button {
   text-decoration: line-through;
 }
 
-.deal-card__updated .updated-ago {
-  font-size: 0.78rem;
+.deal-card__freshness {
+  margin: -4px 0 0;
+  font-size: 0.74rem;
+  color: var(--color-text-muted);
+}
+
+.deal-card__availability-note {
+  margin: -4px 0 0;
+  font-size: 0.7rem;
   color: var(--color-text-muted);
 }
 
@@ -1177,6 +1184,38 @@ button {
   margin: 0;
   font-size: 0.74rem;
   color: var(--color-text-muted);
+}
+
+.deal-grabbed-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px;
+  text-align: center;
+  background: rgba(10, 11, 16, 0.94);
+  backdrop-filter: blur(8px);
+}
+
+.deal-grabbed-overlay__message {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.deal-grabbed-overlay__dismiss {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-elevated);
+  color: var(--color-text-primary);
+  border-radius: var(--radius-sm);
+  padding: 8px 18px;
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
 .bundle-modal__hint {
@@ -1513,6 +1552,7 @@ button {
 /* ---------- package card ---------- */
 
 .package-card {
+  position: relative;
   border-radius: var(--radius-lg);
   overflow: hidden;
   background: var(--gradient-card);

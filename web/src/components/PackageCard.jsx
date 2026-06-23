@@ -6,6 +6,7 @@ import { formatShortDate } from '../utils/flightFormat.js';
 import { getCurrencySymbol } from '../utils/currency.js';
 import { openAllPackageLinks } from '../utils/openAllPackageLinks.js';
 import { DestinationImage } from './DestinationImage.jsx';
+import { LiveBookingButton } from './LiveBookingButton.jsx';
 
 const cardVariants = {
   hidden: { opacity: 0, y: 24 },
@@ -80,16 +81,13 @@ export function PackageCard({ pkg, compact = false }) {
           <p className="package-card__compact-hint">{t.packageOpenAllButton}</p>
         ) : (
           <div className="package-card__actions">
-            <motion.a
-              href={pkg.flightBookingUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+            <LiveBookingButton
+              deal={{ origin: pkg.origin, destination: pkg.destination, departureDate: pkg.departureDate, returnDate: pkg.returnDate, price: pkg.flightPrice }}
+              fallbackUrl={pkg.flightBookingUrl}
               className="package-card__action"
-              whileTap={{ scale: 0.96 }}
-              whileHover={{ scale: 1.03 }}
             >
               {t.packageBuyFlightButton}
-            </motion.a>
+            </LiveBookingButton>
             {pkg.hotelBookingUrl && (
               <motion.a
                 href={pkg.hotelBookingUrl}

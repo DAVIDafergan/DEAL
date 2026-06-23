@@ -38,5 +38,17 @@ export function BuyPackageDialog({ deal, packageConfig, onClose }) {
     hasEsimOption: Boolean(esimUrl),
   };
 
-  return <BundleModal title={t.buyPackageButton} breakdown={breakdown} items={items} onClose={onClose} />;
+  const flightForValidation = deal.bookingUrl
+    ? { origin: deal.origin, destination: deal.destination, departureDate: deal.departureDate, returnDate: deal.returnDate || null, price: deal.price }
+    : null;
+
+  return (
+    <BundleModal
+      title={t.buyPackageButton}
+      breakdown={breakdown}
+      items={items}
+      onClose={onClose}
+      flightForValidation={flightForValidation}
+    />
+  );
 }

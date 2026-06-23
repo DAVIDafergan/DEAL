@@ -36,6 +36,13 @@ export function fetchPopularPackages() {
   return getJson('/packages/popular');
 }
 
+/** בדיקה חיה ממש לפני לחיצת "הזמן" — ראו core/validation/dealValidator.js למגבלות האמיתיות */
+export function validateDealLive({ origin, destination, departureDate, returnDate, price }) {
+  const params = new URLSearchParams({ origin, destination, departureDate, price: String(price) });
+  if (returnDate) params.set('returnDate', returnDate);
+  return getJson(`/deals/validate-live?${params.toString()}`);
+}
+
 export async function submitQuestionnaire(answers) {
   const res = await fetch(`${API_BASE}/packages/personalized`, {
     method: 'POST',

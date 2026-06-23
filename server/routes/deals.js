@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { listDeals, getDealById } from '../store/dealsStore.js';
 import { getVibeFeed, VIBES, ALL_VIBES_KEY } from '../../core/vibes/vibeFeedEngine.js';
+import { validateDealIsLive } from '../../core/validation/dealValidator.js';
 
 const router = Router();
 const SUPPORTED_LANGS = ['he', 'en', 'es'];
@@ -36,6 +37,29 @@ router.get('/feed', async (req, res) => {
 
   const cards = await getVibeFeed(vibe, lang);
   res.json({ vibe, lang, cards });
+});
+
+/**
+ * GET /api/deals/validate-live?origin=&destination=&departureDate=&returnDate=&price= — בדיקה
+ * חיה (לא מה-DB שלנו) ממש לפני שמשתמש לוחץ "הזמן" — האם המסלול/תאריך עדיין מופיע בתשובה
+ * חיה של המקור, ובאיזה מחיר. רשום לפני /:id בכוונה (אחרת "validate-live" יתפס כ-:id).
+ * מבוסס route params, לא deal id — כך אפשר לאמת גם דילים מ-packages/vibe_feed_cards, לא רק
+ * מטבלת deals. ראו אזהרת המגבלה המבנית ב-core/validation/dealValidator.js.
+ */
+router.get('/validate-live', async (req, res) => {
+  const { origin, destination, departureDate, returnDate, price } = req.query;
+  if (!origin || !destination || !departureDate || !price) {
+    return res.status(400).json({ error: 'origin, destination, departureDate, and price are required' });
+  }
+
+  const result = await validateDealIsLive({
+    origin,
+    destination,
+    departureDate,
+    returnDate: returnDate || null,
+    price: Number(price),
+  });
+  res.json(result);
 });
 
 /** GET /api/deals/:id?lang=he|en|es — פרטי דיל בודד */

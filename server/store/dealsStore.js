@@ -24,6 +24,13 @@ function buildLivePriceId(origin, destination) {
 // זה מה שגורם לדילים "שנחסלו" להיעלם מהתצוגה במקום להישאר תקועים עם מחיר ישן.
 const LIVE_PRICE_FRESHNESS_WINDOW_MS = 35 * 60 * 1000;
 
+// 🔴 שינוי מדיניות לפי דיווח אמיתי על "sold out": anomaly היה בלי שום הגבלת גיל ("פיד
+// היסטורי"), וזה תרם בפועל לבעיה — Travelpayouts' prices_for_dates עצמו הוא מחיר-שנצפה
+// ולא הזמנה חיה (ראו core/validation/dealValidator.js), אז ככל שהאנומליה ישנה יותר, הסיכוי
+// שהמחיר הזה עדיין רלוונטי קטן יותר. עדיין לא 0 (אנומליות נדירות, חלון קצר מדי יריק את
+// הפיד) — 24 שעות מאזן בין "לא תקוע עם דיל מלפני שבוע" ל"עדיין מציג משהו".
+const ANOMALY_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
 /**
  * @param {{type: 'anomaly'|'live_price', offer: object, analysis: object|null, narrative: {he,en,es}}} dealData
  */
@@ -109,8 +116,9 @@ export async function addDeal({ type, offer, analysis = null, narrative }) {
 
 /**
  * מחזיר את כל הדילים (שני הסוגים), עם הנרטיב מתורגם לשפה המבוקשת בלבד.
- * live_price שלא התעדכן בחלון הרענון האחרון מוחרג בעדינות (לא "נתקע" עם מחיר ישן) —
- * anomaly נשאר ללא הגבלת גיל, בכוונה (זה פיד היסטורי, לא "מלאי זמין כרגע").
+ * live_price שלא התעדכן בחלון הרענון האחרון מוחרג בעדינות (לא "נתקע" עם מחיר ישן). anomaly
+ * מוחרג מעבר ל-ANOMALY_MAX_AGE_MS — שונה מהמדיניות הקודמת ("בלי הגבלת גיל, זה פיד היסטורי"),
+ * שונתה לפי דיווח אמיתי על דילים שמובילים ל-"sold out" (ראו ANOMALY_MAX_AGE_MS למעלה).
  *
  * @param {string} lang
  * @param {{sorted?: boolean}} options - sorted=true: מחיר עולה (הזול ביותר ראשון).
@@ -120,14 +128,15 @@ export async function listDeals(lang = 'en', { sorted = false } = {}) {
   try {
     const pool = getPool();
     const orderClause = sorted ? 'ORDER BY price ASC' : 'ORDER BY updated_at DESC';
-    const staleCutoff = new Date(Date.now() - LIVE_PRICE_FRESHNESS_WINDOW_MS);
+    const liveStaleCutoff = new Date(Date.now() - LIVE_PRICE_FRESHNESS_WINDOW_MS);
+    const anomalyStaleCutoff = new Date(Date.now() - ANOMALY_MAX_AGE_MS);
 
     const [rows] = await pool.query(
       `SELECT * FROM deals
-       WHERE type = 'anomaly' OR (type = 'live_price' AND updated_at >= ?)
+       WHERE (type = 'anomaly' AND created_at >= ?) OR (type = 'live_price' AND updated_at >= ?)
        ${orderClause}
        LIMIT 500`,
-      [staleCutoff]
+      [anomalyStaleCutoff, liveStaleCutoff]
     );
     return rows.map((row) => projectRow(row, lang));
   } catch (err) {

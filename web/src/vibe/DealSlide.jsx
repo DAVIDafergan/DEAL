@@ -149,7 +149,17 @@ export function DealSlide({ card, packageConfig = null }) {
 
       <AnimatePresence>
         {isBundleOpen && (
-          <BundleModal title={t.lockDealButton} breakdown={breakdown} items={bundleItems} onClose={() => setIsBundleOpen(false)} />
+          <BundleModal
+            title={t.lockDealButton}
+            breakdown={breakdown}
+            items={bundleItems}
+            onClose={() => setIsBundleOpen(false)}
+            flightForValidation={
+              card.flightBookingUrl
+                ? { origin: card.origin, destination: card.destination, departureDate: card.departureDate, returnDate: card.returnDate, price: card.flightPrice }
+                : null
+            }
+          />
         )}
       </AnimatePresence>
     </section>
