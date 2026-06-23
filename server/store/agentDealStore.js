@@ -143,8 +143,9 @@ export async function listTopValueDeals(limit = 5) {
   const now = new Date().toISOString().slice(0, 10);
   // Live engine deals with value_score derived from moving_average
   const [live] = await pool.query(
-    `SELECT id, 'live' AS deal_source, origin, destination, departure_date, price, currency,
-            booking_url AS purchase_link, NULL AS agent_id, NULL AS business_name,
+    `SELECT id, 'live' AS deal_source, origin, destination, NULL AS destination_name,
+            departure_date, price, currency,
+            booking_url AS purchase_link, NULL AS agent_id, NULL AS business_name, NULL AS agent_slug,
             ((moving_average - price) / moving_average * 100) AS value_score
      FROM deals
      WHERE moving_average IS NOT NULL AND moving_average > price
@@ -153,24 +154,26 @@ export async function listTopValueDeals(limit = 5) {
      LIMIT ?`,
     [limit * 2]
   );
-  // Approved agent deals with value_score
+  // Approved agent deals — prefer those with value_score, fallback to all approved
   const [agentDeals] = await pool.query(
-    `SELECT ad.id, 'agent' AS deal_source, NULL AS origin, ad.destination, ad.departure_date,
-            ad.price, ad.currency, ad.purchase_link, ad.agent_id, a.business_name,
+    `SELECT ad.id, 'agent' AS deal_source, NULL AS origin, ad.destination, ad.destination_name,
+            ad.departure_date, ad.price, ad.currency, ad.purchase_link,
+            ad.agent_id, a.business_name, a.slug AS agent_slug,
             ad.value_score
      FROM agent_deals ad JOIN agents a ON a.id=ad.agent_id
      WHERE ad.status='approved' AND a.status='approved'
        AND (a.subscription_status='active' OR a.subscription_status='trial')
        AND (a.subscription_expires_at IS NULL OR a.subscription_expires_at >= ?)
        AND (ad.expires_at IS NULL OR ad.expires_at >= ?)
-       AND ad.value_score IS NOT NULL
-     ORDER BY ad.value_score DESC
+     ORDER BY ad.value_score DESC, ad.click_count DESC, ad.approved_at DESC
      LIMIT ?`,
     [now, now, limit * 2]
   );
-  const combined = [...live, ...agentDeals]
-    .filter(d => d.value_score !== null && d.value_score > 0)
-    .sort((a, b) => b.value_score - a.value_score)
-    .slice(0, limit);
-  return combined;
+  // Prefer scored deals; fill remaining slots with unscored agent deals
+  const scored = [...live, ...agentDeals].filter(d => d.value_score !== null && d.value_score > 0);
+  scored.sort((a, b) => b.value_score - a.value_score);
+  if (scored.length >= limit) return scored.slice(0, limit);
+
+  const unscored = agentDeals.filter(d => !d.value_score || d.value_score <= 0);
+  return [...scored, ...unscored].slice(0, limit);
 }

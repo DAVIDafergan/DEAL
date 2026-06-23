@@ -30,7 +30,8 @@ export function BottomNav({ activeTab, onNavigate }) {
             onClick={() => onNavigate(tab)}
           >
             <motion.span
-              className="bottom-nav__icon-wrap"
+              className="bottom-nav__icon-wrap icon-draw icon-draw--once"
+              style={{ '--nav-idx': TABS.indexOf(tab) }}
               animate={{ scale: isActive ? 1.1 : 1 }}
               transition={{ type: 'spring', stiffness: 380, damping: 20 }}
             >

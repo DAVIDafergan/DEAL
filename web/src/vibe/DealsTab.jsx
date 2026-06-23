@@ -1,60 +1,26 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { fetchVibeFeed, agentApi } from '../api/client.js';
+import { agentApi } from '../api/client.js';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
-import { DealSlide } from './DealSlide.jsx';
 import { AgentDealSlide } from './AgentDealSlide.jsx';
 import { VibeFilterMenu } from './VibeFilterMenu.jsx';
 import { ALL_VIBES_KEY } from './vibeConstants.js';
-import { UserCircle, LayoutDashboard } from 'lucide-react';
+import { LayoutDashboard, Radio } from 'lucide-react';
 
-// Interleave agent deals into live cards: 1 agent slide every N live slides
-function interleaveAgentDeals(liveCards, agentDeals, interval = 4) {
-  const result = [];
-  let ai = 0;
-  for (let i = 0; i < liveCards.length; i++) {
-    result.push({ _type: 'live', data: liveCards[i] });
-    if ((i + 1) % interval === 0 && ai < agentDeals.length) {
-      result.push({ _type: 'agent', data: agentDeals[ai++] });
-    }
-  }
-  while (ai < agentDeals.length) {
-    result.push({ _type: 'agent', data: agentDeals[ai++] });
-  }
-  return result;
-}
-
-/**
- * DealsTab — תוכן הטאב "דילים": גלילה אנכית מלאת-מסך עם scroll-snap. טוען גם את דילי
- * הסוכנים המאושרים ומשלב אחד כל 4 דילים חיים — עקביות עם grid ה-flights.
- */
 export function DealsTab({ vibe = ALL_VIBES_KEY, onChangeVibe }) {
-  const { t, lang } = useLanguage();
+  const { t } = useLanguage();
   const { agent, token, loading: authLoading } = useAgentAuth();
   const navigate = useNavigate();
-  const [cards, setCards] = useState(null);
-  const [agentDeals, setAgentDeals] = useState([]);
-
-  useEffect(() => {
-    let isMounted = true;
-    setCards(null);
-    fetchVibeFeed(vibe, lang)
-      .then((res) => { if (isMounted) setCards(res.cards || []); })
-      .catch(() => { if (isMounted) setCards([]); });
-    return () => { isMounted = false; };
-  }, [vibe, lang]);
+  const [agentDeals, setAgentDeals] = useState(null);
 
   useEffect(() => {
     agentApi.getApprovedDeals()
       .then(({ deals }) => setAgentDeals(deals || []))
-      .catch(() => {});
+      .catch(() => setAgentDeals([]));
   }, []);
 
-  const merged = useMemo(
-    () => cards ? interleaveAgentDeals(cards, agentDeals, 4) : [],
-    [cards, agentDeals]
-  );
+  const loading = agentDeals === null;
 
   return (
     <div className="vibe-feed-page">
@@ -73,10 +39,10 @@ export function DealsTab({ vibe = ALL_VIBES_KEY, onChangeVibe }) {
             </Link>
           ) : (
             <>
-              <button className="vibe-auth-btn vibe-auth-btn--ghost" onClick={() => navigate('/agent/login')}>
+              <button type="button" className="vibe-auth-btn vibe-auth-btn--ghost" onClick={() => navigate('/agent/login')}>
                 {t.headerLoginButton || 'Login'}
               </button>
-              <button className="vibe-auth-btn vibe-auth-btn--primary" onClick={() => navigate('/register')}>
+              <button type="button" className="vibe-auth-btn vibe-auth-btn--primary" onClick={() => navigate('/register')}>
                 {t.headerRegisterButton || 'Register'}
               </button>
             </>
@@ -84,30 +50,26 @@ export function DealsTab({ vibe = ALL_VIBES_KEY, onChangeVibe }) {
         </div>
       )}
 
-      {cards === null && (
+      {loading && (
         <div className="vibe-feed-page--centered">
-          <p>{t.feedLoadingMessage}</p>
+          <p>{t.feedLoadingMessage || 'Loading...'}</p>
         </div>
       )}
 
-      {cards !== null && merged.length === 0 && (
+      {!loading && agentDeals.length === 0 && (
         <div className="vibe-feed-page--centered">
-          <p>{t.feedEmptyMessage}</p>
-          {vibe !== ALL_VIBES_KEY && (
-            <button type="button" className="vibe-feed-page__back-button" onClick={() => onChangeVibe(ALL_VIBES_KEY)}>
-              {t.vibeFilterAll}
-            </button>
-          )}
+          <Radio size={48} strokeWidth={1} color="var(--color-text-muted)" style={{ marginBottom: 16 }} />
+          <p style={{ color: 'var(--color-text-muted)', fontSize: '1rem', margin: 0 }}>
+            {t.agentDealsEmptyReel || 'No verified agent deals yet — check back soon!'}
+          </p>
         </div>
       )}
 
-      {cards !== null && merged.length > 0 && (
+      {!loading && agentDeals.length > 0 && (
         <div className="vibe-feed-page__scroller">
-          {merged.map((item) =>
-            item._type === 'agent'
-              ? <AgentDealSlide key={`agent-${item.data.id}`} deal={item.data} />
-              : <DealSlide key={item.data.id} card={item.data} />
-          )}
+          {agentDeals.map((deal) => (
+            <AgentDealSlide key={deal.id} deal={deal} />
+          ))}
         </div>
       )}
     </div>

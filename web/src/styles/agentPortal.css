@@ -237,6 +237,7 @@
 }
 .agent-form__input--error { border-color: var(--color-error,#ef4444); }
 .agent-form__error-msg { font-size: 0.75rem; color: var(--color-error,#ef4444); }
+.agent-form__hint { font-size: 0.72rem; color: var(--color-text-muted); }
 
 .agent-form__btn {
   padding: 12px 20px; border-radius: var(--radius-md);
@@ -514,42 +515,109 @@
   padding: 2px 8px; border-radius: 999px; font-size: 0.7rem; font-weight: 700;
 }
 
-/* ── Top value deals strip ───────────────────────────────────────────────── */
+/* ── Top value deals — BIG cards ─────────────────────────────────────────── */
 
-.top-value-deals { margin: 20px auto; }
+.top-value-deals { margin: 32px auto; }
 .top-value-deals__title {
-  font-size: 1rem; font-weight: 800; margin-bottom: 14px;
-  display: flex; align-items: center; gap: 8px;
+  font-size: 1.5rem; font-weight: 900; margin-bottom: 20px;
+  display: flex; align-items: center; gap: 10px;
 }
 
-.top-value-deals__strip {
-  display: flex; gap: 12px; overflow-x: auto; scrollbar-width: none; padding-bottom: 4px;
+.top-value-deals__grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 18px;
 }
-.top-value-deals__strip::-webkit-scrollbar { display: none; }
+@media (max-width: 1100px) { .top-value-deals__grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 680px) {
+  .top-value-deals__grid {
+    display: flex; overflow-x: auto; gap: 16px;
+    scrollbar-width: none; padding-bottom: 8px;
+  }
+  .top-value-deals__grid::-webkit-scrollbar { display: none; }
+  .top-value-card { flex-shrink: 0; min-width: 230px; }
+}
 
 .top-value-card {
-  flex-shrink: 0; width: 140px; border-radius: var(--radius-md); overflow: hidden;
+  border-radius: var(--radius-lg,16px); overflow: hidden;
   background: var(--color-surface); border: 1px solid var(--color-border);
-  cursor: pointer;
+  cursor: pointer; position: relative;
+  transition: box-shadow 0.25s;
 }
+.top-value-card:hover { box-shadow: 0 8px 30px rgba(0,0,0,0.25); }
+
 .top-value-card--skeleton {
   background: linear-gradient(90deg, var(--color-surface) 25%, rgba(255,255,255,0.05) 50%, var(--color-surface) 75%);
   background-size: 200% 100%;
   animation: price-skeleton-shimmer 1.4s ease-in-out infinite;
-  height: 160px;
+  min-height: 260px;
 }
-.top-value-card__media { height: 80px; position: relative; overflow: hidden; }
-.top-value-card__media img { width: 100%; height: 100%; object-fit: cover; }
-.top-value-card__body { padding: 8px; display: flex; flex-direction: column; gap: 2px; }
-.top-value-card__dest  { font-size: 0.82rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.top-value-card__price { font-size: 0.78rem; font-weight: 600; color: var(--color-text-secondary); }
+
+.top-value-card__media { height: 180px; position: relative; overflow: hidden; }
+.top-value-card__media img,
+.top-value-card__media > div { width: 100%; height: 100%; object-fit: cover; }
+.top-value-card__media-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.55) 100%);
+}
+
+.top-value-card__badge-wrap {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%); z-index: 2;
+}
 .top-value-card__badge {
-  display: inline-flex; align-items: center; gap: 3px;
-  padding: 2px 6px; border-radius: 999px;
-  background: rgba(249,115,22,0.18); color: var(--color-accent-from);
-  font-size: 0.7rem; font-weight: 700; margin-top: 2px;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 9px 18px; border-radius: 999px;
+  background: var(--gradient-accent); color: #fff;
+  font-size: 1.15rem; font-weight: 900;
+  box-shadow: 0 0 20px rgba(249,115,22,0.5);
+  white-space: nowrap;
 }
-.top-value-card__agent-label { font-size: 0.67rem; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.top-value-card__body { padding: 14px; display: flex; flex-direction: column; gap: 6px; }
+.top-value-card__dest { font-size: 1.05rem; font-weight: 800; }
+.top-value-card__price {
+  font-size: 1.4rem; font-weight: 900; color: var(--color-accent-from);
+  line-height: 1;
+}
+.top-value-card__currency { font-size: 0.85rem; font-weight: 700; }
+.top-value-card__agent-label { font-size: 0.72rem; color: var(--color-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.top-value-card__cta {
+  display: inline-flex; align-items: center; gap: 4px;
+  margin-top: 4px; padding: 7px 14px; border-radius: var(--radius-sm);
+  background: var(--gradient-accent); color: #fff;
+  font-size: 0.82rem; font-weight: 700; text-decoration: none;
+  width: fit-content;
+}
+
+/* ── Agent deals section (main grid) ─────────────────────────────────────── */
+
+.agent-deals-section { margin: 36px auto; }
+.agent-deals-section__title {
+  font-size: 1.3rem; font-weight: 900; margin-bottom: 6px;
+  display: flex; align-items: center; gap: 8px;
+}
+.agent-deals-section__subtitle { font-size: 0.88rem; color: var(--color-text-secondary); margin: 0 0 20px; }
+
+/* ── Radar section (live deals, bottom) ──────────────────────────────────── */
+
+.radar-section { margin: 36px auto 60px; }
+.radar-section__header { margin-bottom: 20px; }
+.radar-section__title {
+  font-size: 1.3rem; font-weight: 900; margin-bottom: 4px;
+  display: flex; align-items: center; gap: 8px;
+}
+.radar-section__subtitle { font-size: 0.88rem; color: var(--color-text-secondary); margin: 0; }
+.radar-section__load-more { display: flex; justify-content: center; margin-top: 28px; }
+.radar-section__load-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 32px; border-radius: var(--radius-md);
+  background: transparent; border: 2px solid var(--color-accent-from);
+  color: var(--color-accent-from); font-size: 0.95rem; font-weight: 700;
+  cursor: pointer;
+}
+.radar-section__load-btn:hover { background: rgba(249,115,22,0.08); }
+.radar-section__empty { text-align: center; color: var(--color-text-muted); padding: 40px 0; }
 
 /* ── Agent register / login footer note ─────────────────────────────────── */
 

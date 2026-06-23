@@ -2007,3 +2007,61 @@ button {
   gap: 16px;
 }
 
+/* ── Heatmap hero: remove sidebar gap when sidebar is gone ───────────────── */
+.heatmap-hero__sidebar { display: none; }
+
+/* ── SVG stroke-draw animation — brand-wide icon entrance ───────────────── */
+
+@keyframes icon-stroke-draw {
+  from {
+    stroke-dashoffset: 280;
+    opacity: 0;
+  }
+  to {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+/* Apply to any element given the draw class — wraps a lucide SVG */
+.icon-draw svg path,
+.icon-draw svg circle,
+.icon-draw svg rect,
+.icon-draw svg line,
+.icon-draw svg polyline,
+.icon-draw svg polygon {
+  stroke-dasharray: 280;
+  stroke-dashoffset: 280;
+  animation: icon-stroke-draw 0.4s ease forwards;
+  fill: none;
+}
+
+/* Bottom nav icons draw on first render */
+.bottom-nav__btn .icon-draw svg path { animation-delay: calc(var(--nav-idx, 0) * 60ms); }
+
+/* Form field icons */
+.agent-form .icon-draw svg path { animation-delay: 0.1s; }
+
+/* Card icons (breakdown) */
+.deal-card .icon-draw svg path,
+.agent-deal-card .icon-draw svg path { animation-delay: 0.05s; }
+
+/* Badge icons in Top Value Deals */
+.top-value-card__badge .icon-draw svg path { animation-delay: 0ms; }
+
+/* Prevent re-animation on hover/re-render via stable key classes */
+.icon-draw--once svg path { animation-iteration-count: 1; }
+
+/* Global: auto-draw icons inside known containers on mount */
+.agent-form__btn svg path,
+.agent-form__btn svg circle,
+.agent-form__step-title ~ * svg path,
+.bottom-nav__icon-wrap svg path,
+.bottom-nav__icon-wrap svg circle,
+.top-value-card__badge svg path,
+.radar-section__title svg path,
+.agent-deals-section__title svg path {
+  stroke-dasharray: 280;
+  animation: icon-stroke-draw 0.35s ease forwards;
+}
+
