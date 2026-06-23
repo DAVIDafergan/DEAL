@@ -1083,51 +1083,80 @@ button {
 .deal-breakdown {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   margin-bottom: 4px;
 }
 
-.deal-breakdown__item {
-  display: flex;
-  align-items: center;
+.deal-breakdown__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 10px;
-  padding: 9px 12px;
-  background: rgba(255, 255, 255, 0.03);
+}
+
+.deal-breakdown__square {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 10px;
+  background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
+  text-align: center;
+  backdrop-filter: blur(6px);
 }
 
-.deal-breakdown__icon {
-  font-size: 1.1rem;
-  flex-shrink: 0;
+.deal-breakdown__square-icon {
+  color: var(--color-accent-from);
 }
 
-.deal-breakdown__label {
-  flex: 1;
-  font-size: 0.85rem;
+.deal-breakdown__square-icon--emoji {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.deal-breakdown__square-label {
+  font-size: 0.78rem;
   font-weight: 600;
+  color: var(--color-text-secondary);
 }
 
-.deal-breakdown__price {
-  font-size: 0.88rem;
-  font-weight: 700;
-  white-space: nowrap;
+.deal-breakdown__square-price {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
 }
 
-.deal-breakdown__item--estimate {
-  opacity: 0.8;
-}
-
-.deal-breakdown__estimate-tag {
-  font-size: 0.68rem;
+.deal-breakdown__square-price small {
+  font-size: 0.62em;
+  font-weight: 600;
   color: var(--color-text-muted);
-  white-space: nowrap;
+}
+
+.deal-breakdown__square-tag {
+  font-size: 0.66rem;
+  color: var(--color-text-muted);
+}
+
+.deal-breakdown__square--toggle {
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.deal-breakdown__square--toggle.is-included {
+  border-color: var(--color-accent-from);
+  background: rgba(249, 115, 22, 0.12);
+}
+
+.deal-breakdown__square--toggle.is-included .deal-breakdown__square-tag {
+  color: var(--color-accent-from);
+  font-weight: 700;
 }
 
 .deal-breakdown__total {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 2px;
   padding: 10px 12px;
   border-radius: var(--radius-sm);
   background: var(--gradient-accent);
@@ -1135,7 +1164,8 @@ button {
   font-size: 1rem;
 }
 
-.deal-breakdown__total small {
+.deal-breakdown__total small,
+.deal-breakdown__total-note {
   font-size: 0.74rem;
   opacity: 0.85;
 }
@@ -1216,6 +1246,28 @@ button {
   padding: 8px 18px;
   font-size: 0.8rem;
   font-weight: 600;
+}
+
+.live-deal-search {
+  width: 100%;
+  max-width: 360px;
+  padding: 36px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.live-deal-search__icon {
+  color: var(--color-accent-from);
+}
+
+.live-deal-search__message {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
 }
 
 .bundle-modal__hint {
@@ -1420,6 +1472,82 @@ button {
   gap: 16px;
 }
 
+/* ---------- questionnaire: full-screen (QuestionnaireModal.jsx) ---------- */
+/* שם class שונה בכוונה מ-.questionnaire-overlay/.questionnaire-modal (משותפים ל-BundleModal/
+   LiveDealModal/PersonalizedResultsModal, שנשארים דיאלוג מרכזי, לא מסך-מלא) */
+
+.questionnaire-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--color-bg-gradient);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.questionnaire-fullscreen__progress-track {
+  height: 3px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.questionnaire-fullscreen__progress-fill {
+  height: 100%;
+  background: var(--gradient-accent);
+}
+
+.questionnaire-fullscreen__header {
+  position: absolute;
+  top: 16px;
+  inset-inline: 16px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.questionnaire-fullscreen__step-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.questionnaire-fullscreen__close {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-elevated);
+  color: var(--color-text-secondary);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.questionnaire-fullscreen__center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 0.95rem;
+  color: var(--color-text-secondary);
+}
+
+.questionnaire-fullscreen__back {
+  align-self: center;
+  margin-bottom: 24px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 6px 12px;
+}
+
 .questionnaire-modal__header {
   display: flex;
   align-items: center;
@@ -1465,50 +1593,65 @@ button {
   padding: 2px 0;
 }
 
-/* ---------- question step ---------- */
+/* ---------- question step (100vh מלא, ראו QuestionnaireModal.jsx ל-questionnaire-fullscreen) ---------- */
+
+.question-step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 80px 20px 24px;
+  overflow-y: auto;
+}
 
 .question-step__title {
-  font-size: 1.15rem;
+  font-size: clamp(1.3rem, 5vw, 1.6rem);
   font-weight: 800;
-  margin: 0 0 16px;
+  margin: 0 0 28px;
   text-align: center;
 }
 
 .question-step__options {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  gap: 14px;
+  max-width: 480px;
+  width: 100%;
+  margin: 0 auto;
 }
 
-/* ---------- choice card ---------- */
+/* ---------- choice tile: אריח גדול (לא כפתור קטן), ראו ChoiceCard.jsx ---------- */
 
-.choice-card {
+.choice-tile {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  min-height: 88px;
-  padding: 14px 10px;
-  border-radius: var(--radius-md);
+  gap: 12px;
+  min-height: 132px;
+  padding: 20px 12px;
+  border-radius: var(--radius-lg);
   border: 1.5px solid var(--color-border);
   background: var(--color-surface);
   color: var(--color-text-secondary);
-  font-size: 0.88rem;
+  font-size: 0.95rem;
   font-weight: 700;
   cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
-.choice-card__icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 28px;
+.choice-tile__icon {
+  color: var(--color-text-secondary);
 }
 
-.choice-card.is-selected {
+.choice-tile.is-selected {
   border-color: transparent;
   background: var(--gradient-accent);
+  color: #fff;
+  box-shadow: 0 8px 24px -8px rgba(249, 115, 22, 0.55);
+}
+
+.choice-tile.is-selected .choice-tile__icon {
   color: #fff;
 }
 
@@ -1664,6 +1807,7 @@ button {
   align-items: center;
   justify-content: center;
   min-height: 42px;
+  width: 100%;
   border-radius: var(--radius-sm);
   background: var(--color-surface-elevated);
   border: 1px solid var(--color-border);
@@ -1671,6 +1815,14 @@ button {
   font-size: 0.78rem;
   font-weight: 700;
   text-align: center;
+}
+
+.package-card__action--primary {
+  background: var(--gradient-accent);
+  border-color: transparent;
+  color: #fff;
+  font-size: 0.85rem;
+  min-height: 46px;
 }
 
 .package-card__disclaimer {

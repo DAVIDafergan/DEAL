@@ -43,6 +43,13 @@ export function validateDealLive({ origin, destination, departureDate, returnDat
   return getJson(`/deals/validate-live?${params.toString()}`);
 }
 
+/** "Live Deal Engine" — בונה דיל מלא בזמן אמת. ראו core/validation/liveDealBuilder.js */
+export function buildLiveDeal({ origin, destination, departureDate, returnDate, peopleCount = 2 }) {
+  const params = new URLSearchParams({ origin, destination, departureDate, peopleCount: String(peopleCount) });
+  if (returnDate) params.set('returnDate', returnDate);
+  return getJson(`/deals/build-live?${params.toString()}`);
+}
+
 export async function submitQuestionnaire(answers) {
   const res = await fetch(`${API_BASE}/packages/personalized`, {
     method: 'POST',

@@ -26,13 +26,12 @@ export function BuyPackageDialog({ deal, packageConfig, onClose }) {
   ].filter(Boolean);
 
   const breakdown = {
-    flightPrice: deal.price,
+    flightTotal: deal.price,
     hotelName: null,
     hotelTotalPrice: null,
     hotelStars: null,
+    nights: null,
     currency: deal.currency,
-    totalPrice: deal.price,
-    pricePerPerson: deal.price,
     peopleCount: 1,
     hasCarOption: Boolean(carUrl),
     hasEsimOption: Boolean(esimUrl),

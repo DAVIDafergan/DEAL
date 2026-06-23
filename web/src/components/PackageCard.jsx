@@ -1,4 +1,5 @@
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { useCountUp } from '../hooks/useCountUp.js';
 import { getCityName } from '../data/cityNames.js';
@@ -6,7 +7,7 @@ import { formatShortDate } from '../utils/flightFormat.js';
 import { getCurrencySymbol } from '../utils/currency.js';
 import { openAllPackageLinks } from '../utils/openAllPackageLinks.js';
 import { DestinationImage } from './DestinationImage.jsx';
-import { LiveBookingButton } from './LiveBookingButton.jsx';
+import { LiveDealModal } from './LiveDealModal.jsx';
 
 const cardVariants = {
   hidden: { opacity: 0, y: 24 },
@@ -16,14 +17,16 @@ const cardVariants = {
 
 /**
  * PackageCard — חבילה משולבת (טיסה+מלון+רכב+SIM). שני מצבי תצוגה:
- *   - compact (ברצועת הדילים הפופולריים): לחיצה בכל מקום על הכרטיס פותחת את כל הלינקים.
- *   - מלא (אחרי שאלון): 4 כפתורי קנייה נפרדים, כל אחד עם הלינק שלו.
- * חשוב: זו לא רכישה אחת ממוזגת — 4 לינקים נפרדים, כל אחד מזכה עמלה בנפרד.
- * טקסט נקי בכוונה: כותרת + שורות-אייקון קצרות (לא משפט-תיאור צפוף), מחיר ברור עם "החל מ-"
- * וחותמת זמן, אזהרה אחת קצרה — לא פסקה.
+ *   - compact (ברצועת הדילים הפופולריים): לחיצה בכל מקום על הכרטיס פותחת את כל הלינקים
+ *     (תצוגה מקדימה מהירה, לא מחויבות — לא עובר דרך ה-Live Deal Engine בכוונה).
+ *   - מלא (אחרי שאלון): כפתור יחיד שפותח LiveDealModal — בונה דיל טרי (טיסה+מלון+רכב/eSIM)
+ *     עם ה-peopleCount **האמיתי** שהמשתמש בחר בשאלון (לא ברירת מחדל), ומציג breakdown
+ *     בריבועים. זה מחליף את שורת 4 הכפתורים הקודמת — לא רכישה אחת ממוזגת, כל לינק עדיין
+ *     נפרד, רק התצוגה התאחדה לאותה חוויה כמו DealCard/DealSlide.
  */
 export function PackageCard({ pkg, compact = false }) {
   const { t, lang } = useLanguage();
+  const [isLiveDealOpen, setIsLiveDealOpen] = useState(false);
   const animatedPrice = useCountUp(Math.round(pkg.pricePerPerson));
   const currencySymbol = getCurrencySymbol(pkg.currency);
   const updatedTime = pkg.updatedAt
@@ -81,54 +84,32 @@ export function PackageCard({ pkg, compact = false }) {
           <p className="package-card__compact-hint">{t.packageOpenAllButton}</p>
         ) : (
           <div className="package-card__actions">
-            <LiveBookingButton
-              deal={{ origin: pkg.origin, destination: pkg.destination, departureDate: pkg.departureDate, returnDate: pkg.returnDate, price: pkg.flightPrice }}
-              fallbackUrl={pkg.flightBookingUrl}
-              className="package-card__action"
+            <motion.button
+              type="button"
+              className="package-card__action package-card__action--primary"
+              whileTap={{ scale: 0.96 }}
+              onClick={() => setIsLiveDealOpen(true)}
             >
-              {t.packageBuyFlightButton}
-            </LiveBookingButton>
-            {pkg.hotelBookingUrl && (
-              <motion.a
-                href={pkg.hotelBookingUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="package-card__action"
-                whileTap={{ scale: 0.96 }}
-                whileHover={{ scale: 1.03 }}
-              >
-                {t.packageBuyHotelButton}
-              </motion.a>
-            )}
-            {pkg.carRentalUrl && (
-              <motion.a
-                href={pkg.carRentalUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="package-card__action"
-                whileTap={{ scale: 0.96 }}
-                whileHover={{ scale: 1.03 }}
-              >
-                {t.packageBuyCarButton}
-              </motion.a>
-            )}
-            {pkg.esimUrl && (
-              <motion.a
-                href={pkg.esimUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="package-card__action"
-                whileTap={{ scale: 0.96 }}
-                whileHover={{ scale: 1.03 }}
-              >
-                {t.packageBuySimButton}
-              </motion.a>
-            )}
+              {t.lockDealButton}
+            </motion.button>
           </div>
         )}
 
         <p className="package-card__disclaimer">{t.packageDisclaimer}</p>
       </div>
+
+      <AnimatePresence>
+        {isLiveDealOpen && (
+          <LiveDealModal
+            origin={pkg.origin}
+            destination={pkg.destination}
+            departureDate={pkg.departureDate}
+            returnDate={pkg.returnDate}
+            peopleCount={pkg.peopleCount}
+            onClose={() => setIsLiveDealOpen(false)}
+          />
+        )}
+      </AnimatePresence>
     </motion.article>
   );
 }

@@ -40,11 +40,11 @@ export function getHotelStayDates(deal) {
  * אצלנו ו-"540 ₪" אחרי שלוחץ — אותו מספר, מטבע שונה, נראה כמו דיל אחר. זה ה-bug שגרם
  * ל"מחירים לא תואמים בכל מקום" — לא שלוש מקורות אמת חולקים, לינק יחיד עם פרמטר לא תואם.
  */
-export function buildHotelUrl(deal, marker) {
+export function buildHotelUrl(deal, marker, adults = 2) {
   if (!marker || !deal.destination) return null;
   const { checkIn, checkOut } = getHotelStayDates(deal);
 
-  const params = new URLSearchParams({ marker, destination: deal.destination, adults: '2', currency: 'USD' });
+  const params = new URLSearchParams({ marker, destination: deal.destination, adults: String(adults || 2), currency: 'USD' });
   if (checkIn) params.set('checkIn', checkIn);
   if (checkOut) params.set('checkOut', checkOut);
 

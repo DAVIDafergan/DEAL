@@ -4,32 +4,31 @@ import { useLanguage } from '../../context/LanguageContext.jsx';
 import { submitQuestionnaire } from '../../api/client.js';
 import { QuestionStep } from './QuestionStep.jsx';
 import { ChoiceCard } from './ChoiceCard.jsx';
-import { SoloIcon, CoupleIcon, FamilyIcon, GroupIcon } from './PeopleIcons.jsx';
 
 const PEOPLE_OPTIONS = [
-  { value: 1, labelKey: 'q1PeopleSolo', Icon: SoloIcon },
-  { value: 2, labelKey: 'q1PeopleCouple', Icon: CoupleIcon },
-  { value: 4, labelKey: 'q1PeopleFamily', Icon: FamilyIcon },
-  { value: 6, labelKey: 'q1PeopleGroup', Icon: GroupIcon },
+  { value: 1, labelKey: 'q1PeopleSolo', iconName: 'user' },
+  { value: 2, labelKey: 'q1PeopleCouple', iconName: 'users' },
+  { value: 4, labelKey: 'q1PeopleFamily', iconName: 'usersRound' },
+  { value: 6, labelKey: 'q1PeopleGroup', iconName: 'usersRound' },
 ];
 const BUDGET_OPTIONS = [
-  { value: 3000, labelKey: 'q2Budget3000' },
-  { value: 5000, labelKey: 'q2Budget5000' },
-  { value: 8000, labelKey: 'q2Budget8000' },
-  { value: null, labelKey: 'q2BudgetUnlimited' },
+  { value: 3000, labelKey: 'q2Budget3000', iconName: 'wallet' },
+  { value: 5000, labelKey: 'q2Budget5000', iconName: 'wallet' },
+  { value: 8000, labelKey: 'q2Budget8000', iconName: 'wallet' },
+  { value: null, labelKey: 'q2BudgetUnlimited', iconName: 'infinity' },
 ];
 const DAYS_OPTIONS = [
-  { value: 3, labelKey: 'q3Days3' },
-  { value: 5, labelKey: 'q3Days5' },
-  { value: 7, labelKey: 'q3Days7' },
-  { value: 10, labelKey: 'q3Days10' },
+  { value: 3, labelKey: 'q3Days3', iconName: 'calendar' },
+  { value: 5, labelKey: 'q3Days5', iconName: 'calendar' },
+  { value: 7, labelKey: 'q3Days7', iconName: 'calendar' },
+  { value: 10, labelKey: 'q3Days10', iconName: 'calendar' },
 ];
 const TYPE_OPTIONS = [
-  { value: 'city', labelKey: 'q4TypeCity' },
-  { value: 'beach', labelKey: 'q4TypeBeach' },
-  { value: 'nature', labelKey: 'q4TypeNature' },
-  { value: 'culture', labelKey: 'q4TypeCulture' },
-  { value: null, labelKey: 'q4TypeAnything' },
+  { value: 'city', labelKey: 'q4TypeCity', iconName: 'building' },
+  { value: 'beach', labelKey: 'q4TypeBeach', iconName: 'umbrella' },
+  { value: 'nature', labelKey: 'q4TypeNature', iconName: 'mountain' },
+  { value: 'culture', labelKey: 'q4TypeCulture', iconName: 'landmark' },
+  { value: null, labelKey: 'q4TypeAnything', iconName: 'mapPin' },
 ];
 
 const STEPS = [
@@ -39,11 +38,14 @@ const STEPS = [
   { key: 'destinationType', titleKey: 'q4Title', options: TYPE_OPTIONS },
 ];
 
-const SELECT_ADVANCE_DELAY_MS = 380; // זמן קצר לראות את ההבהוב לפני שעוברים לשאלה הבאה
+const SELECT_ADVANCE_DELAY_MS = 420; // זמן קצר לראות את ה-glow + עימעום השאר לפני שעוברים לשאלה הבאה
 
 /**
- * QuestionnaireModal — שאלון אישי קצר (4 שאלות), כל בחירה ויזואלית מתקדמת אוטומטית לשאלה
- * הבאה (Typeform-style), עם אפשרות "הקודם" לתקן. בשאלה האחרונה — שולח ומציג טעינה.
+ * QuestionnaireModal — שאלון אישי קצר (4 שאלות), **מסך-מלא** (לא דיאלוג מרכזי קטן): כל שאלה
+ * תופסת 100vh, אריחי בחירה גדולים עם אייקון ש"מצטייר" בכניסה (AnimatedIcon, pathLength),
+ * progress bar דק בראש, ומעבר slide ברור בין שאלות (QuestionStep). כל בחירה ויזואלית
+ * מתקדמת אוטומטית לשאלה הבאה (Typeform-style), עם אפשרות "הקודם" לתקן. peopleCount (שאלה 1)
+ * הוא הפרמטר שמוזן ל-Live Deal Engine — ברירת מחדל זוגית (2) רק כשהמשתמש לא עבר שאלון בכלל.
  */
 export function QuestionnaireModal({ onClose, onResults }) {
   const { t } = useLanguage();
@@ -52,6 +54,7 @@ export function QuestionnaireModal({ onClose, onResults }) {
   const [status, setStatus] = useState('answering'); // answering | loading | error
 
   const current = STEPS[step];
+  const hasSelection = answers[current.key] !== undefined;
 
   function handleSelect(value) {
     const nextAnswers = { ...answers, [current.key]: value };
@@ -80,55 +83,58 @@ export function QuestionnaireModal({ onClose, onResults }) {
   }
 
   return (
-    <motion.div
-      className="questionnaire-overlay"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
-    >
-      <motion.div
-        className="questionnaire-modal glass-panel"
-        onClick={(event) => event.stopPropagation()}
-        initial={{ scale: 0.92, opacity: 0, y: 16 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.92, opacity: 0, y: 16 }}
-        transition={{ type: 'spring', stiffness: 280, damping: 26 }}
-      >
-        <div className="questionnaire-modal__header">
-          {status === 'answering' && (
-            <span className="questionnaire-modal__step-label">{t.questionnaireStepLabel(step + 1, STEPS.length)}</span>
-          )}
-          <button type="button" className="questionnaire-modal__close" onClick={onClose} aria-label={t.questionnaireCloseButton}>
-            ×
-          </button>
-        </div>
+    <motion.div className="questionnaire-fullscreen" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+      <div className="questionnaire-fullscreen__progress-track">
+        <motion.div
+          className="questionnaire-fullscreen__progress-fill"
+          animate={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
+          transition={{ duration: 0.4, ease: 'easeOut' }}
+        />
+      </div>
 
-        {status === 'loading' && <p className="questionnaire-modal__loading">{t.questionnaireLoadingLabel}</p>}
-        {status === 'error' && <p className="questionnaire-modal__error">{t.questionnaireErrorLabel}</p>}
-
+      <div className="questionnaire-fullscreen__header">
         {status === 'answering' && (
-          <AnimatePresence mode="wait">
-            <QuestionStep key={step} title={t[current.titleKey]}>
-              {current.options.map((opt) => (
-                <ChoiceCard
-                  key={String(opt.value)}
-                  label={t[opt.labelKey]}
-                  icon={opt.Icon ? <opt.Icon /> : null}
-                  isSelected={answers[current.key] === opt.value}
-                  onSelect={() => handleSelect(opt.value)}
-                />
-              ))}
-            </QuestionStep>
-          </AnimatePresence>
+          <span className="questionnaire-fullscreen__step-label">{t.questionnaireStepLabel(step + 1, STEPS.length)}</span>
         )}
+        <button type="button" className="questionnaire-fullscreen__close" onClick={onClose} aria-label={t.questionnaireCloseButton}>
+          ×
+        </button>
+      </div>
 
-        {status === 'answering' && step > 0 && (
-          <button type="button" className="questionnaire-modal__back" onClick={handleBack}>
-            {t.questionnaireBackButton}
-          </button>
-        )}
-      </motion.div>
+      {status === 'loading' && (
+        <div className="questionnaire-fullscreen__center">
+          <p>{t.questionnaireLoadingLabel}</p>
+        </div>
+      )}
+      {status === 'error' && (
+        <div className="questionnaire-fullscreen__center">
+          <p>{t.questionnaireErrorLabel}</p>
+        </div>
+      )}
+
+      {status === 'answering' && (
+        <AnimatePresence mode="wait">
+          <QuestionStep key={step} title={t[current.titleKey]}>
+            {current.options.map((opt, index) => (
+              <ChoiceCard
+                key={String(opt.value)}
+                label={t[opt.labelKey]}
+                iconName={opt.iconName}
+                index={index}
+                isSelected={answers[current.key] === opt.value}
+                isDimmed={hasSelection && answers[current.key] !== opt.value}
+                onSelect={() => handleSelect(opt.value)}
+              />
+            ))}
+          </QuestionStep>
+        </AnimatePresence>
+      )}
+
+      {status === 'answering' && step > 0 && (
+        <button type="button" className="questionnaire-fullscreen__back" onClick={handleBack}>
+          {t.questionnaireBackButton}
+        </button>
+      )}
     </motion.div>
   );
 }

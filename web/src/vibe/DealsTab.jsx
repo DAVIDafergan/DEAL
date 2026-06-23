@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { fetchVibeFeed, fetchPublicConfig } from '../api/client.js';
+import { fetchVibeFeed } from '../api/client.js';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { DealSlide } from './DealSlide.jsx';
 import { VibeFilterMenu } from './VibeFilterMenu.jsx';
@@ -9,19 +9,12 @@ import { ALL_VIBES_KEY } from './vibeConstants.js';
  * DealsTab — תוכן הטאב "דילים" (ברירת מחדל בכניסה, בלי מסך-בחירה חוסם): גלילה אנכית
  * מלאת-מסך עם scroll-snap טבעי של הדפדפן. vibe='all' כברירת מחדל (כל הווייבים, ממוין
  * מחיר) — בחירת ווייב ספציפי היא תפריט אופציונלי (VibeFilterMenu), לא שלב כניסה.
- * packageConfig (marker + תבניות רכב/eSIM) נמשך כאן כי DealSlide צריך אותו לבניית
- * לינקי הרכב/eSIM ב-BundleModal — אותו marker שכבר עובד בטיסה/מלון מהשרת.
+ * אין יותר צורך ב-packageConfig כאן — DealSlide עבר ל-LiveDealModal, שבונה לינקי רכב/eSIM
+ * בעצמו מול השרת (build-live), לא צריך marker בצד הלקוח.
  */
 export function DealsTab({ vibe = ALL_VIBES_KEY, onChangeVibe }) {
   const { t, lang } = useLanguage();
   const [cards, setCards] = useState(null); // null = עדיין בטעינה
-  const [packageConfig, setPackageConfig] = useState(null);
-
-  useEffect(() => {
-    fetchPublicConfig()
-      .then(setPackageConfig)
-      .catch(() => setPackageConfig(null));
-  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -64,7 +57,7 @@ export function DealsTab({ vibe = ALL_VIBES_KEY, onChangeVibe }) {
       {cards !== null && cards.length > 0 && (
         <div className="vibe-feed-page__scroller">
           {cards.map((card) => (
-            <DealSlide key={card.id} card={card} packageConfig={packageConfig} />
+            <DealSlide key={card.id} card={card} />
           ))}
         </div>
       )}

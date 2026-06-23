@@ -2,6 +2,9 @@ import { Router } from 'express';
 import { listDeals, getDealById } from '../store/dealsStore.js';
 import { getVibeFeed, VIBES, ALL_VIBES_KEY } from '../../core/vibes/vibeFeedEngine.js';
 import { validateDealIsLive } from '../../core/validation/dealValidator.js';
+import { buildLiveDeal } from '../../core/validation/liveDealBuilder.js';
+import { sourceRegistry } from '../../sources/index.js';
+import { buildPackageDeps } from '../../core/packages/packageDeps.js';
 
 const router = Router();
 const SUPPORTED_LANGS = ['he', 'en', 'es'];
@@ -58,6 +61,35 @@ router.get('/validate-live', async (req, res) => {
     departureDate,
     returnDate: returnDate || null,
     price: Number(price),
+  });
+  res.json(result);
+});
+
+/**
+ * GET /api/deals/build-live?origin=&destination=&departureDate=&returnDate=&peopleCount= —
+ * "Live Deal Engine": בונה דיל מלא (טיסה+מלון+רכב/eSIM) ממש בזמן הקריאה, לא מ-cache. רשום
+ * לפני /:id באותה סיבה כמו validate-live. ראו core/validation/liveDealBuilder.js להסבר
+ * המגבלה האמיתית (Hotellook מאומת לא פעיל) ולממצא על מחיר-טיסה-לנוסע-בודד.
+ */
+router.get('/build-live', async (req, res) => {
+  const { origin, destination, departureDate, returnDate } = req.query;
+  const peopleCount = Math.max(1, Number(req.query.peopleCount) || 2);
+
+  if (!origin || !destination || !departureDate) {
+    return res.status(400).json({ error: 'origin, destination, and departureDate are required' });
+  }
+
+  const deps = buildPackageDeps(sourceRegistry);
+  const result = await buildLiveDeal({
+    origin,
+    destination,
+    departureDate,
+    returnDate: returnDate || null,
+    peopleCount,
+    marker: deps.marker,
+    carRentalUrlTemplate: deps.carRentalUrlTemplate,
+    esimUrlTemplate: deps.esimUrlTemplate,
+    hotellookApiToken: deps.apiToken,
   });
   res.json(result);
 });

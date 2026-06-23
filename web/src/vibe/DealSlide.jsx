@@ -3,8 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { GlitchDropOverlay } from './GlitchDropOverlay.jsx';
 import { UrgencyBanner } from './UrgencyBanner.jsx';
-import { BundleModal } from '../components/BundleModal.jsx';
-import { buildCarRentalUrl, buildEsimUrl } from '../utils/packageLinks.js';
+import { LiveDealModal } from '../components/LiveDealModal.jsx';
 import { formatShortDate } from '../utils/flightFormat.js';
 import { getCurrencySymbol } from '../utils/currency.js';
 
@@ -14,16 +13,18 @@ import { getCurrencySymbol } from '../utils/currency.js';
  * גלוי (>50%, IntersectionObserver) — לא את כל 8 הסרטונים בבת אחת.
  *
  * התצוגה על השקף עצמו ("Bottom Line") מינימלית בכוונה: יעד, שורת טיסה+מלון קצרה, ומחיר
- * כולל בולט אחד — בלי breakdown מפורט עם אייקונים. ה-breakdown המפורט (DealBreakdown, כל
- * רכיב בנפרד) מוצג רק בתוך BundleModal, אחרי לחיצה על הכפתור היחיד — UI נקי, לא עומס.
- * הכפתור פותח את ה-modal **ישירות, בלי אנימציית טעינה** (לפי הנחיה מפורשת).
+ * כולל בולט אחד — בלי breakdown מפורט עם אייקונים. ה-breakdown המפורט מוצג רק אחרי לחיצה
+ * על הכפתור היחיד, בתוך LiveDealModal — שמרענן את הטיסה/מלון **בזמן אמת** (לא את card
+ * המוצג, שיכול להיות עד 30 דק' ישן — ראו core/validation/liveDealBuilder.js) לפני שמראה
+ * breakdown ולינקים. זה שינוי מ"פותח ישר בלי אנימציה" (הנחיה ישנה) ל"מראה חיפוש כן" —
+ * לא חזרה לבעיה הקודמת (אנימציית טעינה מזויפת): כאן יש קריאת רשת אמיתית שרצה, לא delay מבוים.
  */
-export function DealSlide({ card, packageConfig = null }) {
+export function DealSlide({ card }) {
   const { t, lang } = useLanguage();
   const slideRef = useRef(null);
   const [isActive, setIsActive] = useState(false);
   const [showGlitch, setShowGlitch] = useState(false);
-  const [isBundleOpen, setIsBundleOpen] = useState(false);
+  const [isLiveDealOpen, setIsLiveDealOpen] = useState(false);
   const hasShownGlitchRef = useRef(false);
 
   useEffect(() => {
@@ -47,33 +48,8 @@ export function DealSlide({ card, packageConfig = null }) {
     }
   }, [isActive, card.isGlitchDrop]);
 
-  const marker = packageConfig?.travelpayoutsMarker;
-  // רכב/eSIM מחושבים בצד הלקוח (כמו ב-BuyPackageDialog) — אין להם מחיר אמיתי שיש לנו, רק לינק
-  const dealLike = { destination: card.destination, departureDate: card.departureDate };
-  const carUrl = marker ? buildCarRentalUrl(dealLike, marker, packageConfig?.carRentalUrlTemplate) : null;
-  const esimUrl = marker ? buildEsimUrl(dealLike, marker, packageConfig?.esimUrlTemplate) : null;
   const currencySymbol = getCurrencySymbol(card.currency);
   const hasRealHotel = card.hotelTotalPrice !== null && card.hotelTotalPrice !== undefined;
-
-  const bundleItems = [
-    card.flightBookingUrl && { key: 'flight', icon: '✈️', labelKey: 'packageFlightLabel', url: card.flightBookingUrl },
-    card.hotelBookingUrl && { key: 'hotel', icon: '🏨', labelKey: 'packageHotelButton', url: card.hotelBookingUrl },
-    carUrl && { key: 'car', icon: '🚗', labelKey: 'packageCarButton', url: carUrl },
-    esimUrl && { key: 'esim', icon: '📱', labelKey: 'packageEsimButton', url: esimUrl },
-  ].filter(Boolean);
-
-  const breakdown = {
-    flightPrice: card.flightPrice,
-    hotelName: card.hotelName,
-    hotelTotalPrice: card.hotelTotalPrice,
-    hotelStars: card.hotelStars,
-    currency: card.currency,
-    totalPrice: card.totalPrice,
-    pricePerPerson: card.pricePerPerson,
-    peopleCount: card.peopleCount,
-    hasCarOption: Boolean(carUrl),
-    hasEsimOption: Boolean(esimUrl),
-  };
 
   return (
     <section ref={slideRef} className="deal-slide">
@@ -138,7 +114,7 @@ export function DealSlide({ card, packageConfig = null }) {
           type="button"
           className="deal-slide__lock-button"
           whileTap={{ scale: 0.95 }}
-          onClick={() => setIsBundleOpen(true)}
+          onClick={() => setIsLiveDealOpen(true)}
         >
           {t.lockDealButton}
         </motion.button>
@@ -148,17 +124,14 @@ export function DealSlide({ card, packageConfig = null }) {
       {showGlitch && <GlitchDropOverlay caption={card.glitchCaption} />}
 
       <AnimatePresence>
-        {isBundleOpen && (
-          <BundleModal
-            title={t.lockDealButton}
-            breakdown={breakdown}
-            items={bundleItems}
-            onClose={() => setIsBundleOpen(false)}
-            flightForValidation={
-              card.flightBookingUrl
-                ? { origin: card.origin, destination: card.destination, departureDate: card.departureDate, returnDate: card.returnDate, price: card.flightPrice }
-                : null
-            }
+        {isLiveDealOpen && (
+          <LiveDealModal
+            origin={card.origin}
+            destination={card.destination}
+            departureDate={card.departureDate}
+            returnDate={card.returnDate}
+            peopleCount={card.peopleCount}
+            onClose={() => setIsLiveDealOpen(false)}
           />
         )}
       </AnimatePresence>

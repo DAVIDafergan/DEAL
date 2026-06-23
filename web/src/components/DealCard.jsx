@@ -9,7 +9,7 @@ import { CountdownTimer } from './heatmap/CountdownTimer.jsx';
 import { FlightDetails } from './FlightDetails.jsx';
 import { DestinationImage } from './DestinationImage.jsx';
 import { BuyPackageDialog } from './BuyPackageDialog.jsx';
-import { LiveBookingButton } from './LiveBookingButton.jsx';
+import { LiveDealModal } from './LiveDealModal.jsx';
 import { formatShortDate } from '../utils/flightFormat.js';
 import { buildHotelUrl } from '../utils/packageLinks.js';
 import { getCurrencySymbol } from '../utils/currency.js';
@@ -35,6 +35,7 @@ export function DealCard({ deal, packageConfig = null, isCheapest = false }) {
   const [shareStatus, setShareStatus] = useState(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isPackageDialogOpen, setIsPackageDialogOpen] = useState(false);
+  const [isLiveDealOpen, setIsLiveDealOpen] = useState(false);
   const animatedPrice = useCountUp(Math.round(deal.price));
   const isAnomaly = deal.type === 'anomaly';
   const discountPercent = isAnomaly ? getDiscountPercent(deal) : 0;
@@ -159,9 +160,14 @@ export function DealCard({ deal, packageConfig = null, isCheapest = false }) {
           </motion.button>
 
           {deal.bookingUrl && (
-            <LiveBookingButton deal={deal} fallbackUrl={deal.bookingUrl} className="deal-card__action deal-card__action--buy">
+            <motion.button
+              type="button"
+              className="deal-card__action deal-card__action--buy"
+              whileTap={{ scale: 0.96 }}
+              onClick={() => setIsLiveDealOpen(true)}
+            >
               {t.buyNowButton}
-            </LiveBookingButton>
+            </motion.button>
           )}
         </div>
         {deal.bookingUrl && <p className="deal-card__availability-note">{t.availabilityTrustNote}</p>}
@@ -191,6 +197,19 @@ export function DealCard({ deal, packageConfig = null, isCheapest = false }) {
       <AnimatePresence>
         {isPackageDialogOpen && (
           <BuyPackageDialog deal={deal} packageConfig={packageConfig} onClose={() => setIsPackageDialogOpen(false)} />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isLiveDealOpen && (
+          <LiveDealModal
+            origin={deal.origin}
+            destination={deal.destination}
+            departureDate={deal.departureDate}
+            returnDate={deal.returnDate || null}
+            peopleCount={2}
+            onClose={() => setIsLiveDealOpen(false)}
+          />
         )}
       </AnimatePresence>
     </motion.article>
