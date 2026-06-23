@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLanguage } from './context/LanguageContext.jsx';
 import { NowProvider } from './context/NowContext.jsx';
-import { fetchDeals, fetchPublicConfig, fetchPopularPackages } from './api/client.js';
+import { fetchDeals, fetchPublicConfig, fetchPopularPackages, agentApi } from './api/client.js';
 import { filterDeals } from './utils/filterDeals.js';
 import { Header } from './components/Header.jsx';
 import { DealsGrid } from './components/DealsGrid.jsx';
@@ -11,6 +11,7 @@ import { WorldHeatmap } from './components/heatmap/WorldHeatmap.jsx';
 import { LiveDealsCounter } from './components/heatmap/LiveDealsCounter.jsx';
 import { DealsFeedSidebar } from './components/heatmap/DealsFeedSidebar.jsx';
 import { LastRefreshedLabel } from './components/LastRefreshedLabel.jsx';
+import { TopValueDeals } from './components/TopValueDeals.jsx';
 
 const POLL_INTERVAL_MS = 20000; // רענון תקופתי כדי שהמפה תרגיש "חיה" ולא תצלום קפוא
 const POPULAR_PACKAGES_POLL_MS = 5 * 60 * 1000; // המנוע ברקע מרענן כל 30 דק' — מספיק לבדוק כל 5
@@ -31,6 +32,8 @@ export function App() {
   const [audienceFilter, setAudienceFilter] = useState(null);
   const [typeFilter, setTypeFilter] = useState(null);
   const [budgetFilter, setBudgetFilter] = useState(null);
+  const [sourceFilter, setSourceFilter] = useState(null);
+  const [agentDeals, setAgentDeals] = useState([]);
 
   const [popularPackages, setPopularPackages] = useState([]);
   const [lastRefreshedAt, setLastRefreshedAt] = useState(null);
@@ -39,6 +42,9 @@ export function App() {
     fetchPublicConfig()
       .then(setPackageConfig)
       .catch(() => setPackageConfig(null));
+    agentApi.getApprovedDeals()
+      .then(({ deals }) => setAgentDeals(deals || []))
+      .catch(() => setAgentDeals([]));
   }, []);
 
   useEffect(() => {
@@ -111,6 +117,7 @@ export function App() {
     setAudienceFilter(null);
     setTypeFilter(null);
     setBudgetFilter(null);
+    setSourceFilter(null);
   }
 
   return (
@@ -129,6 +136,7 @@ export function App() {
         </div>
       </section>
 
+      <TopValueDeals />
       <PackagesStrip title={t.popularPackagesTitle} packages={popularPackages} />
 
       <section className="filter-section container">
@@ -136,9 +144,11 @@ export function App() {
           audience={audienceFilter}
           type={typeFilter}
           budget={budgetFilter}
+          source={sourceFilter}
           onChangeAudience={setAudienceFilter}
           onChangeType={setTypeFilter}
           onChangeBudget={setBudgetFilter}
+          onChangeSource={setSourceFilter}
           onClear={handleClearFilters}
         />
       </section>
@@ -152,10 +162,12 @@ export function App() {
 
         <DealsGrid
           deals={filteredDeals}
+          agentDeals={agentDeals}
           isLoading={isLoading}
-          hasActiveFilters={Boolean(audienceFilter || typeFilter || budgetFilter)}
+          hasActiveFilters={Boolean(audienceFilter || typeFilter || budgetFilter || sourceFilter)}
           packageConfig={packageConfig}
           cheapestDealId={cheapestDealId}
+          sourceFilter={sourceFilter}
         />
       </main>
     </NowProvider>

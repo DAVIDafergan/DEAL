@@ -1,0 +1,557 @@
+/* ── Agent Portal: shared page shell ────────────────────────────────────────── */
+
+.agent-page {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 24px 16px 80px;
+  min-height: 100vh;
+  color: var(--color-text-primary);
+}
+
+.agent-page--loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  font-size: 1rem;
+}
+
+.agent-page__notification {
+  position: fixed;
+  top: 16px;
+  inset-inline-end: 16px;
+  z-index: 200;
+  padding: 10px 18px;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+
+.agent-page__notification--success { background: var(--color-success,#22c55e); color: #fff; }
+.agent-page__notification--error   { background: var(--color-error,#ef4444); color: #fff; }
+
+.agent-page__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.agent-page__title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.agent-page__header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.agent-page__icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.agent-page__banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.agent-page__banner--pending {
+  background: rgba(245,158,11,0.15);
+  border: 1px solid rgba(245,158,11,0.3);
+  color: #f59e0b;
+}
+
+.agent-page__section { margin-bottom: 32px; }
+.agent-page__section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.agent-page__section-title { margin: 0; font-size: 1.05rem; font-weight: 700; }
+.agent-page__loading { color: var(--color-text-secondary); font-size: 0.9rem; }
+.agent-page__empty  { color: var(--color-text-muted); font-size: 0.9rem; }
+.agent-page__leads-note { display:flex; align-items:center; gap:6px; font-size:0.82rem; color:var(--color-text-secondary); margin-top:10px; }
+.agent-page__add-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: var(--radius-sm);
+  background: var(--gradient-accent); color: #fff;
+  font-size: 0.85rem; font-weight: 700; cursor: pointer; border: none;
+}
+.agent-page__add-btn:disabled { opacity: 0.45; cursor: default; }
+.agent-page__form-overlay { margin-bottom: 24px; }
+.agent-page__profile-link { text-align: center; margin-top: 24px; }
+.agent-page__view-profile { font-size: 0.9rem; font-weight: 600; color: var(--color-accent-from); }
+.agent-page__back-btn { display:flex; align-items:center; gap:6px; font-size:0.9rem; color:var(--color-text-secondary); margin-bottom:16px; }
+
+/* ── Agent status badge ───────────────────────────────────────────────────── */
+
+.agent-status-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 10px; border-radius: 999px;
+  font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+}
+.agent-status-badge--pending   { background: rgba(245,158,11,0.2);  color: #f59e0b; }
+.agent-status-badge--approved  { background: rgba(34,197,94,0.2);   color: #22c55e; }
+.agent-status-badge--rejected  { background: rgba(239,68,68,0.2);   color: #ef4444; }
+
+/* ── Subscription card ───────────────────────────────────────────────────── */
+
+.agent-sub-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.agent-sub-card__tier { font-size: 1.1rem; font-weight: 800; }
+.agent-sub-card__status, .agent-sub-card__expires, .agent-sub-card__usage { font-size: 0.85rem; color: var(--color-text-secondary); }
+.agent-sub-card__plans { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.agent-sub-card__plan-btn {
+  flex: 1; min-width: 160px;
+  padding: 8px 12px; border-radius: var(--radius-sm);
+  background: var(--color-surface-2,rgba(255,255,255,0.05));
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary); font-size: 0.8rem; font-weight: 600; cursor: pointer;
+}
+.agent-sub-card__plan-btn.is-current { border-color: var(--color-accent-from); background: rgba(249,115,22,0.1); }
+.agent-sub-card__plan-btn:disabled { opacity: 0.45; cursor: default; }
+
+/* ── Deal list ───────────────────────────────────────────────────────────── */
+
+.agent-deals-list { display: flex; flex-direction: column; gap: 8px; }
+
+.agent-deal-row {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  position: relative;
+}
+.agent-deal-row--rejected { opacity: 0.6; }
+
+.agent-deal-row__thumb {
+  width: 52px; height: 52px; border-radius: var(--radius-sm); object-fit: cover; flex-shrink: 0;
+}
+.agent-deal-row__info { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.agent-deal-row__dest  { font-weight: 700; font-size: 0.95rem; }
+.agent-deal-row__date  { font-size: 0.8rem; color: var(--color-text-secondary); }
+.agent-deal-row__price { font-size: 0.88rem; font-weight: 600; }
+.agent-deal-row__rejection { font-size: 0.75rem; color: var(--color-error,#ef4444); }
+.agent-deal-row__meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.agent-deal-row__status { display: flex; align-items: center; gap: 4px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+.agent-deal-row__clicks { display: flex; align-items: center; gap: 3px; font-size: 0.75rem; color: var(--color-text-secondary); }
+.agent-deal-row__delete {
+  position: absolute; top: 6px; inset-inline-end: 8px;
+  background: none; border: none; color: var(--color-text-muted); cursor: pointer; font-size: 1rem;
+}
+
+/* ── Register choice page ────────────────────────────────────────────────── */
+
+.register-choice {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  background: var(--color-bg-gradient);
+}
+
+.register-choice__card {
+  width: 100%; max-width: 480px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg,16px);
+  padding: 36px 28px;
+  display: flex; flex-direction: column; align-items: center; gap: 20px;
+  text-align: center;
+}
+
+.register-choice__title   { margin: 0; font-size: 1.8rem; font-weight: 800; }
+.register-choice__subtitle { margin: 0; font-size: 1rem; color: var(--color-text-secondary); }
+
+.register-choice__options { display: flex; gap: 16px; width: 100%; }
+
+.register-choice__option {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 24px 12px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  cursor: pointer; transition: border-color 0.2s;
+}
+.register-choice__option:hover { border-color: var(--color-accent-from); }
+.register-choice__option--agent { border-color: rgba(249,115,22,0.4); }
+.register-choice__option-label { font-size: 1rem; font-weight: 700; }
+.register-choice__option-desc  { font-size: 0.78rem; color: var(--color-text-secondary); }
+
+.register-choice__back {
+  font-size: 0.85rem; color: var(--color-text-secondary);
+  background: none; border: none; cursor: pointer; text-decoration: underline;
+}
+
+/* ── Agent register / form ───────────────────────────────────────────────── */
+
+.agent-register-page {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  padding: 24px; background: var(--color-bg-gradient);
+}
+
+.agent-form {
+  width: 100%; max-width: 440px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg,16px);
+  padding: 36px 28px;
+  overflow: hidden;
+}
+
+.agent-form__step { display: flex; flex-direction: column; gap: 14px; }
+.agent-form__step--success { align-items: center; text-align: center; gap: 16px; }
+.agent-form__step-indicator { margin: 0; font-size: 0.75rem; color: var(--color-text-muted); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+.agent-form__step-title { margin: 0; font-size: 1.3rem; font-weight: 800; }
+.agent-form__info-note { margin: 0; font-size: 0.82rem; color: var(--color-text-secondary); line-height: 1.5; }
+.agent-form__api-error { margin: 0; font-size: 0.85rem; color: var(--color-error,#ef4444); }
+
+.agent-form__field { display: flex; flex-direction: column; gap: 4px; }
+.agent-form__label { font-size: 0.82rem; font-weight: 700; color: var(--color-text-secondary); }
+.agent-form__required { color: var(--color-error,#ef4444); }
+.agent-form__input {
+  padding: 10px 12px; border-radius: var(--radius-sm);
+  background: var(--color-bg-gradient); border: 1px solid var(--color-border);
+  color: var(--color-text-primary); font-size: 0.95rem;
+}
+.agent-form__input--error { border-color: var(--color-error,#ef4444); }
+.agent-form__error-msg { font-size: 0.75rem; color: var(--color-error,#ef4444); }
+
+.agent-form__btn {
+  padding: 12px 20px; border-radius: var(--radius-md);
+  font-size: 0.95rem; font-weight: 700; cursor: pointer; border: none;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.agent-form__btn--primary { background: var(--gradient-accent); color: #fff; }
+.agent-form__btn--primary:disabled { opacity: 0.5; cursor: default; }
+.agent-form__btn--ghost { background: transparent; border: 1px solid var(--color-border); color: var(--color-text-primary); }
+.agent-form__actions { display: flex; gap: 10px; }
+
+/* ── Add deal form ───────────────────────────────────────────────────────── */
+
+.add-deal-form {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.add-deal-form__title { margin: 0; font-size: 1.05rem; font-weight: 800; }
+.add-deal-form__field { display: flex; flex-direction: column; gap: 4px; position: relative; }
+.add-deal-form__label { font-size: 0.8rem; font-weight: 700; color: var(--color-text-secondary); }
+.add-deal-form__required { color: var(--color-error,#ef4444); }
+.add-deal-form__input {
+  padding: 9px 12px; border-radius: var(--radius-sm);
+  background: var(--color-bg-gradient); border: 1px solid var(--color-border);
+  color: var(--color-text-primary); font-size: 0.9rem; width: 100%;
+}
+.add-deal-form__input--dest { padding-inline-start: 32px; }
+.add-deal-form__input--textarea { resize: vertical; min-height: 64px; }
+.add-deal-form__dest-wrap { position: relative; }
+.add-deal-form__dest-icon { position: absolute; inset-inline-start: 10px; top: 50%; transform: translateY(-50%); color: var(--color-text-muted); pointer-events: none; }
+.add-deal-form__dest-dropdown {
+  position: absolute; z-index: 50; top: 100%; inset-inline-start: 0; inset-inline-end: 0;
+  background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  list-style: none; margin: 0; padding: 4px;
+}
+.add-deal-form__dest-option { padding: 8px 10px; cursor: pointer; font-size: 0.88rem; border-radius: 4px; }
+.add-deal-form__dest-option:hover { background: rgba(255,255,255,0.06); }
+.add-deal-form__dest-iata { font-weight: 700; color: var(--color-accent-from); margin-inline-end: 6px; }
+.add-deal-form__media-preview { position: relative; border-radius: var(--radius-sm); overflow: hidden; }
+.add-deal-form__media-img { width: 100%; height: 140px; object-fit: cover; border-radius: var(--radius-sm); }
+.add-deal-form__media-loading { padding: 16px; text-align: center; font-size: 0.82rem; color: var(--color-text-muted); }
+.add-deal-form__media-none { font-size: 0.82rem; color: var(--color-text-muted); text-align: center; padding: 8px; }
+.add-deal-form__media-replace {
+  position: absolute; bottom: 8px; inset-inline-end: 8px;
+  display: flex; align-items: center; gap: 4px;
+  padding: 4px 10px; border-radius: 999px;
+  background: rgba(0,0,0,0.55); color: #fff; font-size: 0.75rem; font-weight: 600; cursor: pointer; border: none;
+}
+.add-deal-form__row { display: flex; gap: 12px; }
+.add-deal-form__row .add-deal-form__field { flex: 1; }
+.add-deal-form__row--inline { align-items: center; }
+.add-deal-form__checkbox-label { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.add-deal-form__error { font-size: 0.85rem; color: var(--color-error,#ef4444); margin: 0; }
+.add-deal-form__actions { display: flex; justify-content: flex-end; gap: 10px; }
+.add-deal-form__btn {
+  padding: 10px 18px; border-radius: var(--radius-sm); font-size: 0.9rem; font-weight: 700; cursor: pointer; border: none;
+}
+.add-deal-form__btn--primary { background: var(--gradient-accent); color: #fff; }
+.add-deal-form__btn--primary:disabled { opacity: 0.5; cursor: default; }
+.add-deal-form__btn--ghost { background: transparent; border: 1px solid var(--color-border); color: var(--color-text-primary); }
+
+/* ── Settings page ───────────────────────────────────────────────────────── */
+
+.settings-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  display: flex; flex-direction: column; gap: 14px;
+  margin-bottom: 20px;
+}
+.settings-card__title { margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; }
+.settings-card__info  { margin: 0; font-size: 0.9rem; color: var(--color-text-secondary); }
+.settings-card__note  { margin: 0; font-size: 0.8rem; color: var(--color-text-muted); }
+.settings-card__billing-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 9px 16px; border-radius: var(--radius-sm);
+  background: var(--color-surface-2,rgba(255,255,255,0.05));
+  border: 1px solid var(--color-border); color: var(--color-text-primary);
+  font-size: 0.88rem; font-weight: 600; cursor: pointer;
+}
+.settings-card__billing-btn:disabled { opacity: 0.45; cursor: default; }
+
+.settings-field { display: flex; flex-direction: column; gap: 4px; }
+.settings-field__label { font-size: 0.78rem; font-weight: 700; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.04em; }
+.settings-field__input-wrap { position: relative; }
+.settings-field__input {
+  width: 100%; padding: 9px 36px 9px 12px; border-radius: var(--radius-sm);
+  background: var(--color-bg-gradient); border: 1px solid var(--color-border);
+  color: var(--color-text-primary); font-size: 0.9rem;
+}
+.settings-field__input--textarea { resize: vertical; min-height: 64px; padding-inline-end: 12px; }
+.settings-field__saved-icon { position: absolute; inset-inline-end: 10px; top: 50%; transform: translateY(-50%); color: var(--color-success,#22c55e); }
+.settings-field__wa-row { display: flex; gap: 6px; }
+.settings-field__country-code {
+  padding: 9px 8px; border-radius: var(--radius-sm);
+  background: var(--color-bg-gradient); border: 1px solid var(--color-border);
+  color: var(--color-text-primary); font-size: 0.88rem; flex-shrink: 0;
+}
+
+/* ── Admin page ──────────────────────────────────────────────────────────── */
+
+.admin-login {
+  min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 16px; padding: 24px; background: var(--color-bg-gradient);
+}
+.admin-login h1 { font-size: 1.8rem; font-weight: 800; margin: 0; }
+.admin-login__input {
+  padding: 10px 16px; border-radius: var(--radius-sm); width: 280px; max-width: 100%;
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  color: var(--color-text-primary); font-size: 1rem;
+}
+.admin-login__btn {
+  padding: 10px 28px; border-radius: var(--radius-sm);
+  background: var(--gradient-accent); color: #fff; font-size: 1rem; font-weight: 700; cursor: pointer; border: none;
+}
+.admin-login__error { color: var(--color-error,#ef4444); font-size: 0.9rem; }
+
+.admin-page { max-width: 800px; margin: 0 auto; padding: 24px 16px 80px; }
+.admin-page__header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+.admin-page__header h1 { margin: 0; font-size: 1.5rem; font-weight: 800; flex: 1; }
+.admin-page__refresh { background: none; border: none; cursor: pointer; color: var(--color-text-secondary); }
+.admin-page__notification {
+  padding: 10px 16px; border-radius: var(--radius-sm); margin-bottom: 12px;
+  font-size: 0.9rem; font-weight: 600;
+}
+.admin-page__notification--success { background: rgba(34,197,94,0.2); color: #22c55e; }
+.admin-page__notification--error   { background: rgba(239,68,68,0.2); color: #ef4444; }
+
+.admin-tabs { display: flex; gap: 4px; margin-bottom: 20px; }
+.admin-tabs__btn {
+  padding: 8px 18px; border-radius: var(--radius-sm); border: none; cursor: pointer;
+  background: var(--color-surface); color: var(--color-text-secondary); font-size: 0.9rem; font-weight: 600;
+  display: flex; align-items: center; gap: 6px;
+}
+.admin-tabs__btn.is-active { background: var(--gradient-accent); color: #fff; }
+.admin-tabs__badge { background: #ef4444; color: #fff; border-radius: 999px; padding: 1px 7px; font-size: 0.72rem; font-weight: 700; }
+
+.admin-list { display: flex; flex-direction: column; gap: 12px; }
+.admin-list__empty { color: var(--color-text-muted); font-size: 0.9rem; text-align: center; padding: 24px; }
+
+.admin-row {
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-md); padding: 14px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.admin-row__info { display: flex; flex-direction: column; gap: 3px; }
+.admin-row__info strong { font-size: 1rem; }
+.admin-row__info span { font-size: 0.82rem; color: var(--color-text-secondary); }
+.admin-row__date { font-size: 0.75rem !important; color: var(--color-text-muted) !important; }
+.admin-row__actions { display: flex; gap: 8px; }
+.admin-row__approve, .admin-row__reject {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 700; cursor: pointer; border: none;
+}
+.admin-row__approve { background: rgba(34,197,94,0.2); color: #22c55e; }
+.admin-row__reject  { background: rgba(239,68,68,0.15); color: #ef4444; }
+.admin-row__reject-form { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.admin-row__reject-input {
+  flex: 1; min-width: 160px; padding: 7px 10px; border-radius: var(--radius-sm);
+  background: var(--color-bg-gradient); border: 1px solid var(--color-border); color: var(--color-text-primary); font-size: 0.85rem;
+}
+.admin-row__reject-confirm {
+  padding: 7px 12px; border-radius: var(--radius-sm); border: none; cursor: pointer;
+  background: rgba(239,68,68,0.2); color: #ef4444; font-size: 0.85rem; font-weight: 700;
+}
+
+.admin-deal-preview { display: flex; gap: 10px; }
+.admin-deal-preview__img { width: 80px; height: 60px; object-fit: cover; border-radius: var(--radius-sm); flex-shrink: 0; }
+.admin-deal-preview__info { display: flex; flex-direction: column; gap: 2px; font-size: 0.82rem; color: var(--color-text-secondary); }
+.admin-deal-preview__info strong { font-size: 0.95rem; color: var(--color-text-primary); }
+.admin-deal-preview__info a { color: var(--color-accent-from); font-size: 0.78rem; display: flex; align-items: center; gap: 3px; }
+
+/* ── Public agent profile ────────────────────────────────────────────────── */
+
+.agent-profile {
+  max-width: 760px; margin: 0 auto; padding: 24px 16px 80px;
+}
+.agent-profile--loading, .agent-profile--error {
+  min-height: 60vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; color: var(--color-text-secondary);
+}
+.agent-profile__back { display: flex; align-items: center; gap: 6px; font-size: 0.88rem; color: var(--color-text-secondary); margin-bottom: 16px; }
+
+.agent-profile__header {
+  display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start;
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-md); padding: 20px; margin-bottom: 28px;
+}
+.agent-profile__logo-wrap { flex-shrink: 0; }
+.agent-profile__logo { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; }
+.agent-profile__logo-placeholder {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: var(--gradient-accent); display: flex; align-items: center; justify-content: center;
+  font-size: 1.8rem; font-weight: 800; color: #fff;
+}
+.agent-profile__meta { flex: 1; min-width: 0; }
+.agent-profile__name { margin: 0 0 4px; font-size: 1.4rem; font-weight: 800; }
+.agent-profile__verified { display: inline-flex; align-items: center; gap: 4px; font-size: 0.78rem; color: var(--color-success,#22c55e); font-weight: 700; }
+.agent-profile__desc  { margin: 8px 0 0; font-size: 0.88rem; color: var(--color-text-secondary); }
+.agent-profile__hours { margin: 4px 0 0; font-size: 0.8rem; color: var(--color-text-muted); }
+.agent-profile__actions { display: flex; gap: 8px; flex-wrap: wrap; align-self: flex-start; }
+.agent-profile__wa-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: var(--radius-sm);
+  background: #25d366; color: #fff; font-size: 0.88rem; font-weight: 700; text-decoration: none;
+}
+.agent-profile__share-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: var(--radius-sm);
+  background: var(--color-surface-2,rgba(255,255,255,0.06));
+  border: 1px solid var(--color-border); color: var(--color-text-primary);
+  font-size: 0.88rem; font-weight: 700; cursor: pointer;
+}
+
+.agent-profile__deals-title { font-size: 1.05rem; font-weight: 700; margin-bottom: 16px; }
+.agent-profile__empty { color: var(--color-text-muted); font-size: 0.9rem; }
+
+.agent-profile__deals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.agent-profile-deal {
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-md); overflow: hidden; position: relative;
+}
+.agent-profile-deal__img { width: 100%; height: 140px; object-fit: cover; display: block; }
+.agent-profile-deal__exclusive-badge {
+  position: absolute; top: 8px; inset-inline-end: 8px;
+  padding: 2px 8px; border-radius: 999px;
+  background: var(--gradient-accent); color: #fff; font-size: 0.7rem; font-weight: 700;
+}
+.agent-profile-deal__body { padding: 12px; display: flex; flex-direction: column; gap: 4px; }
+.agent-profile-deal__dest    { margin: 0; font-size: 1rem; font-weight: 800; }
+.agent-profile-deal__country { font-size: 0.78rem; color: var(--color-text-muted); }
+.agent-profile-deal__dates   { margin: 0; font-size: 0.8rem; color: var(--color-text-secondary); }
+.agent-profile-deal__price   { margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--color-accent-from); }
+.agent-profile-deal__desc    { margin: 0; font-size: 0.8rem; color: var(--color-text-secondary); }
+.agent-profile-deal__actions { display: flex; gap: 6px; margin-top: 8px; }
+.agent-profile-deal__book-btn, .agent-profile-deal__wa-btn {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px;
+  padding: 7px 8px; border-radius: var(--radius-sm); font-size: 0.78rem; font-weight: 700; cursor: pointer; border: none;
+}
+.agent-profile-deal__book-btn { background: var(--gradient-accent); color: #fff; }
+.agent-profile-deal__wa-btn   { background: #25d366; color: #fff; }
+
+/* ── Agent deal card (in main feed grid) ─────────────────────────────────── */
+
+.agent-deal-card { position: relative; }
+.agent-deal-card__badge {
+  position: absolute; top: 8px; inset-inline-end: 8px;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 999px;
+  background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.35);
+  color: #22c55e; font-size: 0.7rem; font-weight: 700;
+}
+.agent-deal-card__badge-link { color: inherit; }
+.agent-deal-card__value-badge {
+  background: rgba(249,115,22,0.15); border-radius: 999px;
+  padding: 2px 8px; font-size: 0.72rem; font-weight: 700; color: var(--color-accent-from);
+}
+.agent-deal-card__wa-btn {
+  display: flex; align-items: center; gap: 4px;
+  background: #25d366; color: #fff;
+}
+
+.deal-card__badge--exclusive {
+  background: var(--gradient-accent); color: #fff;
+  position: absolute; top: 8px; inset-inline-start: 8px;
+  padding: 2px 8px; border-radius: 999px; font-size: 0.7rem; font-weight: 700;
+}
+
+/* ── Top value deals strip ───────────────────────────────────────────────── */
+
+.top-value-deals { margin: 20px auto; }
+.top-value-deals__title {
+  font-size: 1rem; font-weight: 800; margin-bottom: 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+
+.top-value-deals__strip {
+  display: flex; gap: 12px; overflow-x: auto; scrollbar-width: none; padding-bottom: 4px;
+}
+.top-value-deals__strip::-webkit-scrollbar { display: none; }
+
+.top-value-card {
+  flex-shrink: 0; width: 140px; border-radius: var(--radius-md); overflow: hidden;
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  cursor: pointer;
+}
+.top-value-card--skeleton {
+  background: linear-gradient(90deg, var(--color-surface) 25%, rgba(255,255,255,0.05) 50%, var(--color-surface) 75%);
+  background-size: 200% 100%;
+  animation: price-skeleton-shimmer 1.4s ease-in-out infinite;
+  height: 160px;
+}
+.top-value-card__media { height: 80px; position: relative; overflow: hidden; }
+.top-value-card__media img { width: 100%; height: 100%; object-fit: cover; }
+.top-value-card__body { padding: 8px; display: flex; flex-direction: column; gap: 2px; }
+.top-value-card__dest  { font-size: 0.82rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.top-value-card__price { font-size: 0.78rem; font-weight: 600; color: var(--color-text-secondary); }
+.top-value-card__badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 6px; border-radius: 999px;
+  background: rgba(249,115,22,0.18); color: var(--color-accent-from);
+  font-size: 0.7rem; font-weight: 700; margin-top: 2px;
+}
+.top-value-card__agent-label { font-size: 0.67rem; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── Shared: spinning animation ──────────────────────────────────────────── */
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinning { animation: spin 0.8s linear infinite; }

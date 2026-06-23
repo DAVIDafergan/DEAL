@@ -5,6 +5,7 @@ import { useLanguage } from '../context/LanguageContext.jsx';
 const AUDIENCE_OPTIONS = ['couples', 'families', 'solo', 'friends'];
 const TYPE_OPTIONS = ['beach', 'city', 'nature', 'shopping', 'culture'];
 const BUDGET_OPTIONS = ['500', '1000', '2000'];
+const SOURCE_OPTIONS = ['automatic', 'agent'];
 
 const AUDIENCE_LABEL_KEYS = { couples: 'audienceCouples', families: 'audienceFamilies', solo: 'audienceSolo', friends: 'audienceFriends' };
 const TYPE_LABEL_KEYS = { beach: 'typeBeach', city: 'typeCity', nature: 'typeNature', shopping: 'typeShopping', culture: 'typeCulture' };
@@ -42,9 +43,9 @@ function FilterPill({ value, label, isActive, onToggle }) {
  * עדינה בין הקבוצות. לא 3 שורות נפרדות — הכל יחד, גלילה אופקית אם צריך (נוח גם בנייד וגם
  * במחשב). כל קבוצה היא single-select עם toggle-לכיבוי.
  */
-export function FilterBar({ audience, type, budget, onChangeAudience, onChangeType, onChangeBudget, onClear }) {
+export function FilterBar({ audience, type, budget, source, onChangeAudience, onChangeType, onChangeBudget, onChangeSource, onClear }) {
   const { t } = useLanguage();
-  const hasActiveFilters = Boolean(audience || type || budget);
+  const hasActiveFilters = Boolean(audience || type || budget || source);
 
   return (
     <div className="filter-bar">
@@ -63,6 +64,18 @@ export function FilterBar({ audience, type, budget, onChangeAudience, onChangeTy
 
         {BUDGET_OPTIONS.map((value) => (
           <FilterPill key={`b-${value}`} value={value} label={t[BUDGET_LABEL_KEYS[value]]} isActive={budget === value} onToggle={onChangeBudget} />
+        ))}
+
+        <span className="filter-row__divider" aria-hidden="true" />
+
+        {SOURCE_OPTIONS.map((value) => (
+          <FilterPill
+            key={`s-${value}`}
+            value={value}
+            label={value === 'automatic' ? (t.sourceAutomatic || '🤖 Auto') : (t.sourceAgent || '🧑‍💼 Agent')}
+            isActive={source === value}
+            onToggle={onChangeSource}
+          />
         ))}
       </div>
 

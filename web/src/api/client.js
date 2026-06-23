@@ -1,10 +1,43 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
-async function getJson(path) {
-  const res = await fetch(`${API_BASE}${path}`);
+async function getJson(path, token = null) {
+  const headers = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(`${API_BASE}${path}`, { headers });
   if (!res.ok) {
-    throw new Error(`Request to ${path} failed with status ${res.status}`);
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `Request to ${path} failed with status ${res.status}`);
   }
+  return res.json();
+}
+
+async function postJson(path, data, token = null) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(`${API_BASE}${path}`, { method: 'POST', headers, body: JSON.stringify(data) });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `POST to ${path} failed with status ${res.status}`);
+  }
+  return res.json();
+}
+
+async function patchJson(path, data, token = null) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(`${API_BASE}${path}`, { method: 'PATCH', headers, body: JSON.stringify(data) });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `PATCH to ${path} failed with status ${res.status}`);
+  }
+  return res.json();
+}
+
+async function deleteReq(path, token = null) {
+  const headers = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(`${API_BASE}${path}`, { method: 'DELETE', headers });
+  if (!res.ok) throw new Error(`DELETE to ${path} failed with status ${res.status}`);
   return res.json();
 }
 
@@ -73,3 +106,38 @@ export async function createPersonalRadar(payload) {
   }
   return res.json();
 }
+
+// ── Agent API ────────────────────────────────────────────────────────────────
+
+export const agentApi = {
+  register: (data) => postJson('/agents/register', data),
+  login: (email, password) => postJson('/agents/login', { email, password }),
+  getMe: (token) => getJson('/agents/me', token),
+  updateMe: (token, data) => patchJson('/agents/me', data, token),
+  getDeals: (token) => getJson('/agents/me/deals', token),
+  createDeal: (token, data) => postJson('/agents/me/deals', data, token),
+  updateDeal: (token, id, data) => patchJson(`/agents/me/deals/${id}`, data, token),
+  deleteDeal: (token, id) => deleteReq(`/agents/me/deals/${id}`, token),
+  getMedia: (token, iataCode) => getJson(`/agents/media/${iataCode}`, token),
+  getPublicProfile: (slug) => getJson(`/agents/profile/${slug}`),
+  getApprovedDeals: () => getJson('/agents/deals/approved'),
+  getTopValueDeals: (limit = 5) => getJson(`/agents/deals/top-value?limit=${limit}`),
+  trackClick: (id) => postJson(`/agents/deals/${id}/click`, {}),
+};
+
+export const billingApi = {
+  getPlans: () => getJson('/billing/plans'),
+  checkout: (token, tier) => postJson('/billing/checkout', { tier }, token),
+  portal: (token) => postJson('/billing/portal', {}, token),
+};
+
+export const adminApi = {
+  getPendingAgents: (pw) => getJson('/admin/agents/pending', pw),
+  getAllAgents: (pw) => getJson('/admin/agents', pw),
+  approveAgent: (pw, id) => postJson(`/admin/agents/${id}/approve`, {}, pw),
+  rejectAgent: (pw, id, reason) => postJson(`/admin/agents/${id}/reject`, { reason }, pw),
+  getPendingDeals: (pw) => getJson('/admin/deals/pending', pw),
+  getApprovedDeals: (pw) => getJson('/admin/deals/approved', pw),
+  approveDeal: (pw, id) => postJson(`/admin/deals/${id}/approve`, {}, pw),
+  rejectDeal: (pw, id, reason) => postJson(`/admin/deals/${id}/reject`, { reason }, pw),
+};

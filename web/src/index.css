@@ -1,5 +1,6 @@
 @import './styles/theme.css';
 @import './styles/vibeFeed.css';
+@import './styles/agentPortal.css';
 
 * {
   box-sizing: border-box;
