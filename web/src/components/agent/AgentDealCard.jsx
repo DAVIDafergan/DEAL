@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { MessageCircle, ExternalLink, CheckCircle } from 'lucide-react';
+import { MessageCircle, ExternalLink, CheckCircle, Plane, Hotel, Car } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext.jsx';
 import { agentApi } from '../../api/client.js';
 import { getCurrencySymbol } from '../../utils/currency.js';
@@ -28,10 +28,17 @@ function addUtmParams(url, dealId) {
   } catch { return url; }
 }
 
+function stars(n) {
+  if (!n) return '';
+  return '★'.repeat(Number(n));
+}
+
 export function AgentDealCard({ deal }) {
   const { t } = useLanguage();
   const effectiveWa = deal.whatsapp_override || deal.agent_whatsapp;
-  const dates = `${deal.departure_date}${deal.return_date ? ` – ${deal.return_date}` : ''}`;
+  const dep = deal.departure_date ? new Date(deal.departure_date).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' }) : null;
+  const ret = deal.return_date ? new Date(deal.return_date).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' }) : null;
+  const dates = dep && ret ? `${dep} → ${ret}` : dep || '';
 
   async function handleClick(url) {
     try { await agentApi.trackClick(deal.id); } catch {}
@@ -61,7 +68,32 @@ export function AgentDealCard({ deal }) {
 
       <div className="deal-card__body">
         <h3 className="deal-card__title">{deal.destination_name || deal.destination}</h3>
-        {deal.description && <p className="deal-card__desc">{deal.description}</p>}
+
+        {/* Structured info rows */}
+        <div className="agent-deal-card__info">
+          {(deal.airline || dates) && (
+            <div className="agent-deal-card__info-row">
+              <span className="icon-draw icon-draw--once"><Plane size={13} strokeWidth={1.8} /></span>
+              <span>{[deal.airline, dates].filter(Boolean).join(' · ')}</span>
+            </div>
+          )}
+          {deal.hotel_name && (
+            <div className="agent-deal-card__info-row">
+              <span className="icon-draw icon-draw--once"><Hotel size={13} strokeWidth={1.8} /></span>
+              <span>
+                {deal.hotel_name}
+                {deal.hotel_stars ? ` ${stars(deal.hotel_stars)}` : ''}
+                {deal.hotel_breakfast ? ' · ☕' : ''}
+              </span>
+            </div>
+          )}
+          {deal.car_type && (
+            <div className="agent-deal-card__info-row">
+              <span className="icon-draw icon-draw--once"><Car size={13} strokeWidth={1.8} /></span>
+              <span>{[deal.car_type, deal.car_company].filter(Boolean).join(' · ')}</span>
+            </div>
+          )}
+        </div>
 
         <div className="deal-card__price-row">
           <span className="deal-card__price">
@@ -74,7 +106,7 @@ export function AgentDealCard({ deal }) {
           )}
         </div>
 
-        <p className="deal-card__freshness">{dates}</p>
+        {deal.description && <p className="deal-card__desc">{deal.description}</p>}
 
         <div className="deal-card__actions">
           {effectiveWa && (
@@ -92,7 +124,7 @@ export function AgentDealCard({ deal }) {
               whileTap={{ scale: 0.96 }}
               onClick={() => handleClick(addUtmParams(deal.purchase_link, deal.id))}
             >
-              {t.buyNowButton || 'Book'}
+              <ExternalLink size={13} /> {t.buyNowButton || 'Book'}
             </motion.button>
           )}
         </div>

@@ -87,6 +87,16 @@ const MIGRATIONS = [
   (connection) => ensureColumn(connection, 'destination_images', 'source', "VARCHAR(16) NULL"),
   (connection) => ensureColumn(connection, 'vibe_feed_cards', 'hotel_breakfast_included', 'TINYINT(1) NULL'),
   (connection) => ensureColumn(connection, 'vibe_feed_cards', 'has_car_rental_option', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  // agent_deals extended fields: airline, luggage, hotel, car
+  (connection) => ensureColumn(connection, 'agent_deals', 'airline', 'VARCHAR(120) NULL'),
+  (connection) => ensureColumn(connection, 'agent_deals', 'includes_checked_baggage', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'agent_deals', 'includes_cabin_baggage', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'agent_deals', 'includes_meal', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'agent_deals', 'hotel_name', 'VARCHAR(255) NULL'),
+  (connection) => ensureColumn(connection, 'agent_deals', 'hotel_stars', 'TINYINT(1) NULL'),
+  (connection) => ensureColumn(connection, 'agent_deals', 'hotel_breakfast', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'agent_deals', 'car_type', 'VARCHAR(60) NULL'),
+  (connection) => ensureColumn(connection, 'agent_deals', 'car_company', 'VARCHAR(120) NULL'),
 ];
 
 const SCHEMA_STATEMENTS = [

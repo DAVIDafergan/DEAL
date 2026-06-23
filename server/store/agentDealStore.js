@@ -7,8 +7,10 @@ export async function createAgentDeal(agentId, fields) {
     `INSERT INTO agent_deals
       (agent_id,destination,destination_name,country,video_url,photo_url,departure_date,return_date,
        price,currency,purchase_link,whatsapp_override,is_exclusive,expires_at,description,
+       airline,includes_checked_baggage,includes_cabin_baggage,includes_meal,
+       hotel_name,hotel_stars,hotel_breakfast,car_type,car_company,
        status,click_count,created_at,updated_at)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending',0,?,?)`,
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending',0,?,?)`,
     [
       agentId,
       fields.destination,
@@ -25,6 +27,15 @@ export async function createAgentDeal(agentId, fields) {
       fields.is_exclusive ? 1 : 0,
       fields.expires_at || null,
       fields.description || null,
+      fields.airline || null,
+      fields.includes_checked_baggage ? 1 : 0,
+      fields.includes_cabin_baggage ? 1 : 0,
+      fields.includes_meal ? 1 : 0,
+      fields.hotel_name || null,
+      fields.hotel_stars || null,
+      fields.hotel_breakfast ? 1 : 0,
+      fields.car_type || null,
+      fields.car_company || null,
       now, now,
     ]
   );
@@ -99,7 +110,9 @@ export async function updateAgentDeal(id, agentId, fields) {
   const pool = getPool();
   const allowed = ['destination','destination_name','country','video_url','photo_url',
     'departure_date','return_date','price','currency','purchase_link','whatsapp_override',
-    'is_exclusive','expires_at','description'];
+    'is_exclusive','expires_at','description',
+    'airline','includes_checked_baggage','includes_cabin_baggage','includes_meal',
+    'hotel_name','hotel_stars','hotel_breakfast','car_type','car_company'];
   const sets = [];
   const vals = [];
   for (const k of allowed) {
@@ -141,25 +154,13 @@ export async function computeValueScore(deal) {
 export async function listTopValueDeals(limit = 5) {
   const pool = getPool();
   const now = new Date().toISOString().slice(0, 10);
-  // Live engine deals with value_score derived from moving_average
-  const [live] = await pool.query(
-    `SELECT id, 'live' AS deal_source, origin, destination, NULL AS destination_name,
-            departure_date, price, currency,
-            booking_url AS purchase_link, NULL AS agent_id, NULL AS business_name, NULL AS agent_slug,
-            ((moving_average - price) / moving_average * 100) AS value_score
-     FROM deals
-     WHERE moving_average IS NOT NULL AND moving_average > price
-       AND updated_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
-     ORDER BY value_score DESC
-     LIMIT ?`,
-    [limit * 2]
-  );
-  // Approved agent deals — prefer those with value_score, fallback to all approved
+  // Only agent deals — live radar deals stay in the Radar section
   const [agentDeals] = await pool.query(
     `SELECT ad.id, 'agent' AS deal_source, NULL AS origin, ad.destination, ad.destination_name,
-            ad.departure_date, ad.price, ad.currency, ad.purchase_link,
+            ad.departure_date, ad.return_date, ad.price, ad.currency, ad.purchase_link,
             ad.agent_id, a.business_name, a.slug AS agent_slug,
-            ad.value_score
+            ad.value_score, ad.airline, ad.hotel_name, ad.hotel_stars, ad.hotel_breakfast,
+            ad.car_type, ad.car_company
      FROM agent_deals ad JOIN agents a ON a.id=ad.agent_id
      WHERE ad.status='approved' AND a.status='approved'
        AND (a.subscription_status='active' OR a.subscription_status='trial')
@@ -167,13 +168,7 @@ export async function listTopValueDeals(limit = 5) {
        AND (ad.expires_at IS NULL OR ad.expires_at >= ?)
      ORDER BY ad.value_score DESC, ad.click_count DESC, ad.approved_at DESC
      LIMIT ?`,
-    [now, now, limit * 2]
+    [now, now, limit]
   );
-  // Prefer scored deals; fill remaining slots with unscored agent deals
-  const scored = [...live, ...agentDeals].filter(d => d.value_score !== null && d.value_score > 0);
-  scored.sort((a, b) => b.value_score - a.value_score);
-  if (scored.length >= limit) return scored.slice(0, limit);
-
-  const unscored = agentDeals.filter(d => !d.value_score || d.value_score <= 0);
-  return [...scored, ...unscored].slice(0, limit);
+  return agentDeals;
 }

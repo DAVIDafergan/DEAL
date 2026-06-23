@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
-import { PlusCircle, Settings, LogOut, CheckCircle, Clock, XCircle, TrendingUp, MessageCircle } from 'lucide-react';
+import { PlusCircle, Settings, LogOut, CheckCircle, XCircle, TrendingUp, MessageCircle } from 'lucide-react';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { agentApi, billingApi } from '../api/client.js';
 import { AddDealForm } from '../components/agent/AddDealForm.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
 
 const STATUS_ICON = {
-  pending: <Clock size={14} color="var(--color-warning,#f59e0b)" />,
+  pending: <CheckCircle size={14} color="var(--color-text-muted)" />,
   approved: <CheckCircle size={14} color="var(--color-success,#22c55e)" />,
   rejected: <XCircle size={14} color="var(--color-error,#ef4444)" />,
 };
@@ -77,7 +77,7 @@ export function AgentDashboardPage() {
   const tierLimits = { basic: 5, pro: 20, unlimited: Infinity };
   const activeDeals = deals.filter(d => d.status !== 'rejected');
   const dealLimit = agent ? (tierLimits[agent.subscription_tier] ?? 5) : 5;
-  const isApproved = agent?.status === 'approved';
+  const isApproved = agent?.status !== 'rejected';
 
   if (loading) return <div className="agent-page agent-page--loading">Loading…</div>;
 
@@ -111,10 +111,10 @@ export function AgentDashboardPage() {
         </div>
       </header>
 
-      {/* Status banner for pending */}
-      {agent?.status === 'pending' && (
-        <div className="agent-page__banner agent-page__banner--pending">
-          <Clock size={16} /> {t.pendingApprovalBanner || 'Your account is pending approval. Deals you add now will be queued.'}
+      {/* Status banner — only for rejected accounts */}
+      {agent?.status === 'rejected' && (
+        <div className="agent-page__banner agent-page__banner--rejected">
+          <XCircle size={16} /> {t.rejectedBanner || 'Your account has been rejected.'} {agent.rejection_reason ? `Reason: ${agent.rejection_reason}` : ''}
         </div>
       )}
 

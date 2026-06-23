@@ -10,6 +10,7 @@ import { WorldHeatmap } from './components/heatmap/WorldHeatmap.jsx';
 import { TopValueDeals } from './components/TopValueDeals.jsx';
 import { RadarSection } from './components/RadarSection.jsx';
 import { AgentDealCard } from './components/agent/AgentDealCard.jsx';
+import { SiteFooter } from './components/SiteFooter.jsx';
 import { motion } from 'framer-motion';
 import { Briefcase } from 'lucide-react';
 
@@ -160,6 +161,8 @@ export function App() {
         packageConfig={packageConfig}
         cheapestDealId={cheapestDealId}
       />
+
+      <SiteFooter />
     </NowProvider>
   );
 }

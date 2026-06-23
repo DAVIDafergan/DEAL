@@ -28,7 +28,7 @@ export async function createAgent({ business_name, contact_name, email, password
     const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
     const [result] = await conn.query(
       `INSERT INTO agents (slug,business_name,contact_name,email,password_hash,phone,whatsapp_number,status,subscription_tier,subscription_status,lead_count,created_at,updated_at)
-       VALUES (?,?,?,?,?,?,?,'pending','basic','trial',0,?,?)`,
+       VALUES (?,?,?,?,?,?,?,'approved','basic','trial',0,?,?)`,
       [slug, business_name, contact_name, email, password_hash, phone || null, whatsapp_number || null, now, now]
     );
     return { id: result.insertId, slug };

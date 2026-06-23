@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { MessageCircle, ExternalLink, CheckCircle } from 'lucide-react';
+import { MessageCircle, ExternalLink, CheckCircle, Plane, Hotel, Car } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { agentApi } from '../api/client.js';
@@ -41,7 +41,9 @@ export function AgentDealSlide({ deal }) {
   }, []);
 
   const effectiveWa = deal.whatsapp_override || deal.agent_whatsapp;
-  const dates = `${deal.departure_date}${deal.return_date ? ` – ${deal.return_date}` : ''}`;
+  const dep = deal.departure_date ? new Date(deal.departure_date).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' }) : null;
+  const ret = deal.return_date ? new Date(deal.return_date).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' }) : null;
+  const dates = dep && ret ? `${dep} → ${ret}` : dep || '';
   const currencySymbol = getCurrencySymbol(deal.currency);
 
   async function handleClick(url) {
@@ -77,7 +79,28 @@ export function AgentDealSlide({ deal }) {
         </h2>
 
         <div className="deal-slide__includes">
-          <p className="deal-slide__includes-item">✈️ {dates}</p>
+          <p className="deal-slide__includes-item">
+            <span className="icon-draw icon-draw--once" style={{ display: 'inline-flex', verticalAlign: 'middle', marginInlineEnd: 4 }}>
+              <Plane size={14} strokeWidth={1.8} />
+            </span>
+            {[deal.airline, dates].filter(Boolean).join(' · ')}
+          </p>
+          {deal.hotel_name && (
+            <p className="deal-slide__includes-item">
+              <span className="icon-draw icon-draw--once" style={{ display: 'inline-flex', verticalAlign: 'middle', marginInlineEnd: 4 }}>
+                <Hotel size={14} strokeWidth={1.8} />
+              </span>
+              {deal.hotel_name}{deal.hotel_stars ? ` ${'★'.repeat(deal.hotel_stars)}` : ''}{deal.hotel_breakfast ? ' · ☕' : ''}
+            </p>
+          )}
+          {deal.car_type && (
+            <p className="deal-slide__includes-item">
+              <span className="icon-draw icon-draw--once" style={{ display: 'inline-flex', verticalAlign: 'middle', marginInlineEnd: 4 }}>
+                <Car size={14} strokeWidth={1.8} />
+              </span>
+              {[deal.car_type, deal.car_company].filter(Boolean).join(' · ')}
+            </p>
+          )}
           {deal.description && (
             <p className="deal-slide__includes-item">{deal.description}</p>
           )}
