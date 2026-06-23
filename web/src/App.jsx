@@ -17,6 +17,9 @@ import { Briefcase } from 'lucide-react';
 const POLL_INTERVAL_MS = 20000;
 const POPULAR_PACKAGES_POLL_MS = 5 * 60 * 1000;
 
+// Feature flag — set to true to re-enable the live radar section
+const SHOW_RADAR = false;
+
 const gridVariants = {
   hidden: {},
   visible: { transition: { staggerChildren: 0.08 } },
@@ -140,27 +143,30 @@ export function App() {
         </section>
       )}
 
-      {/* Radar section — live engine deals, paginated */}
-      <section className="filter-section container" style={{ marginBottom: 0 }}>
-        <FilterBar
-          audience={audienceFilter}
-          type={typeFilter}
-          budget={budgetFilter}
-          source={null}
-          onChangeAudience={setAudienceFilter}
-          onChangeType={setTypeFilter}
-          onChangeBudget={setBudgetFilter}
-          onChangeSource={() => {}}
-          onClear={handleClearFilters}
-        />
-      </section>
-
-      <RadarSection
-        deals={filteredRadarDeals}
-        isLoading={isLoading}
-        packageConfig={packageConfig}
-        cheapestDealId={cheapestDealId}
-      />
+      {/* Radar section — hidden via feature flag, code preserved for re-enable */}
+      {SHOW_RADAR && (
+        <>
+          <section className="filter-section container" style={{ marginBottom: 0 }}>
+            <FilterBar
+              audience={audienceFilter}
+              type={typeFilter}
+              budget={budgetFilter}
+              source={null}
+              onChangeAudience={setAudienceFilter}
+              onChangeType={setTypeFilter}
+              onChangeBudget={setBudgetFilter}
+              onChangeSource={() => {}}
+              onClear={handleClearFilters}
+            />
+          </section>
+          <RadarSection
+            deals={filteredRadarDeals}
+            isLoading={isLoading}
+            packageConfig={packageConfig}
+            cheapestDealId={cheapestDealId}
+          />
+        </>
+      )}
 
       <SiteFooter />
     </NowProvider>

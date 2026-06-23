@@ -1,30 +1,59 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
-import { PlusCircle, Settings, LogOut, CheckCircle, XCircle, TrendingUp, MessageCircle } from 'lucide-react';
+import {
+  PlusCircle, Settings, LogOut, CheckCircle, XCircle, TrendingUp,
+  MessageCircle, Home, Star, Zap, BarChart2, Trash2,
+} from 'lucide-react';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { agentApi, billingApi } from '../api/client.js';
-import { AddDealForm } from '../components/agent/AddDealForm.jsx';
+import { DealWizard } from '../components/agent/DealWizard.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
 
 const STATUS_ICON = {
-  pending: <CheckCircle size={14} color="var(--color-text-muted)" />,
-  approved: <CheckCircle size={14} color="var(--color-success,#22c55e)" />,
-  rejected: <XCircle size={14} color="var(--color-error,#ef4444)" />,
+  pending: <CheckCircle size={13} color="var(--color-text-muted)" />,
+  approved: <CheckCircle size={13} color="var(--color-success,#22c55e)" />,
+  rejected: <XCircle size={13} color="var(--color-error,#ef4444)" />,
 };
 
 const TIER_BADGE = { basic: '🥉 Basic', pro: '🥈 Pro', unlimited: '🥇 Unlimited' };
+
+const cardAnim = {
+  hidden: { opacity: 0, y: 16 },
+  visible: (i) => ({ opacity: 1, y: 0, transition: { delay: i * 0.07, duration: 0.35 } }),
+};
+
+function StatCard({ icon: Icon, label, value, accent, index }) {
+  return (
+    <motion.div
+      className="dash-stat-card"
+      custom={index}
+      variants={cardAnim}
+      initial="hidden"
+      animate="visible"
+    >
+      <div className={`dash-stat-card__icon-wrap${accent ? ' dash-stat-card__icon-wrap--accent' : ''}`}>
+        <Icon size={20} />
+      </div>
+      <div>
+        <div className="dash-stat-card__value">{value}</div>
+        <div className="dash-stat-card__label">{label}</div>
+      </div>
+    </motion.div>
+  );
+}
 
 export function AgentDashboardPage() {
   const { token, agent, loading, logout } = useAgentAuth();
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const [tab, setTab] = useState('deals');
   const [deals, setDeals] = useState([]);
   const [dealsLoading, setDealsLoading] = useState(true);
-  const [showAddForm, setShowAddForm] = useState(false);
   const [plans, setPlans] = useState([]);
   const [checkoutLoading, setCheckoutLoading] = useState(null);
   const [notification, setNotification] = useState(null);
+  const [showWizard, setShowWizard] = useState(false);
 
   useEffect(() => {
     if (!loading && !token) navigate('/agent/login', { replace: true });
@@ -39,7 +68,7 @@ export function AgentDashboardPage() {
     billingApi.getPlans()
       .then(({ plans: p }) => setPlans(p || []))
       .catch(() => {});
-  }, [token, showAddForm]);
+  }, [token, showWizard]);
 
   async function handleCheckout(tier) {
     setCheckoutLoading(tier);
@@ -58,17 +87,17 @@ export function AgentDashboardPage() {
   }
 
   function handleDealAdded() {
-    setShowAddForm(false);
-    notify(t.dealSubmittedMessage || 'Deal submitted for review!');
+    setShowWizard(false);
+    notify(t.dealSubmittedMessage || 'הדיל הוגש לאישור!');
     agentApi.getDeals(token).then(({ deals: d }) => setDeals(d || [])).catch(() => {});
   }
 
   async function handleDeleteDeal(id) {
-    if (!window.confirm(t.confirmDeleteDeal || 'Delete this deal?')) return;
+    if (!window.confirm(t.confirmDeleteDeal || 'למחוק את הדיל?')) return;
     try {
       await agentApi.deleteDeal(token, id);
       setDeals(prev => prev.filter(d => d.id !== id));
-      notify(t.dealDeletedMessage || 'Deal deleted');
+      notify(t.dealDeletedMessage || 'הדיל נמחק');
     } catch (err) {
       notify(err.message, 'error');
     }
@@ -77,16 +106,42 @@ export function AgentDashboardPage() {
   const tierLimits = { basic: 5, pro: 20, unlimited: Infinity };
   const activeDeals = deals.filter(d => d.status !== 'rejected');
   const dealLimit = agent ? (tierLimits[agent.subscription_tier] ?? 5) : 5;
-  const isApproved = agent?.status !== 'rejected';
 
-  if (loading) return <div className="agent-page agent-page--loading">Loading…</div>;
+  if (loading) return (
+    <div className="dash-loading">
+      <motion.div className="dash-loading__spinner" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.9, ease: 'linear' }} />
+    </div>
+  );
 
   return (
-    <div className="agent-page">
+    <div className="dash-page" dir="rtl">
+      {/* Wizard overlay */}
+      <AnimatePresence>
+        {showWizard && (
+          <motion.div
+            className="dash-wizard-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="dash-wizard-sheet"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', stiffness: 260, damping: 32 }}
+            >
+              <DealWizard onSuccess={handleDealAdded} onCancel={() => setShowWizard(false)} />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Toast */}
       <AnimatePresence>
         {notification && (
           <motion.div
-            className={`agent-page__notification agent-page__notification--${notification.type}`}
+            className={`dash-toast dash-toast--${notification.type}`}
             initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
           >
             {notification.msg}
@@ -94,135 +149,169 @@ export function AgentDashboardPage() {
         )}
       </AnimatePresence>
 
-      <header className="agent-page__header">
-        <div>
-          <h1 className="agent-page__title">{agent?.business_name || 'Dashboard'}</h1>
-          <span className={`agent-status-badge agent-status-badge--${agent?.status}`}>
+      {/* Top bar */}
+      <header className="dash-topbar">
+        <Link to="/" className="dash-topbar__home" title="דף הבית">
+          <Home size={18} />
+        </Link>
+        <div className="dash-topbar__center">
+          <span className="dash-topbar__name">{agent?.business_name || 'דשבורד'}</span>
+          <span className={`dash-topbar__status dash-topbar__status--${agent?.status}`}>
             {STATUS_ICON[agent?.status]} {agent?.status}
           </span>
         </div>
-        <div className="agent-page__header-actions">
-          <Link to="/agent/dashboard/settings" className="agent-page__icon-btn" title={t.settingsLabel || 'Settings'}>
-            <Settings size={20} />
+        <div className="dash-topbar__actions">
+          <Link to="/agent/dashboard/settings" className="dash-topbar__btn" title={t.settingsLabel || 'הגדרות'}>
+            <Settings size={18} />
           </Link>
-          <button className="agent-page__icon-btn" onClick={() => { logout(); navigate('/'); }} title={t.logoutButton || 'Logout'}>
-            <LogOut size={20} />
+          <button className="dash-topbar__btn" onClick={() => { logout(); navigate('/'); }} title={t.logoutButton || 'התנתקות'}>
+            <LogOut size={18} />
           </button>
         </div>
       </header>
 
-      {/* Status banner — only for rejected accounts */}
+      {/* Rejected banner */}
       {agent?.status === 'rejected' && (
-        <div className="agent-page__banner agent-page__banner--rejected">
-          <XCircle size={16} /> {t.rejectedBanner || 'Your account has been rejected.'} {agent.rejection_reason ? `Reason: ${agent.rejection_reason}` : ''}
+        <div className="dash-banner dash-banner--rejected">
+          <XCircle size={16} />
+          {t.rejectedBanner || 'החשבון שלך נדחה.'}{agent.rejection_reason ? ` סיבה: ${agent.rejection_reason}` : ''}
         </div>
       )}
 
-      {/* Subscription card */}
-      <section className="agent-page__section">
-        <h2 className="agent-page__section-title">{t.subscriptionTitle || 'Subscription'}</h2>
-        <div className="agent-sub-card">
-          <div className="agent-sub-card__tier">{TIER_BADGE[agent?.subscription_tier] || 'Basic'}</div>
-          <div className="agent-sub-card__status">{t.subscriptionStatusLabel || 'Status'}: <strong>{agent?.subscription_status}</strong></div>
-          {agent?.subscription_expires_at && (
-            <div className="agent-sub-card__expires">{t.expiresLabel || 'Renews'}: {new Date(agent.subscription_expires_at).toLocaleDateString()}</div>
-          )}
-          <div className="agent-sub-card__usage">
-            {t.dealsUsedLabel || 'Deals'}: {activeDeals.length} / {dealLimit === Infinity ? '∞' : dealLimit}
+      {/* Stat cards */}
+      <div className="dash-stats container">
+        <StatCard icon={Star} label={t.subscriptionTitle || 'מנוי'} value={TIER_BADGE[agent?.subscription_tier] || 'Basic'} index={0} />
+        <StatCard icon={Zap} label={t.dealsUsedLabel || 'דילים'} value={`${activeDeals.length} / ${dealLimit === Infinity ? '∞' : dealLimit}`} accent index={1} />
+        <StatCard icon={BarChart2} label={t.leadsCountLabel || 'לידים החודש'} value={agent?.lead_count ?? 0} index={2} />
+      </div>
+
+      {/* Profile link */}
+      {agent?.slug && (
+        <div className="dash-profile-link container">
+          <Link to={`/agent/${agent.slug}`} className="dash-profile-link__btn">
+            {t.viewPublicProfileButton || 'צפה בפרופיל הציבורי שלך →'}
+          </Link>
+        </div>
+      )}
+
+      {/* Tabs */}
+      <div className="dash-tabs container">
+        {[
+          { key: 'deals', label: t.myDealsTitle || 'הדילים שלי' },
+          { key: 'subscription', label: t.subscriptionTitle || 'מנוי' },
+        ].map(tab_ => (
+          <button
+            key={tab_.key}
+            className={`dash-tab${tab === tab_.key ? ' is-active' : ''}`}
+            onClick={() => setTab(tab_.key)}
+          >
+            {tab_.label}
+            {tab_.key === 'deals' && activeDeals.length > 0 && (
+              <span className="dash-tab__badge">{activeDeals.length}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab: deals */}
+      {tab === 'deals' && (
+        <div className="dash-deals-panel container">
+          <div className="dash-deals-header">
+            <h2 className="dash-deals-title">{t.myDealsTitle || 'הדילים שלי'}</h2>
+            <motion.button
+              className="dash-add-btn"
+              whileTap={{ scale: 0.97 }}
+              onClick={() => setShowWizard(true)}
+              disabled={activeDeals.length >= dealLimit}
+            >
+              <PlusCircle size={16} /> {t.addDealButton || 'הוסף דיל'}
+            </motion.button>
           </div>
-          <div className="agent-sub-card__plans">
+
+          {dealsLoading && <p className="dash-empty">{t.loadingLabel || 'טוען…'}</p>}
+          {!dealsLoading && deals.length === 0 && (
+            <div className="dash-empty-state">
+              <PlusCircle size={40} strokeWidth={1.2} color="var(--color-text-muted)" />
+              <p>{t.noDealsYet || "אין עדיין דילים. לחצו 'הוסף דיל' כדי להתחיל."}</p>
+            </div>
+          )}
+
+          <div className="dash-deals-list">
+            {deals.map((deal, i) => (
+              <motion.div
+                key={deal.id}
+                className={`dash-deal-card dash-deal-card--${deal.status}`}
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+                layout
+              >
+                {deal.photo_url && (
+                  <img src={deal.photo_url} alt="" className="dash-deal-card__img" />
+                )}
+                <div className="dash-deal-card__body">
+                  <div className="dash-deal-card__dest">{deal.destination_name || deal.destination}</div>
+                  <div className="dash-deal-card__meta">
+                    {deal.airline && <span>✈ {deal.airline}</span>}
+                    {deal.departure_date && <span>📅 {new Date(deal.departure_date).toLocaleDateString('he-IL')}</span>}
+                    {deal.hotel_name && <span>🏨 {deal.hotel_name}</span>}
+                    {deal.car_type && <span>🚗 {deal.car_type}</span>}
+                  </div>
+                  <div className="dash-deal-card__price">{deal.price} {deal.currency}</div>
+                  {deal.rejection_reason && (
+                    <div className="dash-deal-card__rejection">{t.rejectedReasonLabel || 'סיבה'}: {deal.rejection_reason}</div>
+                  )}
+                </div>
+                <div className="dash-deal-card__right">
+                  <span className={`dash-deal-status dash-deal-status--${deal.status}`}>
+                    {STATUS_ICON[deal.status]} {deal.status}
+                  </span>
+                  <span className="dash-deal-clicks"><TrendingUp size={12} /> {deal.click_count}</span>
+                  {deal.whatsapp_override && <span className="dash-deal-wa"><MessageCircle size={12} /></span>}
+                  <motion.button
+                    className="dash-deal-delete"
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => handleDeleteDeal(deal.id)}
+                    title={t.deleteButton || 'מחק'}
+                  >
+                    <Trash2 size={14} />
+                  </motion.button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Tab: subscription */}
+      {tab === 'subscription' && (
+        <div className="dash-sub-panel container">
+          <div className="dash-sub-info">
+            <div className="dash-sub-tier">{TIER_BADGE[agent?.subscription_tier] || 'Basic'}</div>
+            <p className="dash-sub-status">{t.subscriptionStatusLabel || 'סטטוס'}: <strong>{agent?.subscription_status}</strong></p>
+            {agent?.subscription_expires_at && (
+              <p className="dash-sub-expires">{t.expiresLabel || 'מתחדש'}: {new Date(agent.subscription_expires_at).toLocaleDateString('he-IL')}</p>
+            )}
+          </div>
+          <div className="dash-plans">
             {plans.map(plan => (
               <motion.button
                 key={plan.id}
-                className={`agent-sub-card__plan-btn${agent?.subscription_tier === plan.id ? ' is-current' : ''}`}
+                className={`dash-plan-btn${agent?.subscription_tier === plan.id ? ' is-current' : ''}`}
                 disabled={agent?.subscription_tier === plan.id || checkoutLoading === plan.id || !plan.stripeConfigured}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => handleCheckout(plan.id)}
-                title={!plan.stripeConfigured ? 'Stripe not configured' : ''}
+                title={!plan.stripeConfigured ? 'Stripe לא מוגדר' : ''}
               >
-                {plan.label} — ₪{plan.price}/{t.monthLabel || 'mo'}
-                {plan.dealsLimit ? ` (${plan.dealsLimit} ${t.dealsLabel || 'deals'})` : ` (${t.unlimitedLabel || 'unlimited'})`}
+                {plan.label} — ₪{plan.price}/{t.monthLabel || 'חודש'}
+                {plan.dealsLimit
+                  ? ` (${plan.dealsLimit} ${t.dealsLabel || 'דילים'})`
+                  : ` (${t.unlimitedLabel || 'ללא הגבלה'})`}
               </motion.button>
             ))}
           </div>
         </div>
-        <p className="agent-page__leads-note">
-          <TrendingUp size={14} /> {t.leadsCountLabel || 'Leads sent to you this month'}: <strong>{agent?.lead_count ?? 0}</strong>
-        </p>
-      </section>
-
-      {/* Deals section */}
-      <section className="agent-page__section">
-        <div className="agent-page__section-header">
-          <h2 className="agent-page__section-title">{t.myDealsTitle || 'My deals'}</h2>
-          <motion.button
-            className="agent-page__add-btn"
-            whileTap={{ scale: 0.97 }}
-            onClick={() => setShowAddForm(true)}
-            disabled={activeDeals.length >= dealLimit}
-          >
-            <PlusCircle size={16} /> {t.addDealButton || 'Add deal'}
-          </motion.button>
-        </div>
-
-        <AnimatePresence>
-          {showAddForm && (
-            <motion.div
-              className="agent-page__form-overlay"
-              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-            >
-              <AddDealForm onSuccess={handleDealAdded} onCancel={() => setShowAddForm(false)} />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {dealsLoading && <p className="agent-page__loading">{t.loadingLabel || 'Loading…'}</p>}
-        {!dealsLoading && deals.length === 0 && (
-          <p className="agent-page__empty">{t.noDealsYet || "No deals yet. Click 'Add deal' to get started."}</p>
-        )}
-
-        <div className="agent-deals-list">
-          {deals.map(deal => (
-            <motion.div
-              key={deal.id}
-              className={`agent-deal-row agent-deal-row--${deal.status}`}
-              layout
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              {deal.photo_url && <img src={deal.photo_url} alt="" className="agent-deal-row__thumb" />}
-              <div className="agent-deal-row__info">
-                <span className="agent-deal-row__dest">{deal.destination_name || deal.destination}</span>
-                <span className="agent-deal-row__date">{deal.departure_date}</span>
-                <span className="agent-deal-row__price">{deal.price} {deal.currency}</span>
-                {deal.rejection_reason && (
-                  <span className="agent-deal-row__rejection">{t.rejectedReasonLabel || 'Reason'}: {deal.rejection_reason}</span>
-                )}
-              </div>
-              <div className="agent-deal-row__meta">
-                <span className="agent-deal-row__status">{STATUS_ICON[deal.status]} {deal.status}</span>
-                <span className="agent-deal-row__clicks"><TrendingUp size={12} /> {deal.click_count}</span>
-                {deal.whatsapp_override && (
-                  <span className="agent-deal-row__wa" title={deal.whatsapp_override}><MessageCircle size={12} /></span>
-                )}
-              </div>
-              <button
-                className="agent-deal-row__delete"
-                onClick={() => handleDeleteDeal(deal.id)}
-                title={t.deleteButton || 'Delete'}
-              >×</button>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      <div className="agent-page__profile-link">
-        {isApproved && agent?.slug && (
-          <Link to={`/agent/${agent.slug}`} className="agent-page__view-profile">
-            {t.viewPublicProfileButton || 'View my public profile →'}
-          </Link>
-        )}
-      </div>
+      )}
     </div>
   );
 }

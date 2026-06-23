@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
-import { ChevronRight, CheckCircle } from 'lucide-react';
+import { ChevronRight, CheckCircle, ArrowLeft } from 'lucide-react';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
 
@@ -97,6 +97,9 @@ export function AgentRegisterPage() {
 
   return (
     <div className="agent-register-page">
+      <Link to="/" className="agent-form__back-home">
+        <ArrowLeft size={16} /> חזרה לדף הבית
+      </Link>
       <div className="agent-form">
         <AnimatePresence mode="wait" custom={dir}>
           {step === 0 && (

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
 
@@ -34,6 +35,9 @@ export function AgentLoginPage() {
 
   return (
     <div className="agent-register-page">
+      <Link to="/" className="agent-form__back-home">
+        <ArrowLeft size={16} /> {t.backToFeedButton || '← חזרה'}
+      </Link>
       <motion.div
         className="agent-form"
         initial={{ opacity: 0, y: 24 }}

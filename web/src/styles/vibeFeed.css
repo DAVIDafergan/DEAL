@@ -391,10 +391,11 @@
   display: flex;
   height: var(--bottom-nav-height);
   padding-bottom: env(safe-area-inset-bottom, 0px);
-  background: rgba(9, 10, 15, 0.72);
-  backdrop-filter: blur(20px) saturate(140%);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 -8px 30px -12px rgba(0, 0, 0, 0.5);
+  background: rgba(5, 6, 10, 0.88);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 -12px 40px -8px rgba(0, 0, 0, 0.7), 0 -1px 0 rgba(255,255,255,0.04);
 }
 
 .bottom-nav__item {
@@ -404,14 +405,17 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 3px;
   min-height: 100%;
-  color: var(--color-text-muted);
-  transition: color 0.25s ease;
+  color: rgba(255,255,255,0.38);
+  transition: color 0.2s ease;
+  border: none;
+  background: transparent;
+  cursor: pointer;
 }
 
 .bottom-nav__item.is-active {
-  color: var(--color-accent-from);
+  color: #fff;
 }
 
 .bottom-nav__icon-wrap {
@@ -428,12 +432,12 @@
 
 .bottom-nav__indicator {
   position: absolute;
-  bottom: 4px;
-  width: 28px;
+  top: 4px;
+  width: 20px;
   height: 3px;
   border-radius: 999px;
   background: var(--gradient-accent);
-  box-shadow: 0 0 10px rgba(249, 115, 22, 0.65);
+  box-shadow: 0 0 12px rgba(249, 115, 22, 0.75), 0 0 24px rgba(249, 115, 22, 0.3);
 }
 
 /* תוכן הטאבים האחרים (לא הפיד מסך-מלא) צריך ריפוד תחתון כדי שהתוכן האחרון לא יוסתר

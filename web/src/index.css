@@ -2065,3 +2065,60 @@ button {
   animation: icon-stroke-draw 0.35s ease forwards;
 }
 
+/* ── Task 10: Bottom nav — mobile only ───────────────────────────────────── */
+@media (min-width: 769px) {
+  .bottom-nav { display: none !important; }
+  /* remove the padding that compensates for bottom-nav on desktop */
+  .plan-tab,
+  .app-shell-tabs__panel > main { padding-bottom: 0; }
+}
+
+/* ── Task 8: Contrast fixes ──────────────────────────────────────────────── */
+
+/* Inputs/selects — ensure light text on dark bg */
+input, select, textarea {
+  color: var(--color-text-primary);
+  background-color: var(--color-surface);
+}
+input::placeholder, textarea::placeholder {
+  color: var(--color-text-muted);
+}
+/* Dropdown/select options */
+option {
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+}
+
+/* Label text */
+label { color: var(--color-text-secondary); }
+
+/* ── Task 11: Mobile responsive fixes ────────────────────────────────────── */
+
+/* Minimum tap target on all buttons */
+@media (max-width: 768px) {
+  button, .agent-form__btn, .wizard-btn, .dash-add-btn {
+    min-height: 44px;
+  }
+  /* Container padding on small screens */
+  .container { padding: 0 14px; }
+  /* Top value deals grid — full scroll on mobile */
+  .top-value-deals__grid {
+    grid-template-columns: repeat(2, 240px);
+    display: flex; overflow-x: auto;
+    gap: 14px;
+  }
+  /* Agent page: shrink form padding */
+  .agent-page { padding: 0 0 80px; }
+  /* Wizard step title smaller on mobile */
+  .wizard-step__title { font-size: 1.15rem; }
+  /* Wizard big choices column on very small */
+}
+@media (max-width: 380px) {
+  .wizard-big-choices { grid-template-columns: 1fr; }
+  .wizard-grid-2 { grid-template-columns: 1fr; }
+  .add-deal-form__grid-3 { grid-template-columns: 1fr; }
+}
+
+/* ── Sidebar hidden (already set above, extra safety) ─────────────────────── */
+.heatmap-hero__sidebar { display: none; }
+
