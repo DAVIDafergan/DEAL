@@ -9,6 +9,9 @@ import statsRouter from './routes/stats.js';
 import imagesRouter from './routes/images.js';
 import configRouter from './routes/config.js';
 import packagesRouter from './routes/packages.js';
+import agentsRouter from './routes/agents.js';
+import adminRouter from './routes/admin.js';
+import billingRouter from './routes/billing.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // תיקיית ה-build הסטטי של ה-frontend (נוצרת על ידי `npm run build` בתיקיית web)
@@ -19,6 +22,8 @@ export function createApp() {
   const app = express();
 
   app.use(cors());
+  // Stripe webhooks need raw body — mount before express.json()
+  app.use('/api/billing/webhook', express.raw({ type: 'application/json' }));
   app.use(express.json());
 
   app.get('/health', (_req, res) => res.json({ status: 'ok' }));
@@ -29,6 +34,9 @@ export function createApp() {
   app.use('/api/images', imagesRouter);
   app.use('/api/config', configRouter);
   app.use('/api/packages', packagesRouter);
+  app.use('/api/agents', agentsRouter);
+  app.use('/api/admin', adminRouter);
+  app.use('/api/billing', billingRouter);
 
   // נתיב /api/* שלא תאם שום router — תמיד JSON, לעולם לא index.html
   app.use('/api', (_req, res) => {

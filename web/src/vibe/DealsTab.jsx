@@ -1,35 +1,55 @@
-import { useEffect, useState } from 'react';
-import { fetchVibeFeed } from '../api/client.js';
+import { useEffect, useMemo, useState } from 'react';
+import { fetchVibeFeed, agentApi } from '../api/client.js';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { DealSlide } from './DealSlide.jsx';
+import { AgentDealSlide } from './AgentDealSlide.jsx';
 import { VibeFilterMenu } from './VibeFilterMenu.jsx';
 import { ALL_VIBES_KEY } from './vibeConstants.js';
 
+// Interleave agent deals into live cards: 1 agent slide every N live slides
+function interleaveAgentDeals(liveCards, agentDeals, interval = 4) {
+  const result = [];
+  let ai = 0;
+  for (let i = 0; i < liveCards.length; i++) {
+    result.push({ _type: 'live', data: liveCards[i] });
+    if ((i + 1) % interval === 0 && ai < agentDeals.length) {
+      result.push({ _type: 'agent', data: agentDeals[ai++] });
+    }
+  }
+  while (ai < agentDeals.length) {
+    result.push({ _type: 'agent', data: agentDeals[ai++] });
+  }
+  return result;
+}
+
 /**
- * DealsTab — תוכן הטאב "דילים" (ברירת מחדל בכניסה, בלי מסך-בחירה חוסם): גלילה אנכית
- * מלאת-מסך עם scroll-snap טבעי של הדפדפן. vibe='all' כברירת מחדל (כל הווייבים, ממוין
- * מחיר) — בחירת ווייב ספציפי היא תפריט אופציונלי (VibeFilterMenu), לא שלב כניסה.
- * אין יותר צורך ב-packageConfig כאן — DealSlide עבר ל-LiveDealModal, שבונה לינקי רכב/eSIM
- * בעצמו מול השרת (build-live), לא צריך marker בצד הלקוח.
+ * DealsTab — תוכן הטאב "דילים": גלילה אנכית מלאת-מסך עם scroll-snap. טוען גם את דילי
+ * הסוכנים המאושרים ומשלב אחד כל 4 דילים חיים — עקביות עם grid ה-flights.
  */
 export function DealsTab({ vibe = ALL_VIBES_KEY, onChangeVibe }) {
   const { t, lang } = useLanguage();
-  const [cards, setCards] = useState(null); // null = עדיין בטעינה
+  const [cards, setCards] = useState(null);
+  const [agentDeals, setAgentDeals] = useState([]);
 
   useEffect(() => {
     let isMounted = true;
     setCards(null);
     fetchVibeFeed(vibe, lang)
-      .then((res) => {
-        if (isMounted) setCards(res.cards || []);
-      })
-      .catch(() => {
-        if (isMounted) setCards([]);
-      });
-    return () => {
-      isMounted = false;
-    };
+      .then((res) => { if (isMounted) setCards(res.cards || []); })
+      .catch(() => { if (isMounted) setCards([]); });
+    return () => { isMounted = false; };
   }, [vibe, lang]);
+
+  useEffect(() => {
+    agentApi.getApprovedDeals()
+      .then(({ deals }) => setAgentDeals(deals || []))
+      .catch(() => {});
+  }, []);
+
+  const merged = useMemo(
+    () => cards ? interleaveAgentDeals(cards, agentDeals, 4) : [],
+    [cards, agentDeals]
+  );
 
   return (
     <div className="vibe-feed-page">
@@ -43,7 +63,7 @@ export function DealsTab({ vibe = ALL_VIBES_KEY, onChangeVibe }) {
         </div>
       )}
 
-      {cards !== null && cards.length === 0 && (
+      {cards !== null && merged.length === 0 && (
         <div className="vibe-feed-page--centered">
           <p>{t.feedEmptyMessage}</p>
           {vibe !== ALL_VIBES_KEY && (
@@ -54,11 +74,13 @@ export function DealsTab({ vibe = ALL_VIBES_KEY, onChangeVibe }) {
         </div>
       )}
 
-      {cards !== null && cards.length > 0 && (
+      {cards !== null && merged.length > 0 && (
         <div className="vibe-feed-page__scroller">
-          {cards.map((card) => (
-            <DealSlide key={card.id} card={card} />
-          ))}
+          {merged.map((item) =>
+            item._type === 'agent'
+              ? <AgentDealSlide key={`agent-${item.data.id}`} deal={item.data} />
+              : <DealSlide key={item.data.id} card={item.data} />
+          )}
         </div>
       )}
     </div>

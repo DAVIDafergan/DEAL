@@ -27,7 +27,7 @@ export function AgentDashboardPage() {
   const [notification, setNotification] = useState(null);
 
   useEffect(() => {
-    if (!loading && !token) navigate('/agent/register', { replace: true });
+    if (!loading && !token) navigate('/agent/login', { replace: true });
   }, [loading, token, navigate]);
 
   useEffect(() => {

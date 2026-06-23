@@ -127,6 +127,23 @@ async function main() {
     );
   }
 
+  // ניקוי יומי של דילי סוכנים שפג תוקפם (expires_at < היום) — מסיר אותם מהפיד
+  setInterval(async () => {
+    try {
+      const { getPool } = await import('../core/db/index.js');
+      const today = new Date().toISOString().slice(0, 10);
+      const [result] = await getPool().query(
+        "UPDATE agent_deals SET status='rejected', rejection_reason='Expired' WHERE expires_at IS NOT NULL AND expires_at < ? AND status='approved'",
+        [today]
+      );
+      if (result.affectedRows > 0) {
+        console.log(`[deal-radar-pro] Expired ${result.affectedRows} agent deal(s) past their expires_at date.`);
+      }
+    } catch (err) {
+      console.error('[deal-radar-pro] Agent deal expiry check failed:', err.message);
+    }
+  }, 24 * 60 * 60 * 1000);
+
   app.listen(PORT, () => {
     console.log(`[deal-radar-pro] Server listening on http://localhost:${PORT}`);
   });

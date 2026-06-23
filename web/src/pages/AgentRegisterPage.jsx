@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { ChevronRight, CheckCircle } from 'lucide-react';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
@@ -132,6 +132,14 @@ export function AgentRegisterPage() {
     <div className="agent-register-page">
       <div className="agent-form">
         <AnimatePresence mode="wait" custom={dir}>{steps[step]}</AnimatePresence>
+        {step < 2 && (
+          <p className="agent-form__footer-note">
+            {t.alreadyHaveAccount || 'Already have an account?'}{' '}
+            <Link to="/agent/login" className="agent-form__footer-link">
+              {t.loginLink || 'Login'}
+            </Link>
+          </p>
+        )}
       </div>
     </div>
   );

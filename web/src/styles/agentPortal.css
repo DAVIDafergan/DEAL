@@ -551,6 +551,73 @@
 }
 .top-value-card__agent-label { font-size: 0.67rem; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+/* ── Agent register / login footer note ─────────────────────────────────── */
+
+.agent-form__footer-note {
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--color-text-secondary);
+  margin-top: 12px;
+}
+.agent-form__footer-link {
+  color: var(--color-accent-from);
+  font-weight: 600;
+}
+
+/* ── Agent deal slide (in vibe reel) ─────────────────────────────────────── */
+
+.agent-deal-slide__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(34,197,94,0.18);
+  border: 1px solid rgba(34,197,94,0.35);
+  color: #22c55e;
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.agent-deal-slide__badge-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.agent-deal-slide__exclusive {
+  color: var(--color-accent-from);
+}
+
+.agent-deal-slide__value-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-accent-from);
+  margin-inline-start: 6px;
+}
+
+.agent-deal-slide__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.agent-deal-slide__wa-btn,
+.agent-deal-slide__book-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 20px;
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+}
+
+.agent-deal-slide__wa-btn   { background: #25d366; color: #fff; }
+.agent-deal-slide__book-btn { background: var(--gradient-accent); color: #fff; }
+
 /* ── Shared: spinning animation ──────────────────────────────────────────── */
 
 @keyframes spin { to { transform: rotate(360deg); } }

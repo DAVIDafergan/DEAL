@@ -83,7 +83,7 @@ export function AgentSettingsPage() {
   const [portalLoading, setPortalLoading] = useState(false);
 
   useEffect(() => {
-    if (!loading && !token) navigate('/agent/register', { replace: true });
+    if (!loading && !token) navigate('/agent/login', { replace: true });
   }, [loading, token, navigate]);
 
   async function saveField(key, value) {
