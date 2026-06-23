@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { requireAdminAuth } from '../middleware/adminAuth.js';
 import { listAgentsPending, listAgentsAll, updateAgentStatus } from '../store/agentStore.js';
-import { listPendingDeals, updateAgentDealStatus, listApprovedDeals } from '../store/agentDealStore.js';
+import { listPendingDeals, updateAgentDealStatus, listApprovedDeals, adminDeleteAgentDeal } from '../store/agentDealStore.js';
 
 const router = Router();
 router.use(requireAdminAuth);
@@ -50,6 +50,13 @@ router.post('/deals/:id/approve', async (req, res) => {
 router.post('/deals/:id/reject', async (req, res) => {
   try {
     await updateAgentDealStatus(req.params.id, 'rejected', req.body.reason || null);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: 'Internal error' }); }
+});
+
+router.delete('/deals/:id', async (req, res) => {
+  try {
+    await adminDeleteAgentDeal(req.params.id);
     res.json({ ok: true });
   } catch (err) { res.status(500).json({ error: 'Internal error' }); }
 });

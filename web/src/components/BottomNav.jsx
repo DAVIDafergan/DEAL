@@ -1,10 +1,10 @@
 import { motion } from 'framer-motion';
-import { Clapperboard, Plane, Sparkles } from 'lucide-react';
+import { Clapperboard, Map, Sparkles } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext.jsx';
 
 const TABS = [
-  { key: 'deals', Icon: Clapperboard, labelKey: 'navDealsLabel', path: '/' },
-  { key: 'flights', Icon: Plane, labelKey: 'navFlightsLabel', path: '/flights' },
+  { key: 'home', Icon: Map, labelKey: 'navHomeLabel', path: '/' },
+  { key: 'deals', Icon: Clapperboard, labelKey: 'navDealsLabel', path: '/reels' },
   { key: 'plan', Icon: Sparkles, labelKey: 'navPlanLabel', path: '/plan' },
 ];
 

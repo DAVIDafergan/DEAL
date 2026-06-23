@@ -266,6 +266,15 @@ const SCHEMA_STATEMENTS = [
     INDEX idx_agent_deals_destination (destination),
     FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
   ) ENGINE=InnoDB`,
+  `CREATE TABLE IF NOT EXISTS user_favorites (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    session_id VARCHAR(128) NOT NULL,
+    deal_id VARCHAR(128) NOT NULL,
+    deal_type VARCHAR(16) NOT NULL DEFAULT 'agent',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_user_favorites_session (session_id),
+    INDEX idx_user_favorites_deal (deal_id, deal_type)
+  ) ENGINE=InnoDB`,
 ];
 
 /**

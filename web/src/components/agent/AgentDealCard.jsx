@@ -1,9 +1,12 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { MessageCircle, ExternalLink, CheckCircle, Plane, Hotel, Car } from 'lucide-react';
+import { MessageCircle, ExternalLink, CheckCircle, Plane, Hotel, Car, Heart } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext.jsx';
 import { agentApi } from '../../api/client.js';
 import { getCurrencySymbol } from '../../utils/currency.js';
+import { DealDetailModal } from '../DealDetailModal.jsx';
+import { useFavorites } from '../../hooks/useFavorites.js';
 
 const cardVariants = {
   hidden: { opacity: 0, y: 24 },
@@ -11,7 +14,7 @@ const cardVariants = {
 };
 
 function buildWhatsAppUrl(number, template, destName, dates, platformName = 'Deal Radar') {
-  const text = (template || `Hi! I saw your deal to {destination} ({dates}) on ${platformName} and I'm interested.`)
+  const text = (template || `שלום, ראיתי את הדיל שלכם ל-{destination} ({dates}) ב-Deal Radar Pro ואני מתעניין`)
     .replace('{destination}', destName || '')
     .replace('{dates}', dates || '');
   return `https://wa.me/${number.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(text)}`;
@@ -35,6 +38,9 @@ function stars(n) {
 
 export function AgentDealCard({ deal }) {
   const { t } = useLanguage();
+  const [showModal, setShowModal] = useState(false);
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const fav = isFavorite(deal);
   const effectiveWa = deal.whatsapp_override || deal.agent_whatsapp;
   const dep = deal.departure_date ? new Date(deal.departure_date).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' }) : null;
   const ret = deal.return_date ? new Date(deal.return_date).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' }) : null;
@@ -46,11 +52,15 @@ export function AgentDealCard({ deal }) {
   }
 
   return (
+    <>
+    {showModal && <DealDetailModal deal={deal} onClose={() => setShowModal(false)} />}
     <motion.article
       className="deal-card agent-deal-card"
       variants={cardVariants}
       whileHover={{ scale: 1.02 }}
       transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+      onClick={() => setShowModal(true)}
+      style={{ cursor: 'pointer' }}
     >
       <div className="deal-card__media">
         {deal.photo_url
@@ -109,11 +119,19 @@ export function AgentDealCard({ deal }) {
         {deal.description && <p className="deal-card__desc">{deal.description}</p>}
 
         <div className="deal-card__actions">
+          <motion.button
+            className={`deal-card__action agent-deal-card__fav-btn${fav ? ' is-fav' : ''}`}
+            whileTap={{ scale: 0.88 }}
+            onClick={e => { e.stopPropagation(); toggleFavorite(deal); }}
+            aria-label={fav ? 'הסר ממועדפים' : 'הוסף למועדפים'}
+          >
+            <Heart size={14} fill={fav ? 'currentColor' : 'none'} />
+          </motion.button>
           {effectiveWa && (
             <motion.button
               className="deal-card__action agent-deal-card__wa-btn"
               whileTap={{ scale: 0.96 }}
-              onClick={() => handleClick(buildWhatsAppUrl(effectiveWa, deal.whatsapp_template, deal.destination_name || deal.destination, dates))}
+              onClick={e => { e.stopPropagation(); handleClick(buildWhatsAppUrl(effectiveWa, deal.whatsapp_template, deal.destination_name || deal.destination, dates)); }}
             >
               <MessageCircle size={14} /> WhatsApp
             </motion.button>
@@ -122,7 +140,7 @@ export function AgentDealCard({ deal }) {
             <motion.button
               className="deal-card__action deal-card__action--buy"
               whileTap={{ scale: 0.96 }}
-              onClick={() => handleClick(addUtmParams(deal.purchase_link, deal.id))}
+              onClick={e => { e.stopPropagation(); handleClick(addUtmParams(deal.purchase_link, deal.id)); }}
             >
               <ExternalLink size={13} /> {t.buyNowButton || 'Book'}
             </motion.button>
@@ -130,5 +148,6 @@ export function AgentDealCard({ deal }) {
         </div>
       </div>
     </motion.article>
+    </>
   );
 }

@@ -6,13 +6,13 @@ import { BottomNav } from './components/BottomNav.jsx';
 import { ALL_VIBES_KEY, VIBES } from './vibe/vibeConstants.js';
 
 function deriveActiveTab(pathname) {
-  if (pathname === '/flights') return 'flights';
+  if (pathname.startsWith('/reels')) return 'deals';
   if (pathname === '/plan') return 'plan';
-  return 'deals'; // '/' או '/:vibe' או כל path לא מוכר אחר — נופלים בעדינות לטאב הדילים
+  return 'home'; // '/' ו-'/flights' נופלים לדף הבית (מפה + דילים)
 }
 
 function deriveVibe(pathname) {
-  const segment = pathname.replace(/^\//, '');
+  const segment = pathname.replace(/^\/reels\/?/, '').replace(/^\//, '');
   return VIBES.includes(segment) ? segment : ALL_VIBES_KEY;
 }
 
@@ -33,17 +33,17 @@ export function AppShell() {
   }
 
   function handleChangeVibe(nextVibe) {
-    navigate(nextVibe === ALL_VIBES_KEY ? '/' : `/${nextVibe}`);
+    navigate(nextVibe === ALL_VIBES_KEY ? '/reels' : `/reels/${nextVibe}`);
   }
 
   return (
     <div className="app-shell-tabs">
-      <div className="app-shell-tabs__panel" style={{ display: activeTab === 'deals' ? 'block' : 'none' }}>
-        <DealsTab vibe={vibe} onChangeVibe={handleChangeVibe} />
+      <div className="app-shell-tabs__panel" style={{ display: activeTab === 'home' ? 'block' : 'none' }}>
+        <App />
       </div>
 
-      <div className="app-shell-tabs__panel" style={{ display: activeTab === 'flights' ? 'block' : 'none' }}>
-        <App />
+      <div className="app-shell-tabs__panel" style={{ display: activeTab === 'deals' ? 'block' : 'none' }}>
+        <DealsTab vibe={vibe} onChangeVibe={handleChangeVibe} />
       </div>
 
       <div className="app-shell-tabs__panel" style={{ display: activeTab === 'plan' ? 'block' : 'none' }}>

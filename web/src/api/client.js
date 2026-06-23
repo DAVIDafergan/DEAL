@@ -140,4 +140,5 @@ export const adminApi = {
   getApprovedDeals: (pw) => getJson('/admin/deals/approved', pw),
   approveDeal: (pw, id) => postJson(`/admin/deals/${id}/approve`, {}, pw),
   rejectDeal: (pw, id, reason) => postJson(`/admin/deals/${id}/reject`, { reason }, pw),
+  deleteDeal: (pw, id) => deleteReq(`/admin/deals/${id}`, pw),
 };

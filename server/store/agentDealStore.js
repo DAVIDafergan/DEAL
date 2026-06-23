@@ -133,6 +133,11 @@ export async function deleteAgentDeal(id, agentId) {
   await pool.query('DELETE FROM agent_deals WHERE id=? AND agent_id=?', [id, agentId]);
 }
 
+export async function adminDeleteAgentDeal(id) {
+  const pool = getPool();
+  await pool.query('DELETE FROM agent_deals WHERE id=?', [id]);
+}
+
 export async function incrementDealClickCount(id) {
   const pool = getPool();
   await pool.query('UPDATE agent_deals SET click_count=click_count+1 WHERE id=?', [id]);

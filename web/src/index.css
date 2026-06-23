@@ -238,6 +238,122 @@ button {
   color: #fff;
 }
 
+/* ---------- language dropdown ---------- */
+
+.lang-dropdown {
+  position: relative;
+}
+
+.lang-dropdown__trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.14);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 999px;
+  padding: 6px 12px;
+  color: var(--color-text-primary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.lang-dropdown__trigger:hover {
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.25);
+}
+
+.lang-dropdown__flag {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.lang-dropdown__label {
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.lang-dropdown__menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  inset-inline-end: 0;
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  min-width: 150px;
+  background: rgba(14, 16, 26, 0.96);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius-md, 12px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3);
+  z-index: 200;
+}
+
+.lang-dropdown__option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 0.88rem;
+  font-weight: 500;
+  border-radius: var(--radius-sm, 8px);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  text-align: start;
+}
+
+.lang-dropdown__option:hover {
+  background: rgba(255,255,255,0.08);
+  color: var(--color-text-primary);
+}
+
+.lang-dropdown__option.is-active {
+  color: #fff;
+  background: var(--gradient-accent);
+}
+
+.lang-dropdown__check {
+  margin-inline-start: auto;
+  font-size: 0.78rem;
+  opacity: 0.8;
+}
+
+/* ---------- reels promo bar ---------- */
+
+.reels-promo-bar {
+  margin: 12px auto 0;
+  display: flex;
+  justify-content: center;
+}
+
+.reels-promo-bar__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--gradient-accent);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding: 10px 22px;
+  border-radius: 999px;
+  text-decoration: none;
+  box-shadow: 0 4px 18px rgba(249,115,22,0.35);
+  transition: opacity 0.2s, transform 0.15s;
+}
+
+.reels-promo-bar__btn:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
 /* ---------- heatmap hero ---------- */
 
 .heatmap-hero {
@@ -820,6 +936,8 @@ button {
   grid-template-columns: 1fr;
   gap: 18px;
   padding-bottom: 48px;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 @media (min-width: 560px) {
@@ -848,6 +966,8 @@ button {
   box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .deal-card__media {

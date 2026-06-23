@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { MessageCircle, ExternalLink, CheckCircle, Plane, Hotel, Car } from 'lucide-react';
+import { MessageCircle, ExternalLink, CheckCircle, Plane, Hotel, Car, Heart } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { agentApi } from '../api/client.js';
 import { getCurrencySymbol } from '../utils/currency.js';
+import { useFavorites } from '../hooks/useFavorites.js';
 
 function buildWhatsAppUrl(number, template, destName, dates) {
-  const text = (template || `Hi! I saw your deal to {destination} ({dates}) on Deal Radar and I'm interested.`)
+  const text = (template || `שלום, ראיתי את הדיל שלכם ל-{destination} ({dates}) ב-Deal Radar Pro ואני מתעניין`)
     .replace('{destination}', destName || '')
     .replace('{dates}', dates || '');
   return `https://wa.me/${number.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(text)}`;
@@ -28,6 +29,8 @@ export function AgentDealSlide({ deal }) {
   const { t } = useLanguage();
   const slideRef = useRef(null);
   const [isActive, setIsActive] = useState(false);
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const fav = isFavorite(deal);
 
   useEffect(() => {
     const el = slideRef.current;
@@ -130,6 +133,14 @@ export function AgentDealSlide({ deal }) {
         </div>
 
         <div className="agent-deal-slide__actions">
+          <motion.button
+            className={`agent-deal-slide__fav-btn${fav ? ' is-fav' : ''}`}
+            whileTap={{ scale: 0.85 }}
+            onClick={() => toggleFavorite(deal)}
+            aria-label={fav ? 'הסר ממועדפים' : 'הוסף למועדפים'}
+          >
+            <Heart size={18} fill={fav ? 'currentColor' : 'none'} />
+          </motion.button>
           {effectiveWa && (
             <motion.button
               className="agent-deal-slide__wa-btn"

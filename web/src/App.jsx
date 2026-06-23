@@ -12,7 +12,8 @@ import { RadarSection } from './components/RadarSection.jsx';
 import { AgentDealCard } from './components/agent/AgentDealCard.jsx';
 import { SiteFooter } from './components/SiteFooter.jsx';
 import { motion } from 'framer-motion';
-import { Briefcase } from 'lucide-react';
+import { Briefcase, Clapperboard } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const POLL_INTERVAL_MS = 20000;
 const POPULAR_PACKAGES_POLL_MS = 5 * 60 * 1000;
@@ -110,6 +111,14 @@ export function App() {
       <section className="heatmap-hero">
         <WorldHeatmap deals={deals} isLoading={isLoading} />
       </section>
+
+      {/* Quick link to reels feed */}
+      <div className="reels-promo-bar container">
+        <Link to="/reels" className="reels-promo-bar__btn">
+          <Clapperboard size={16} />
+          <span>צפה ברילס — דילים בווידאו</span>
+        </Link>
+      </div>
 
       {/* Top 5 most valuable deals — big cards, blends live + agent by value_score */}
       <TopValueDeals />
