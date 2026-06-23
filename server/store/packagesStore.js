@@ -62,14 +62,31 @@ export async function upsertPackage(pkg) {
 }
 
 /** דילים פופולריים (לא מותאמים אישית) — לתצוגה כברירת מחדל למשתמש שלא ענה שאלון */
+/**
+ * דה-דופליקציה לפי (destination, total_price): כמה presets שונים (couple_city, friends_beach
+ * וכו') יכולים להזדהות על אותו יעד הזול ביותר באותם תאריכים, כל אחד נשמר כשורה נפרדת
+ * (popular_${preset.key}) — בלי dedupe זה נראה כמו 3 דילים זהים עם ניסוח שונה, לא בעיה
+ * אמיתית במידע אבל בעיה אמיתית באמון. מושכים יותר מ-limit כדי שיהיה מספיק אחרי הסינון.
+ */
 export async function listPopularPackages(limit = 8) {
   try {
     const pool = getPool();
     const [rows] = await pool.query(
       'SELECT * FROM packages WHERE is_personalized = 0 ORDER BY updated_at DESC LIMIT ?',
-      [limit]
+      [limit * 3]
     );
-    return rows.map(projectRow);
+
+    const seen = new Set();
+    const deduped = [];
+    for (const row of rows) {
+      const key = `${row.destination}|${row.total_price}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      deduped.push(row);
+      if (deduped.length >= limit) break;
+    }
+
+    return deduped.map(projectRow);
   } catch (err) {
     console.error('[packagesStore] Failed to list popular packages:', err.message);
     return [];

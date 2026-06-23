@@ -48,9 +48,16 @@ export async function getDestinationImage(iataCode, cityNameEn, keys = {}) {
 
   if (pexelsApiKey) {
     try {
-      const photo = await searchPexelsPhoto(`${cityNameEn} travel`, pexelsApiKey);
-      if (photo) return cacheAndReturn(pool, iataCode, photo, 'pexels');
-      console.warn(`[destinationImages] Pexels returned no results for "${cityNameEn} travel" (${iataCode}) — trying Unsplash next.`);
+      const query = `${cityNameEn} travel`;
+      const photo = await searchPexelsPhoto(query, pexelsApiKey);
+      if (photo) {
+        // לוג מפורש per-destination: אם פעם יחזור באג "כל היעדים מקבלים תמונה זהה", זה
+        // יראה בבירור בלוגים של Railway אם זה query זהה (באג בקוד) או URL זהה במקרה (תוצאה
+        // אמיתית של Pexels, נדיר אבל לא בלתי-אפשרי).
+        console.log(`[destinationImages] ${iataCode}: query="${query}" -> ${photo.imageUrl}`);
+        return cacheAndReturn(pool, iataCode, photo, 'pexels');
+      }
+      console.warn(`[destinationImages] Pexels returned no results for "${query}" (${iataCode}) — trying Unsplash next.`);
     } catch (err) {
       console.error(`[destinationImages] Pexels request failed for ${iataCode} — key IS configured, so this is a real error:`, err.message);
     }

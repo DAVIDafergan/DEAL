@@ -1564,8 +1564,14 @@ button {
   margin: 0;
 }
 
-.package-card__summary {
-  font-size: 0.86rem;
+.package-card__includes {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.package-card__includes-item {
+  font-size: 0.82rem;
   font-weight: 600;
   margin: 0;
 }
@@ -1574,6 +1580,12 @@ button {
   font-size: 0.74rem;
   color: var(--color-text-muted);
   margin: 0 0 4px;
+}
+
+.package-card__freshness {
+  font-size: 0.66rem;
+  color: var(--color-text-muted);
+  margin: -2px 0 0;
 }
 
 .package-card__price-row {

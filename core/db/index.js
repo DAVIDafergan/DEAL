@@ -193,6 +193,31 @@ const SCHEMA_STATEMENTS = [
 ];
 
 /**
+ * תיקון-עצמי חד-פעמי בכל עלייה: שורות ב-destination_images עם image_url **זהה** בין
+ * iata_code **שונים** הן בהגדרה שגויות — שני יעדים שונים לא אמורים לחלוק תמונה במקרה
+ * (קטלוג Pexels/Unsplash גדול מספיק). אם זה קרה (cache ישן מבאג קודם, seed לא תקין וכו'),
+ * מוחקים את השורות האלה — הן יתמשכו מחדש בבקשה הבאה, עם הקוד הנוכחי (Pexels-ראשון, query
+ * ספציפי-יעד). לא משנה את ה-root cause המדויק (אין לי גישה ל-DB של production לבדוק
+ * ישירות), רק מתקן את הסימפטום בצורה בטוחה ועקבית.
+ */
+async function cleanupDuplicateDestinationImages(connection) {
+  const [rows] = await connection.query(
+    `SELECT image_url FROM destination_images
+     WHERE image_url IS NOT NULL
+     GROUP BY image_url
+     HAVING COUNT(DISTINCT iata_code) > 1`
+  );
+  if (rows.length === 0) return;
+
+  const urls = rows.map((r) => r.image_url);
+  await connection.query('DELETE FROM destination_images WHERE image_url IN (?)', [urls]);
+  console.warn(
+    `[deal-radar-pro] Cleared ${urls.length} destination_images URL(s) that were shared across ` +
+      'multiple different destinations (always wrong) — they will be re-fetched fresh on next request.'
+  );
+}
+
+/**
  * מתחבר ל-MySQL עם retry+backoff עד שמצליח, ובונה את הטבלאות אם הן לא קיימות.
  * חשוב: לא חוסם את עליית שרת ה-HTTP — קוראים לזה ברקע (fire-and-forget) מ-server/index.js,
  * כדי שהשרת יעלה וישרת /health ו-/api אפילו אם ה-DB עוד לא מוכן (למשל בעלייה ראשונה ב-Railway
@@ -220,6 +245,7 @@ export async function connectWithRetry({ maxAttempts = Infinity, baseDelayMs = 2
           for (const migration of MIGRATIONS) {
             await migration(connection);
           }
+          await cleanupDuplicateDestinationImages(connection);
         } finally {
           connection.release();
         }

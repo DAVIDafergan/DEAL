@@ -7,18 +7,19 @@ import { getWatchedDestinations } from '../watchedRoutes.js';
 import { upsertPackage, listPopularPackages, findFreshPersonalizedPackages } from '../../server/store/packagesStore.js';
 
 const ORIGIN = 'TLV';
-const DEFAULT_NIGHTS = 3;
 const CANDIDATE_LIMIT = 3;
 const PERSONALIZED_CACHE_TTL_MS = 60 * 60 * 1000; // שעה — לא דורש סריקה חיה על כל הגשת שאלון חוזרת
 
 /**
  * "פרסטים" פופולריים שמתעדכנים כל 30 דק' (לא כל הקומבינציות האפשריות — זה היה שובר את
  * מכסת ה-rate-limit של Travelpayouts/Hotellook). מציגים אותם למשתמש שלא ענה שאלון.
+ * ברירת מחדל: זוג (2 אנשים) — זה הנפוץ לחופשות, לפי הנחיה מפורשת. אין כאן preset ל-1
+ * אדם (זה עדיין זמין דרך השאלון האישי, למי שבאמת בוחר את זה).
  */
 const POPULAR_PRESETS = [
   { key: 'couple_city', peopleCount: 2, budgetIls: 5000, days: 5, destinationType: 'city' },
   { key: 'family_beach', peopleCount: 4, budgetIls: 8000, days: 5, destinationType: 'beach' },
-  { key: 'solo_city', peopleCount: 1, budgetIls: 3000, days: 3, destinationType: 'city' },
+  { key: 'couple_beach', peopleCount: 2, budgetIls: 5000, days: 5, destinationType: 'beach' },
   { key: 'friends_beach', peopleCount: 4, budgetIls: 5000, days: 5, destinationType: 'beach' },
   { key: 'couple_culture', peopleCount: 2, budgetIls: 5000, days: 5, destinationType: 'culture' },
   { key: 'anyone_open', peopleCount: 2, budgetIls: 5000, days: 5, destinationType: null },
@@ -40,10 +41,16 @@ function pickCandidateDestinations(destinationType, limit = CANDIDATE_LIMIT) {
   return matching.slice(0, limit);
 }
 
+/**
+ * 🔴 תוקן באג אמיתי: nights היה מוגבל ל-DEFAULT_NIGHTS=3 (Math.min), אבל returnDate חושב
+ * עם (days-1) הלא-מוגבל — אז לכל days>4 (כלומר כל ה-presets הפופולריים חוץ מאחד, וגם
+ * תשובות שאלון של 5/7/10 ימים) הוצג "X לילות" שלא תאם בפועל לטווח שהמלון נחפש בו
+ * (checkIn/checkOut). nights ו-returnDate חייבים לנבוע מאותו חישוב — אין יותר cap מלאכותי.
+ */
 function computeDates(daysAheadOffset, days) {
   const departureDate = new Date(Date.now() + daysAheadOffset * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  const nights = Math.min(DEFAULT_NIGHTS, Math.max(1, days - 1));
-  const returnDate = new Date(new Date(departureDate).getTime() + (days - 1) * 24 * 60 * 60 * 1000)
+  const nights = Math.max(1, days - 1);
+  const returnDate = new Date(new Date(departureDate).getTime() + nights * 24 * 60 * 60 * 1000)
     .toISOString()
     .slice(0, 10);
   return { departureDate, returnDate, nights };
