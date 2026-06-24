@@ -142,32 +142,21 @@
   position: absolute;
   inset-inline: 0;
   bottom: 0;
-  /* ריפוד תחתון = רגיל + גובה ה-bottom-nav הצף + שולי ביטחון, כדי שכפתור "הזמן עכשיו"
-     יישאר ברור מעליו ולא יתנגש. בלי max-height/overflow כאן בכוונה — אינטראקציה בין
-     max-height קבוע ל-bottom-nav צף יכולה לחתוך תוכן בלי שזה ברור למה; עדיף שהקופסה
-     תגדל לפי תוכן בפועל. */
-  padding: 20px 16px calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + 36px);
+  padding: 20px 16px calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + 20px);
   display: flex;
   flex-direction: column;
   gap: 10px;
-  /* כיסוי כהה רחב יותר ומדורג חזק יותר — הטקסט צריך להישאר קריא גם כשהשקף מלא תוכן,
-     לא רק קו דק בתחתית. שכבת text-shadow על כל פריט היא קו הגנה שני, לא ראשון. */
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    rgba(5, 6, 10, 0.35) 15%,
-    rgba(5, 6, 10, 0.75) 45%,
-    rgba(5, 6, 10, 0.95) 75%,
-    rgba(5, 6, 10, 0.97) 100%
-  );
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
 
 .deal-slide__title {
   margin: 0;
   font-size: clamp(1.5rem, 6vw, 2rem);
   font-weight: 800;
-  color: #fff;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7);
+  color: #1E293B;
 }
 
 .deal-slide__includes {
@@ -180,30 +169,27 @@
   margin: 0;
   font-size: 0.88rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.88);
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+  color: rgba(30, 41, 59, 0.8);
 }
 
 .deal-slide__price-per-person {
   margin: 0;
   font-size: clamp(1.9rem, 8vw, 2.5rem);
   font-weight: 800;
-  color: #fff;
-  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.7);
+  color: #1E293B;
 }
 
 .deal-slide__price-per-person-label {
   font-size: 0.5em;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(30, 41, 59, 0.7);
 }
 
 .deal-slide__price-total {
   margin: 0;
   font-size: 0.82rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.7);
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+  color: rgba(30, 41, 59, 0.6);
 }
 
 /* ---------- price locked-before-display: skeleton + background-refresh flash ---------- */
@@ -217,7 +203,7 @@
 .deal-slide__price-skeleton-bar {
   height: 14px;
   border-radius: 6px;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.08) 25%, rgba(255, 255, 255, 0.18) 50%, rgba(255, 255, 255, 0.08) 75%);
+  background: linear-gradient(90deg, rgba(0,0,0,0.05) 25%, rgba(0,0,0,0.12) 50%, rgba(0,0,0,0.05) 75%);
   background-size: 200% 100%;
   animation: price-skeleton-shimmer 1.4s ease-in-out infinite;
 }
@@ -244,7 +230,7 @@
   margin: 0;
   font-size: 0.88rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(30, 41, 59, 0.65);
 }
 
 .deal-slide__price-per-person--flash-up {
@@ -285,12 +271,12 @@
   margin-top: 4px;
   min-height: 52px;
   border-radius: var(--radius-md);
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(14px);
+  border: none;
+  background: #2563EB;
   color: #fff;
   font-size: 1.05rem;
   font-weight: 700;
+  box-shadow: 0 4px 16px rgba(37,99,235,0.35);
 }
 
 .deal-slide__lock-button:disabled {
@@ -300,7 +286,7 @@
 
 .deal-slide__quick-hint {
   text-align: center;
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(30, 41, 59, 0.5);
   font-size: 0.72rem;
 }
 
@@ -311,12 +297,11 @@
   flex-wrap: wrap;
   font-size: 0.78rem;
   font-weight: 600;
-  color: #fde68a;
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
+  color: #d97706;
 }
 
 .urgency-banner__checked {
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(30, 41, 59, 0.6);
   font-weight: 500;
 }
 
@@ -324,7 +309,7 @@
   width: 100%;
   font-size: 0.7rem;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(30, 41, 59, 0.4);
 }
 
 /* ---------- glitch drop effect ---------- */
@@ -391,11 +376,11 @@
   display: flex;
   height: var(--bottom-nav-height);
   padding-bottom: env(safe-area-inset-bottom, 0px);
-  background: rgba(5, 6, 10, 0.88);
+  background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(28px) saturate(160%);
   -webkit-backdrop-filter: blur(28px) saturate(160%);
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 0 -12px 40px -8px rgba(0, 0, 0, 0.7), 0 -1px 0 rgba(255,255,255,0.04);
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 -4px 20px -4px rgba(0, 0, 0, 0.08);
 }
 
 .bottom-nav__item {
@@ -407,7 +392,7 @@
   justify-content: center;
   gap: 3px;
   min-height: 100%;
-  color: rgba(255,255,255,0.38);
+  color: rgba(0,0,0,0.35);
   transition: color 0.2s ease;
   border: none;
   background: transparent;
@@ -415,7 +400,7 @@
 }
 
 .bottom-nav__item.is-active {
-  color: #fff;
+  color: #1E293B;
 }
 
 .bottom-nav__icon-wrap {
@@ -437,7 +422,7 @@
   height: 3px;
   border-radius: 999px;
   background: var(--gradient-accent);
-  box-shadow: 0 0 12px rgba(249, 115, 22, 0.75), 0 0 24px rgba(249, 115, 22, 0.3);
+  box-shadow: 0 0 12px rgba(37, 99, 235, 0.6), 0 0 24px rgba(37, 99, 235, 0.25);
 }
 
 /* תוכן הטאבים האחרים (לא הפיד מסך-מלא) צריך ריפוד תחתון כדי שהתוכן האחרון לא יוסתר

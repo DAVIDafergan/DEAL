@@ -1,13 +1,13 @@
 :root {
-  /* ── Base surfaces — Midnight Souk palette ─────────────────────────────── */
-  --ds-void:  #07080f;   /* deepest background  */
-  --ds-ink:   #0e1120;   /* surfaces / cards    */
-  --ds-slate: #1a2038;   /* elevated / hover    */
-  --ds-ghost: rgba(255,255,255,0.06); /* subtle borders */
+  /* ── Base surfaces — light theme ────────────────────────────────────────── */
+  --ds-void:  #EEF0F3;   /* page background — light gray */
+  --ds-ink:   #FFFFFF;   /* surfaces / cards */
+  --ds-slate: #F8FAFC;   /* elevated / hover */
+  --ds-ghost: rgba(0,0,0,0.06); /* subtle borders */
 
   /* ── Text ──────────────────────────────────────────────────────────────── */
-  --ds-bone: #eff1f8;    /* primary text — cool white, departure board feel */
-  --ds-ash:  #6b7694;    /* secondary / muted */
+  --ds-bone: #1E293B;    /* primary text — deep navy */
+  --ds-ash:  #64748B;    /* secondary / muted */
 
   /* ── Brand accents ─────────────────────────────────────────────────────── */
   --ds-amber: #f5a623;   /* prices, value scores — TREASURE */
@@ -16,23 +16,23 @@
 
   /* ── Legacy vars (retained for backward compat with existing components) ─ */
   --color-bg: var(--ds-void);
-  --color-bg-gradient: radial-gradient(120% 120% at 10% 0%, #111627 0%, var(--ds-void) 55%, #040509 100%);
+  --color-bg-gradient: #EEF0F3;
   --color-surface: var(--ds-ink);
   --color-surface-elevated: var(--ds-slate);
   --color-surface-raised: var(--ds-slate);
-  --color-border: rgba(255,255,255,0.09);
-  --color-border-subtle: rgba(255,255,255,0.055);
+  --color-border: rgba(0,0,0,0.09);
+  --color-border-subtle: rgba(0,0,0,0.06);
 
   /* Text */
   --color-text-primary: var(--ds-bone);
-  --color-text-secondary: #8a92b0;
+  --color-text-secondary: #475569;
   --color-text-muted: var(--ds-ash);
 
-  /* Brand accent — burning orange-to-red (deal "heat") */
-  --color-accent-from: #f97316;
-  --color-accent-to: #ef4444;
+  /* Brand accent — deal radar blue */
+  --color-accent-from: #2563EB;
+  --color-accent-to: #1D4ED8;
   --gradient-accent: linear-gradient(135deg, var(--color-accent-from), var(--color-accent-to));
-  --gradient-card: linear-gradient(160deg, var(--ds-ink) 0%, #0b0d18 100%);
+  --gradient-card: linear-gradient(160deg, #FFFFFF 0%, #F8FAFC 100%);
 
   /* Status */
   --color-success: #22c55e;
@@ -42,7 +42,7 @@
   --color-risk-high: #22c55e;
   --color-discount-badge: var(--ds-coral);
 
-  /* Heatmap */
+  /* Heatmap — KEEP DARK (reels video background) */
   --color-heatmap-bg: #070910;
   --color-heatmap-bg-gradient: radial-gradient(120% 100% at 50% 0%, #0c1020 0%, #070910 60%, #040508 100%);
 
@@ -69,8 +69,8 @@
   --radius-sm: 10px;
   --radius-md: 16px;
   --radius-lg: 22px;
-  --shadow-card: 0 4px 24px -8px rgba(0,0,0,0.7);
-  --shadow-card-hover: 0 16px 40px -10px rgba(23,195,178,0.15), 0 4px 16px rgba(0,0,0,0.5);
+  --shadow-card: 0 2px 16px -4px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.05);
+  --shadow-card-hover: 0 8px 32px -6px rgba(37,99,235,0.18), 0 2px 8px rgba(0,0,0,0.05);
 
   --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
 
