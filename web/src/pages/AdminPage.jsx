@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, XCircle, Eye, RefreshCw, ArrowLeft, Trash2, ChevronLeft, ChevronRight, User, LogIn, LogOut, Users, FileCheck, LayoutDashboard, Clock } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, RefreshCw, ArrowLeft, Trash2, ChevronLeft, ChevronRight, User, LogOut, Users, FileCheck, LayoutDashboard, Clock, Home } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { adminApi } from '../api/client.js';
 import { Logo } from '../components/Logo.jsx';
@@ -239,16 +239,24 @@ export function AdminPage() {
         )}
       </AnimatePresence>
 
-      {/* Header */}
+      {/* Header — logo | nav items | right actions */}
       <header className="adm-header">
         <div className="adm-header__brand">
-          <Logo size={30} />
-          <span className="adm-header__label">ניהול</span>
+          <Logo size={28} />
         </div>
-        <div className="adm-header__actions">
-          <Link to="/" className="adm-icon-btn" title="חזרה לאתר">
-            <ArrowLeft size={16} />
+
+        <nav className="adm-header__nav">
+          <Link to="/" className="adm-header__nav-item">
+            <Home size={17} />
+            <span>אתר</span>
           </Link>
+          <div className="adm-header__nav-item is-active">
+            <LayoutDashboard size={17} />
+            <span>ניהול</span>
+          </div>
+        </nav>
+
+        <div className="adm-header__actions">
           <button className="adm-icon-btn" onClick={load} disabled={loading} title="רענן">
             <RefreshCw size={16} className={loading ? 'spinning' : ''} />
           </button>
@@ -261,22 +269,30 @@ export function AdminPage() {
       {/* KPI row */}
       <div className="adm-kpi-row">
         <div className="adm-kpi">
-          <Clock size={18} className="adm-kpi__icon adm-kpi__icon--amber" />
+          <div className="adm-kpi__icon-box" style={{ background: 'rgba(245,158,11,0.12)', color: '#d97706' }}>
+            <Clock size={22} />
+          </div>
           <span className="adm-kpi__value">{pendingAgents.length}</span>
           <span className="adm-kpi__label">סוכנים ממתינים</span>
         </div>
         <div className="adm-kpi">
-          <Users size={18} className="adm-kpi__icon adm-kpi__icon--teal" />
+          <div className="adm-kpi__icon-box" style={{ background: 'rgba(37,99,235,0.12)', color: '#2563EB' }}>
+            <Users size={22} />
+          </div>
           <span className="adm-kpi__value">{allAgents.length}</span>
           <span className="adm-kpi__label">סה"כ סוכנים</span>
         </div>
         <div className="adm-kpi">
-          <Clock size={18} className="adm-kpi__icon adm-kpi__icon--coral" />
+          <div className="adm-kpi__icon-box" style={{ background: 'rgba(239,68,68,0.12)', color: '#dc2626' }}>
+            <Clock size={22} />
+          </div>
           <span className="adm-kpi__value">{pendingDeals.length}</span>
           <span className="adm-kpi__label">דילים ממתינים</span>
         </div>
         <div className="adm-kpi">
-          <FileCheck size={18} className="adm-kpi__icon adm-kpi__icon--green" />
+          <div className="adm-kpi__icon-box" style={{ background: 'rgba(5,150,105,0.12)', color: '#059669' }}>
+            <FileCheck size={22} />
+          </div>
           <span className="adm-kpi__value">{approvedDeals.length}</span>
           <span className="adm-kpi__label">דילים פעילים</span>
         </div>

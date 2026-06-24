@@ -3,19 +3,18 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   PlusCircle, Settings, LogOut, CheckCircle, XCircle, TrendingUp,
-  MessageCircle, Home, Zap, BarChart2, Trash2,
+  MessageCircle, Home, LayoutDashboard, Trash2, Zap,
 } from 'lucide-react';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { agentApi } from '../api/client.js';
 import { DealWizard } from '../components/agent/DealWizard.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
-
-const SHOW_SUBSCRIPTION = false;
+import { Logo } from '../components/Logo.jsx';
 
 const STATUS_ICON = {
-  pending: <CheckCircle size={13} color="var(--color-text-muted)" />,
-  approved: <CheckCircle size={13} color="var(--color-success,#22c55e)" />,
-  rejected: <XCircle size={13} color="var(--color-error,#ef4444)" />,
+  pending: <CheckCircle size={13} />,
+  approved: <CheckCircle size={13} />,
+  rejected: <XCircle size={13} />,
 };
 
 const cardAnim = {
@@ -23,22 +22,20 @@ const cardAnim = {
   visible: (i) => ({ opacity: 1, y: 0, transition: { delay: i * 0.07, duration: 0.35 } }),
 };
 
-function StatCard({ icon: Icon, label, value, accent, index }) {
+function KpiCard({ icon: Icon, label, value, iconColor, iconBg, index }) {
   return (
     <motion.div
-      className="dash-stat-card"
+      className="dash-kpi"
       custom={index}
       variants={cardAnim}
       initial="hidden"
       animate="visible"
     >
-      <div className={`dash-stat-card__icon-wrap${accent ? ' dash-stat-card__icon-wrap--accent' : ''}`}>
-        <Icon size={20} />
+      <div className="dash-kpi__icon-box" style={{ background: iconBg, color: iconColor }}>
+        <Icon size={24} />
       </div>
-      <div>
-        <div className="dash-stat-card__value">{value}</div>
-        <div className="dash-stat-card__label">{label}</div>
-      </div>
+      <div className="dash-kpi__value">{value}</div>
+      <div className="dash-kpi__label">{label}</div>
     </motion.div>
   );
 }
@@ -87,7 +84,6 @@ export function AgentDashboardPage() {
   }
 
   const activeDeals = deals.filter(d => d.status !== 'rejected');
-  const dealLimit = Infinity;
 
   if (loading) return (
     <div className="dash-loading">
@@ -100,17 +96,10 @@ export function AgentDashboardPage() {
       {/* Wizard overlay */}
       <AnimatePresence>
         {showWizard && (
-          <motion.div
-            className="dash-wizard-overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
+          <motion.div className="dash-wizard-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <motion.div
               className="dash-wizard-sheet"
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', stiffness: 260, damping: 32 }}
             >
               <DealWizard onSuccess={handleDealAdded} onCancel={() => setShowWizard(false)} />
@@ -131,23 +120,42 @@ export function AgentDashboardPage() {
         )}
       </AnimatePresence>
 
-      {/* Top bar */}
+      {/* Top bar — logo | nav items | right end */}
       <header className="dash-topbar">
-        <Link to="/" className="dash-topbar__home" title="דף הבית">
-          <Home size={18} />
+        <Link to="/" className="dash-topbar__logo">
+          <Logo size={26} />
         </Link>
-        <div className="dash-topbar__center">
-          <span className="dash-topbar__name">{agent?.business_name || 'דשבורד'}</span>
-          <span className={`dash-topbar__status dash-topbar__status--${agent?.status}`}>
-            {STATUS_ICON[agent?.status]} {agent?.status}
-          </span>
-        </div>
-        <div className="dash-topbar__actions">
-          <Link to="/agent/dashboard/settings" className="dash-topbar__btn" title={t.settingsLabel || 'הגדרות'}>
-            <Settings size={18} />
+
+        <nav className="dash-topbar__nav">
+          <Link to="/" className="dash-topbar__nav-item">
+            <Home size={18} />
+            <span>בית</span>
           </Link>
-          <button className="dash-topbar__btn" onClick={() => { logout(); navigate('/'); }} title={t.logoutButton || 'התנתקות'}>
-            <LogOut size={18} />
+          <div className="dash-topbar__nav-item is-active">
+            <LayoutDashboard size={18} />
+            <span>דשבורד</span>
+          </div>
+          <Link to="/agent/dashboard/settings" className="dash-topbar__nav-item">
+            <Settings size={18} />
+            <span>הגדרות</span>
+          </Link>
+        </nav>
+
+        <div className="dash-topbar__end">
+          {agent?.business_name && (
+            <span className="dash-topbar__agent-name">{agent.business_name}</span>
+          )}
+          {agent?.status && (
+            <span className={`dash-topbar__status dash-topbar__status--${agent.status}`}>
+              {agent.status === 'approved' ? 'פעיל' : agent.status === 'pending' ? 'ממתין' : 'נדחה'}
+            </span>
+          )}
+          <button
+            className="dash-topbar__btn"
+            onClick={() => { logout(); navigate('/'); }}
+            title={t.logoutButton || 'התנתקות'}
+          >
+            <LogOut size={16} />
           </button>
         </div>
       </header>
@@ -160,98 +168,121 @@ export function AgentDashboardPage() {
         </div>
       )}
 
-      {/* Stat cards */}
-      <div className="dash-stats container">
-        <StatCard icon={Zap} label={t.dealsUsedLabel || 'דילים פעילים'} value={activeDeals.length} accent index={0} />
-        <StatCard icon={BarChart2} label={t.leadsCountLabel || 'לידים החודש'} value={agent?.lead_count ?? 0} index={1} />
+      {/* Page title */}
+      <div className="dash-page-header container">
+        <h1 className="dash-page-title">
+          {t.dashboardTitle || 'דשבורד סוכן'}
+        </h1>
+        {agent?.business_name && (
+          <p className="dash-page-sub">ברוך הבא, {agent.business_name}</p>
+        )}
       </div>
 
-      {/* Profile link */}
-      {agent?.slug && (
-        <div className="dash-profile-link container">
-          <Link to={`/agent/${agent.slug}`} className="dash-profile-link__btn">
-            {t.viewPublicProfileButton || 'צפה בפרופיל הציבורי שלך →'}
-          </Link>
-        </div>
-      )}
-
-      {/* Tabs */}
-      <div className="dash-tabs container">
-        <div className="dash-tab is-active">
-          {t.myDealsTitle || 'הדילים שלי'}
-          {activeDeals.length > 0 && <span className="dash-tab__badge">{activeDeals.length}</span>}
-        </div>
+      {/* KPI cards */}
+      <div className="dash-kpis container">
+        <KpiCard
+          icon={Zap}
+          label={t.dealsUsedLabel || 'דילים פעילים'}
+          value={activeDeals.length}
+          iconColor="#2563EB"
+          iconBg="rgba(37,99,235,0.12)"
+          index={0}
+        />
+        <KpiCard
+          icon={TrendingUp}
+          label={t.leadsCountLabel || 'לידים החודש'}
+          value={agent?.lead_count ?? 0}
+          iconColor="#059669"
+          iconBg="rgba(5,150,105,0.12)"
+          index={1}
+        />
       </div>
 
-      {/* Deals panel */}
-      {true && (
-        <div className="dash-deals-panel container">
-          <div className="dash-deals-header">
-            <h2 className="dash-deals-title">{t.myDealsTitle || 'הדילים שלי'}</h2>
-            <motion.button
-              className="dash-add-btn"
-              whileTap={{ scale: 0.97 }}
-              onClick={() => setShowWizard(true)}
-            >
-              <PlusCircle size={16} /> {t.addDealButton || 'הוסף דיל'}
-            </motion.button>
-          </div>
-
-          {dealsLoading && <p className="dash-empty">{t.loadingLabel || 'טוען…'}</p>}
-          {!dealsLoading && deals.length === 0 && (
-            <div className="dash-empty-state">
-              <PlusCircle size={40} strokeWidth={1.2} color="var(--color-text-muted)" />
-              <p>{t.noDealsYet || "אין עדיין דילים. לחצו 'הוסף דיל' כדי להתחיל."}</p>
-            </div>
+      {/* Quick actions */}
+      <div className="dash-quick-actions container">
+        <h3 className="dash-section-title">{t.quickActionsTitle || 'פעולות מהירות'}</h3>
+        <div className="dash-quick-row">
+          <motion.button
+            className="dash-quick-pill dash-quick-pill--primary"
+            whileTap={{ scale: 0.97 }}
+            onClick={() => setShowWizard(true)}
+          >
+            <span className="dash-quick-pill__dot"><PlusCircle size={15} /></span>
+            {t.addDealButton || 'הוסף דיל'}
+          </motion.button>
+          {agent?.slug && (
+            <Link to={`/agent/${agent.slug}`} className="dash-quick-pill">
+              <span className="dash-quick-pill__dot"><LayoutDashboard size={15} /></span>
+              {t.viewPublicProfileButton || 'פרופיל ציבורי'}
+            </Link>
           )}
-
-          <div className="dash-deals-list">
-            {deals.map((deal, i) => (
-              <motion.div
-                key={deal.id}
-                className={`dash-deal-card dash-deal-card--${deal.status}`}
-                initial={{ opacity: 0, y: 14 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-                layout
-              >
-                {deal.photo_url && (
-                  <img src={deal.photo_url} alt="" className="dash-deal-card__img" />
-                )}
-                <div className="dash-deal-card__body">
-                  <div className="dash-deal-card__dest">{deal.destination_name || deal.destination}</div>
-                  <div className="dash-deal-card__meta">
-                    {deal.airline && <span>✈ {deal.airline}</span>}
-                    {deal.departure_date && <span>📅 {new Date(deal.departure_date).toLocaleDateString('he-IL')}</span>}
-                    {deal.hotel_name && <span>🏨 {deal.hotel_name}</span>}
-                    {deal.car_type && <span>🚗 {deal.car_type}</span>}
-                  </div>
-                  <div className="dash-deal-card__price">{deal.price} {deal.currency}</div>
-                  {deal.rejection_reason && (
-                    <div className="dash-deal-card__rejection">{t.rejectedReasonLabel || 'סיבה'}: {deal.rejection_reason}</div>
-                  )}
-                </div>
-                <div className="dash-deal-card__right">
-                  <span className={`dash-deal-status dash-deal-status--${deal.status}`}>
-                    {STATUS_ICON[deal.status]} {deal.status}
-                  </span>
-                  <span className="dash-deal-clicks"><TrendingUp size={12} /> {deal.click_count}</span>
-                  {deal.whatsapp_override && <span className="dash-deal-wa"><MessageCircle size={12} /></span>}
-                  <motion.button
-                    className="dash-deal-delete"
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => handleDeleteDeal(deal.id)}
-                    title={t.deleteButton || 'מחק'}
-                  >
-                    <Trash2 size={14} />
-                  </motion.button>
-                </div>
-              </motion.div>
-            ))}
-          </div>
         </div>
-      )}
+      </div>
 
+      {/* Deals section */}
+      <div className="dash-deals-panel container">
+        <div className="dash-deals-header">
+          <h3 className="dash-section-title" style={{ margin: 0 }}>
+            {t.myDealsTitle || 'הדילים שלי'}
+            {activeDeals.length > 0 && (
+              <span className="dash-tab__badge" style={{ marginRight: 8 }}>{activeDeals.length}</span>
+            )}
+          </h3>
+        </div>
+
+        {dealsLoading && <p className="dash-empty">{t.loadingLabel || 'טוען…'}</p>}
+        {!dealsLoading && deals.length === 0 && (
+          <div className="dash-empty-state">
+            <PlusCircle size={40} strokeWidth={1.2} />
+            <p>{t.noDealsYet || "אין עדיין דילים. לחצו 'הוסף דיל' כדי להתחיל."}</p>
+          </div>
+        )}
+
+        <div className="dash-deals-list">
+          {deals.map((deal, i) => (
+            <motion.div
+              key={deal.id}
+              className={`dash-deal-card dash-deal-card--${deal.status}`}
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }}
+              layout
+            >
+              {deal.photo_url && (
+                <img src={deal.photo_url} alt="" className="dash-deal-card__img" />
+              )}
+              <div className="dash-deal-card__body">
+                <div className="dash-deal-card__dest">{deal.destination_name || deal.destination}</div>
+                <div className="dash-deal-card__meta">
+                  {deal.airline && <span>✈ {deal.airline}</span>}
+                  {deal.departure_date && <span>📅 {new Date(deal.departure_date).toLocaleDateString('he-IL')}</span>}
+                  {deal.hotel_name && <span>🏨 {deal.hotel_name}</span>}
+                </div>
+                <div className="dash-deal-card__price">{deal.price} {deal.currency}</div>
+                {deal.rejection_reason && (
+                  <div className="dash-deal-card__rejection">{t.rejectedReasonLabel || 'סיבה'}: {deal.rejection_reason}</div>
+                )}
+              </div>
+              <div className="dash-deal-card__right">
+                <span className={`dash-deal-status dash-deal-status--${deal.status}`}>
+                  {STATUS_ICON[deal.status]}
+                  {deal.status === 'approved' ? 'מאושר' : deal.status === 'pending' ? 'ממתין' : 'נדחה'}
+                </span>
+                <span className="dash-deal-clicks"><TrendingUp size={12} /> {deal.click_count}</span>
+                {deal.whatsapp_override && <span className="dash-deal-wa"><MessageCircle size={12} /></span>}
+                <motion.button
+                  className="dash-deal-delete"
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => handleDeleteDeal(deal.id)}
+                  title={t.deleteButton || 'מחק'}
+                >
+                  <Trash2 size={14} />
+                </motion.button>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

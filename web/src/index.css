@@ -3697,3 +3697,247 @@ body {
 }
 
 
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LIGHT THEME — ADMIN PANEL
+   Overrides ALL dark colors inside .adm-page and .adm-login-page.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.adm-page {
+  background: #F0F2F5;
+  color: #1E293B;
+}
+
+/* ── Admin header ─────────────────────────────────────────────────────────── */
+.adm-page .adm-header {
+  background: #FFFFFF;
+  backdrop-filter: none;
+  border-bottom: 1px solid rgba(0,0,0,0.07);
+  box-shadow: 0 1px 10px rgba(0,0,0,0.06);
+  padding: 0 20px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  justify-content: space-between;
+}
+
+.adm-header__nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 100%;
+  flex: 1;
+  justify-content: center;
+}
+
+.adm-header__nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  color: #64748B;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  min-height: 52px;
+}
+.adm-header__nav-item:hover { background: #F0F2F5; color: #1E293B; }
+.adm-header__nav-item.is-active {
+  background: rgba(37,99,235,0.09);
+  color: #2563EB;
+}
+
+.adm-page .adm-icon-btn {
+  background: #F0F2F5;
+  border: 1px solid rgba(0,0,0,0.07);
+  color: #64748B;
+}
+.adm-page .adm-icon-btn:hover { background: #E2E8F0; color: #1E293B; }
+.adm-page .adm-icon-btn--danger:hover { background: rgba(239,68,68,0.1); color: #dc2626; }
+
+/* ── Toast ────────────────────────────────────────────────────────────────── */
+.adm-page .adm-toast--success { background: rgba(5,150,105,0.1); color: #059669; border: 1px solid rgba(5,150,105,0.25); box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+.adm-page .adm-toast--error   { background: rgba(239,68,68,0.1);  color: #dc2626; border: 1px solid rgba(239,68,68,0.25); }
+
+/* ── KPI cards — column layout ────────────────────────────────────────────── */
+.adm-page .adm-kpi-row {
+  gap: 14px;
+  padding: 24px 20px;
+}
+@media (min-width: 640px) { .adm-page .adm-kpi-row { grid-template-columns: repeat(4, 1fr); } }
+
+.adm-page .adm-kpi {
+  background: #FFFFFF;
+  border: 1px solid rgba(0,0,0,0.05);
+  border-radius: 18px;
+  padding: 20px 18px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.adm-kpi__icon-box {
+  width: 48px; height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.adm-page .adm-kpi__value {
+  font-size: 1.9rem;
+  font-weight: 900;
+  color: #1E293B;
+  line-height: 1;
+}
+
+.adm-page .adm-kpi__label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748B;
+  line-height: 1.3;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* ── Tabs ─────────────────────────────────────────────────────────────────── */
+.adm-page .adm-tabs {
+  background: #FFFFFF;
+  border-bottom: 1px solid rgba(0,0,0,0.07);
+  padding: 0 20px;
+}
+.adm-page .adm-tabs__btn {
+  color: #64748B;
+  padding: 14px 16px;
+}
+.adm-page .adm-tabs__btn:hover { color: #1E293B; }
+.adm-page .adm-tabs__btn.is-active {
+  color: #2563EB;
+  border-bottom-color: #2563EB;
+}
+.adm-page .adm-tabs__badge {
+  background: #2563EB;
+  color: #fff;
+}
+.adm-page .adm-tabs__badge--neutral {
+  background: #E2E8F0;
+  color: #64748B;
+}
+
+/* ── List rows ────────────────────────────────────────────────────────────── */
+.adm-page .adm-list { padding: 0 20px; }
+
+.adm-page .adm-list__empty { color: #94A3B8; }
+
+.adm-page .adm-row {
+  background: #FFFFFF;
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 14px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+}
+.adm-page .adm-row--clickable:hover { border-color: rgba(37,99,235,0.2); }
+
+.adm-page .adm-row__info strong { color: #1E293B; }
+.adm-page .adm-row__info span { color: #64748B; }
+.adm-page .adm-row__date { color: #94A3B8 !important; }
+
+.adm-page .adm-row__approve {
+  background: rgba(5,150,105,0.1);
+  border: 1px solid rgba(5,150,105,0.2);
+  color: #059669;
+}
+.adm-page .adm-row__approve:hover { background: rgba(5,150,105,0.18); }
+
+.adm-page .adm-row__reject {
+  background: rgba(239,68,68,0.08);
+  border: 1px solid rgba(239,68,68,0.18);
+  color: #dc2626;
+}
+.adm-page .adm-row__reject:hover { background: rgba(239,68,68,0.16); }
+
+.adm-page .adm-row__reject-input {
+  background: #F8FAFC;
+  border: 1px solid rgba(0,0,0,0.1);
+  color: #1E293B;
+}
+.adm-page .adm-row__reject-confirm {
+  background: #dc2626;
+  color: #fff;
+  border: none;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.adm-page .adm-row__delete { background: rgba(239,68,68,0.08); color: #dc2626; }
+.adm-page .adm-row__delete:hover { background: rgba(239,68,68,0.16); color: #dc2626; }
+
+/* ── Agent detail expand ──────────────────────────────────────────────────── */
+.adm-page .adm-agent-detail { border-top: 1px solid rgba(0,0,0,0.06); }
+.adm-page .adm-agent-detail__row { color: #475569; }
+.adm-page .adm-agent-detail__row span { color: #1E293B; }
+.adm-page .adm-agent-detail__link { color: #2563EB; }
+
+/* ── Status chips ─────────────────────────────────────────────────────────── */
+.adm-page .adm-status--approved { background: rgba(5,150,105,0.1); color: #059669; }
+.adm-page .adm-status--rejected { background: rgba(239,68,68,0.1); color: #dc2626; }
+.adm-page .adm-status--pending  { background: rgba(245,158,11,0.1); color: #d97706; }
+
+/* ── Deal preview ─────────────────────────────────────────────────────────── */
+.adm-page .adm-deal-preview__info { color: #475569; }
+.adm-page .adm-deal-preview__info strong { color: #1E293B; }
+.adm-page .adm-deal-preview__info a { color: #2563EB; }
+
+/* ── Pagination ───────────────────────────────────────────────────────────── */
+.adm-page .adm-pagination__btn {
+  background: #FFFFFF;
+  border: 1px solid rgba(0,0,0,0.1);
+  color: #475569;
+}
+.adm-page .adm-pagination__btn:hover:not(:disabled) { background: #F0F2F5; color: #1E293B; }
+.adm-page .adm-pagination__btn.is-active { background: #2563EB; color: #fff; border-color: transparent; }
+
+/* ── Loading text ─────────────────────────────────────────────────────────── */
+.adm-page p[style*="color: 'var(--color-text-muted)'"] { color: #94A3B8; }
+
+/* ── Admin login — light theme ────────────────────────────────────────────── */
+.adm-login-page {
+  background: #F0F2F5;
+}
+.adm-login-card {
+  background: #FFFFFF;
+  border: 1px solid rgba(0,0,0,0.07);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.1);
+}
+.adm-login-card__title { color: #1E293B; }
+.adm-login-card__sub { color: #64748B; }
+.adm-login-label { color: #64748B; }
+.adm-login-input {
+  background: #F8FAFC;
+  border: 1px solid rgba(0,0,0,0.1);
+  color: #1E293B;
+}
+.adm-login-input:focus { border-color: #2563EB; box-shadow: 0 0 0 3px rgba(37,99,235,0.12); }
+.adm-login-btn {
+  background: #2563EB;
+  color: #FFFFFF;
+}
+.adm-login-btn:hover { background: #1D4ED8; opacity: 1; }
+.adm-login-back { color: #64748B; }
+.adm-login-back:hover { color: #1E293B; }
+
+/* ── Mobile: admin ────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .adm-page .adm-kpi-row { grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 16px; }
+  .adm-header__nav-item { padding: 8px 10px; }
+  .adm-page .adm-list { padding: 0 12px; }
+}
