@@ -94,61 +94,101 @@ export function AgentSettingsPage() {
     }
   }
 
-  if (loading || !agent) return <div className="agent-page agent-page--loading">Loading…</div>;
+  if (loading || !agent) return <div className="settings-page settings-page--loading">Loading…</div>;
 
   return (
-    <div className="agent-page">
-      <header className="agent-page__header">
-        <Link to="/agent/dashboard" className="agent-page__back-btn">
-          <ArrowLeft size={18} /> {t.dashboardLink || 'Dashboard'}
+    <div className="settings-page" dir="rtl">
+      <div className="settings-page__header">
+        <Link to="/agent/dashboard" className="settings-page__back">
+          <ArrowLeft size={16} /> {t.dashboardLink || 'דשבורד'}
         </Link>
-        <h1 className="agent-page__title">{t.settingsTitle || 'Account Settings'}</h1>
-      </header>
+        <h1 className="settings-page__title">{t.settingsTitle || 'הגדרות חשבון'}</h1>
+      </div>
 
-      {/* Business */}
-      <section className="settings-card">
-        <h2 className="settings-card__title">{t.businessDetailsTitle || 'Business'}</h2>
-        <AutosaveField label={t.agencyNameLabel || 'Agency name'} fieldKey="business_name" value={agent.business_name} onSave={saveField} />
-        <AutosaveField label={t.contactNameLabel || 'Your name'} fieldKey="contact_name" value={agent.contact_name} onSave={saveField} />
-        <AutosaveField label={t.licenseNumberLabel || 'License number'} fieldKey="license_number" value={agent.license_number} onSave={saveField} placeholder="Optional" />
-        <AutosaveTextarea label={t.agencyDescriptionLabel || 'Short description'} fieldKey="description" value={agent.description} onSave={saveField} placeholder={t.agencyDescriptionPlaceholder || 'Tell travelers about your agency…'} />
-        <AutosaveField label={t.logoUrlLabel || 'Logo URL'} fieldKey="logo_url" value={agent.logo_url} onSave={saveField} placeholder="https://…" />
-      </section>
+      <div className="settings-page__grid">
+        {/* Business info */}
+        <section className="settings-card">
+          <h2 className="settings-card__title">{t.businessDetailsTitle || 'פרטי עסק'}</h2>
+          <AutosaveField
+            label={t.agencyNameLabel || 'שם הסוכנות'}
+            fieldKey="business_name" value={agent.business_name} onSave={saveField}
+          />
+          <AutosaveField
+            label={t.contactNameLabel || 'שם איש קשר'}
+            fieldKey="contact_name" value={agent.contact_name} onSave={saveField}
+          />
+          <AutosaveField
+            label={t.licenseNumberLabel || 'מספר רישיון'}
+            fieldKey="license_number" value={agent.license_number} onSave={saveField} placeholder="אופציונלי"
+          />
+          <AutosaveField
+            label={t.logoUrlLabel || 'URL לוגו'}
+            fieldKey="logo_url" value={agent.logo_url} onSave={saveField} placeholder="https://…"
+          />
+        </section>
 
-      {/* Contact */}
-      <section className="settings-card">
-        <h2 className="settings-card__title">{t.contactTitle || 'Contact'}</h2>
-        <AutosaveField label={t.phoneLabel || 'Phone'} fieldKey="phone" value={agent.phone} onSave={saveField} type="tel" inputMode="tel" />
-        <div className="settings-field">
-          <label className="settings-field__label">{t.whatsappLabel || 'WhatsApp'}</label>
-          <div className="settings-field__wa-row">
-            <select className="settings-field__country-code">
-              {COUNTRY_CODES.map(c => (
-                <option key={c.code} value={c.code}>{c.label}</option>
-              ))}
-            </select>
-            <input
-              className="settings-field__input"
-              type="tel"
-              inputMode="tel"
-              defaultValue={agent.whatsapp_number || ''}
-              onBlur={async e => { await saveField('whatsapp_number', e.target.value); await refreshAgent(); }}
-              placeholder="501234567"
-            />
+        {/* About / Bio */}
+        <section className="settings-card">
+          <h2 className="settings-card__title">{t.aboutTitle || 'אודות / ביו'}</h2>
+          <AutosaveTextarea
+            label={t.agencyDescriptionLabel || 'תיאור קצר על הסוכנות'}
+            fieldKey="description" value={agent.description} onSave={saveField}
+            rows={5}
+            placeholder={t.agencyDescriptionPlaceholder || 'ספר לנוסעים על הסוכנות, ההתמחויות ויעדי החלום שלך…'}
+          />
+          <AutosaveField
+            label={t.responseHoursLabel || 'שעות מענה'}
+            fieldKey="response_hours" value={agent.response_hours} onSave={saveField}
+            placeholder={t.responseHoursPlaceholder || 'א׳–ה׳ 9:00–18:00'}
+          />
+        </section>
+
+        {/* Contact / WhatsApp */}
+        <section className="settings-card">
+          <h2 className="settings-card__title">{t.contactTitle || 'יצירת קשר'}</h2>
+          <AutosaveField
+            label={t.phoneLabel || 'טלפון'}
+            fieldKey="phone" value={agent.phone} onSave={saveField} type="tel" inputMode="tel"
+          />
+          <div className="settings-field">
+            <label className="settings-field__label">{t.whatsappLabel || 'WhatsApp'}</label>
+            <div className="settings-field__wa-row">
+              <select className="settings-field__country-code">
+                {COUNTRY_CODES.map(c => (
+                  <option key={c.code} value={c.code}>{c.label}</option>
+                ))}
+              </select>
+              <input
+                className="settings-field__input"
+                type="tel" inputMode="tel"
+                defaultValue={agent.whatsapp_number || ''}
+                onBlur={async e => { await saveField('whatsapp_number', e.target.value); await refreshAgent(); }}
+                placeholder="501234567"
+              />
+            </div>
           </div>
-        </div>
-        <AutosaveTextarea
-          label={t.whatsappTemplateLabel || 'WhatsApp message template'}
-          fieldKey="whatsapp_template"
-          value={agent.whatsapp_template}
-          onSave={saveField}
-          placeholder={t.whatsappTemplatePlaceholder || "Hi, I saw your deal to {destination} ({dates}) on Deal Radar and I'm interested!"}
-          rows={3}
-        />
-        <AutosaveField label={t.responseHoursLabel || 'Response hours'} fieldKey="response_hours" value={agent.response_hours} onSave={saveField} placeholder={t.responseHoursPlaceholder || 'Sun–Thu 9:00–18:00'} />
-        <AutosaveField label={t.preferredCurrencyLabel || 'Preferred currency'} fieldKey="preferred_currency" value={agent.preferred_currency || 'USD'} onSave={saveField} />
-      </section>
+          <AutosaveField
+            label={t.preferredCurrencyLabel || 'מטבע מועדף'}
+            fieldKey="preferred_currency" value={agent.preferred_currency || 'USD'} onSave={saveField}
+          />
+        </section>
 
+        {/* WhatsApp template */}
+        <section className="settings-card">
+          <h2 className="settings-card__title">{t.whatsappTemplateTitle || 'תבנית WhatsApp'}</h2>
+          <AutosaveTextarea
+            label={t.whatsappTemplateLabel || 'הודעת WhatsApp אוטומטית'}
+            fieldKey="whatsapp_template"
+            value={agent.whatsapp_template}
+            onSave={saveField}
+            placeholder={t.whatsappTemplatePlaceholder || 'שלום, ראיתי את הדיל שלכם ל-{destination} ({dates}) ואני מתעניין!'}
+            rows={4}
+          />
+          <p className="settings-card__note">
+            משתנים זמינים: <code>{'{destination}'}</code> · <code>{'{dates}'}</code>
+          </p>
+        </section>
+      </div>
     </div>
   );
 }

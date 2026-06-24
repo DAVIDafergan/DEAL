@@ -49,9 +49,14 @@ export function AgentDealSlide({ deal }) {
   const dates = dep && ret ? `${dep} → ${ret}` : dep || '';
   const currencySymbol = getCurrencySymbol(deal.currency);
 
-  async function handleClick(url) {
-    try { await agentApi.trackClick(deal.id); } catch {}
-    window.open(url, '_blank', 'noopener,noreferrer');
+  const waUrl = effectiveWa
+    ? buildWhatsAppUrl(effectiveWa, deal.agent_whatsapp_template, deal.destination_name || deal.destination, dates)
+    : null;
+
+  const bookUrl = deal.purchase_link ? addUtmParams(deal.purchase_link, deal.id) : null;
+
+  function trackClick() {
+    agentApi.trackClick(deal.id).catch(() => {});
   }
 
   return (
@@ -75,45 +80,86 @@ export function AgentDealSlide({ deal }) {
         )}
       </div>
 
+      {/* TikTok-style right-side action buttons */}
+      <div className="deal-slide__side-actions">
+        <motion.button
+          className={`deal-slide__side-btn${fav ? ' deal-slide__side-btn--fav-active' : ''}`}
+          whileTap={{ scale: 0.85 }}
+          onClick={() => toggleFavorite(deal)}
+          aria-label={fav ? 'הסר ממועדפים' : 'הוסף למועדפים'}
+        >
+          <Heart size={20} fill={fav ? 'currentColor' : 'none'} />
+        </motion.button>
+
+        {waUrl && (
+          <a
+            className="deal-slide__side-btn deal-slide__side-btn--wa"
+            href={waUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={trackClick}
+            aria-label="שאל בWhatsApp"
+          >
+            <MessageCircle size={20} />
+          </a>
+        )}
+
+        {bookUrl && (
+          <a
+            className="deal-slide__side-btn deal-slide__side-btn--book"
+            href={bookUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={trackClick}
+            aria-label="הזמן"
+          >
+            <ExternalLink size={20} />
+          </a>
+        )}
+      </div>
+
+      {/* Bottom overlay — TikTok caption style */}
       <div className="deal-slide__overlay">
+        {/* Info pills — dark glass */}
+        <div className="deal-slide__info-pills">
+          {(deal.airline || dates) && (
+            <span className="deal-slide__info-pill">
+              <span className="icon-draw icon-draw--once" style={{ display: 'inline-flex' }}>
+                <Plane size={11} strokeWidth={1.8} />
+              </span>
+              {[deal.airline, dates].filter(Boolean).join(' · ')}
+            </span>
+          )}
+          {deal.hotel_name && (
+            <span className="deal-slide__info-pill">
+              <span className="icon-draw icon-draw--once" style={{ display: 'inline-flex' }}>
+                <Hotel size={11} strokeWidth={1.8} />
+              </span>
+              {deal.hotel_name}
+              {deal.hotel_stars ? ` ${'★'.repeat(Math.min(Number(deal.hotel_stars), 5))}` : ''}
+              {deal.hotel_breakfast ? ' · ☕' : ''}
+            </span>
+          )}
+          {deal.car_type && (
+            <span className="deal-slide__info-pill">
+              <span className="icon-draw icon-draw--once" style={{ display: 'inline-flex' }}>
+                <Car size={11} strokeWidth={1.8} />
+              </span>
+              {[deal.car_type, deal.car_company].filter(Boolean).join(' · ')}
+            </span>
+          )}
+        </div>
+
         <h2 className="deal-slide__title">
           {deal.destination_name || deal.destination}
           {deal.country ? `, ${deal.country}` : ''}
         </h2>
 
-        <div className="deal-slide__includes">
-          <p className="deal-slide__includes-item">
-            <span className="icon-draw icon-draw--once" style={{ display: 'inline-flex', verticalAlign: 'middle', marginInlineEnd: 4 }}>
-              <Plane size={14} strokeWidth={1.8} />
-            </span>
-            {[deal.airline, dates].filter(Boolean).join(' · ')}
-          </p>
-          {deal.hotel_name && (
-            <p className="deal-slide__includes-item">
-              <span className="icon-draw icon-draw--once" style={{ display: 'inline-flex', verticalAlign: 'middle', marginInlineEnd: 4 }}>
-                <Hotel size={14} strokeWidth={1.8} />
-              </span>
-              {deal.hotel_name}{deal.hotel_stars ? ` ${'★'.repeat(deal.hotel_stars)}` : ''}{deal.hotel_breakfast ? ' · ☕' : ''}
-            </p>
-          )}
-          {deal.car_type && (
-            <p className="deal-slide__includes-item">
-              <span className="icon-draw icon-draw--once" style={{ display: 'inline-flex', verticalAlign: 'middle', marginInlineEnd: 4 }}>
-                <Car size={14} strokeWidth={1.8} />
-              </span>
-              {[deal.car_type, deal.car_company].filter(Boolean).join(' · ')}
-            </p>
-          )}
-          {deal.description && (
-            <p className="deal-slide__includes-item">{deal.description}</p>
-          )}
-        </div>
-
         <p className="deal-slide__price-per-person">
           {Math.round(deal.price)}{currencySymbol}
           {deal.value_score > 0 && (
             <span className="agent-deal-slide__value-badge">
-              {' '}-{Math.round(deal.value_score)}% {t.vsMarketLabel || 'vs avg'}
+              {' '}-{Math.round(deal.value_score)}%
             </span>
           )}
         </p>
@@ -127,44 +173,14 @@ export function AgentDealSlide({ deal }) {
           >
             {deal.business_name}
           </Link>
-          {deal.is_exclusive ? (
+          {deal.is_exclusive && (
             <span className="agent-deal-slide__exclusive">{t.exclusiveDealBadge || 'Exclusive'}</span>
-          ) : null}
+          )}
         </div>
 
-        <div className="agent-deal-slide__actions">
-          <motion.button
-            className={`agent-deal-slide__fav-btn${fav ? ' is-fav' : ''}`}
-            whileTap={{ scale: 0.85 }}
-            onClick={() => toggleFavorite(deal)}
-            aria-label={fav ? 'הסר ממועדפים' : 'הוסף למועדפים'}
-          >
-            <Heart size={18} fill={fav ? 'currentColor' : 'none'} />
-          </motion.button>
-          {effectiveWa && (
-            <motion.button
-              className="agent-deal-slide__wa-btn"
-              whileTap={{ scale: 0.95 }}
-              onClick={() => handleClick(buildWhatsAppUrl(
-                effectiveWa,
-                deal.agent_whatsapp_template,
-                deal.destination_name || deal.destination,
-                dates
-              ))}
-            >
-              <MessageCircle size={16} /> WhatsApp
-            </motion.button>
-          )}
-          {deal.purchase_link && (
-            <motion.button
-              className="agent-deal-slide__book-btn"
-              whileTap={{ scale: 0.95 }}
-              onClick={() => handleClick(addUtmParams(deal.purchase_link, deal.id))}
-            >
-              <ExternalLink size={16} /> {t.bookNowButton || 'Book'}
-            </motion.button>
-          )}
-        </div>
+        {deal.description && (
+          <p className="deal-slide__includes-item">{deal.description}</p>
+        )}
       </div>
     </section>
   );

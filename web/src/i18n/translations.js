@@ -4,7 +4,7 @@ export const translations = {
   he: {
     dir: 'rtl',
     brand: 'Deal Radar Pro',
-    brandSub: 'ציד דילים חכם',
+    brandSub: 'מצא דילי טיסה מהטובים ביותר',
     heroTitle: 'כל הדילים הפעילים',
     heroSubtitle: 'אנומליות מחיר אמיתיות, מאומתות נתונים, עם ציון סבירות אכיפה לכל דיל.',
     statsDealsSent: 'דילים שנשלחו',
@@ -286,7 +286,7 @@ export const translations = {
   en: {
     dir: 'ltr',
     brand: 'Deal Radar Pro',
-    brandSub: 'Smart deal hunting',
+    brandSub: 'Find the best flight deals',
     heroTitle: 'All active deals',
     heroSubtitle: 'Real, data-verified price anomalies — with an enforcement-likelihood score for every deal.',
     statsDealsSent: 'Deals sent',
@@ -568,7 +568,7 @@ export const translations = {
   es: {
     dir: 'ltr',
     brand: 'Deal Radar Pro',
-    brandSub: 'Caza de ofertas inteligente',
+    brandSub: 'Las mejores ofertas de vuelos',
     heroTitle: 'Todas las ofertas activas',
     heroSubtitle: 'Anomalías de precio reales y verificadas, con una puntuación de probabilidad de cumplimiento.',
     statsDealsSent: 'Ofertas enviadas',

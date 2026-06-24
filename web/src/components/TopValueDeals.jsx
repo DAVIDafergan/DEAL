@@ -7,6 +7,16 @@ import { getCurrencySymbol } from '../utils/currency.js';
 import { DestinationImage } from './DestinationImage.jsx';
 import { DealDetailModal } from './DealDetailModal.jsx';
 
+const trackVariants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.09 } },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 28, scale: 0.95 },
+  visible: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 260, damping: 22 } },
+};
+
 export function TopValueDeals({ hero }) {
   const { t } = useLanguage();
   const [deals, setDeals] = useState([]);
@@ -29,7 +39,13 @@ export function TopValueDeals({ hero }) {
         {t.topValueDealsTitle || '5 Most Valuable Deals Today'}
       </h2>
 
-      <div className="top-value-deals__track">
+      <motion.div
+        className="top-value-deals__track"
+        variants={trackVariants}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: '-40px' }}
+      >
         {loading
           ? [...Array(5)].map((_, i) => (
               <div key={i} className="tvc tvc--skeleton" />
@@ -38,24 +54,25 @@ export function TopValueDeals({ hero }) {
               <motion.div
                 key={`${deal.deal_source}-${deal.id}`}
                 className="tvc"
-                whileHover={{ y: -3 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 24 }}
+                variants={cardVariants}
+                whileHover={{ y: -5, scale: 1.02 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 22 }}
                 onClick={() => setSelected(deal)}
                 role="button"
                 tabIndex={0}
                 onKeyDown={e => e.key === 'Enter' && setSelected(deal)}
               >
-                {/* ── Image fills the card ──────────────── */}
                 <div className="tvc__media">
                   <DestinationImage iataCode={deal.destination} />
                   <div className="tvc__gradient" />
 
-                  {/* Discount badge — top-right corner */}
+                  {/* Pulsing discount badge */}
                   {deal.value_score > 0 && (
-                    <span className="tvc__discount">-{Math.round(deal.value_score)}%</span>
+                    <span className="tvc__discount tvc__discount--pulse">
+                      -{Math.round(deal.value_score)}%
+                    </span>
                   )}
 
-                  {/* Caption — bottom of image */}
                   <div className="tvc__caption">
                     <p className="tvc__dest">{deal.destination_name || deal.destination}</p>
                     <p className="tvc__price">
@@ -65,13 +82,12 @@ export function TopValueDeals({ hero }) {
                   </div>
                 </div>
 
-                {/* Agent badge — below image */}
                 {deal.business_name && (
                   <div className="tvc__agent">✓ {deal.business_name}</div>
                 )}
               </motion.div>
             ))}
-      </div>
+      </motion.div>
 
       <AnimatePresence>
         {selected && (

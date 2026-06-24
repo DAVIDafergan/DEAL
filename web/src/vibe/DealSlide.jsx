@@ -90,25 +90,27 @@ export function DealSlide({ card }) {
       </div>
 
       <div className="deal-slide__overlay">
-        <h2 className="deal-slide__title">{card.title}</h2>
-
-        <div className="deal-slide__includes">
-          <p className="deal-slide__includes-item">
-            ✈️ {t.stopsLabel(flightStops)}
+        {/* Info pills — flight / hotel / car — dark glass over video */}
+        <div className="deal-slide__info-pills">
+          <span className="deal-slide__info-pill">
+            ✈ {t.stopsLabel(flightStops)}
             {departureDate && returnDate && (
               <> · {formatShortDate(departureDate, lang)} → {formatShortDate(returnDate, lang)}</>
             )}
-          </p>
+          </span>
           {hasRealHotel && (
-            <p className="deal-slide__includes-item">
+            <span className="deal-slide__info-pill">
               🏨 {card.hotelName || t.breakdownHotelGenericLabel}
-              {card.hotelStars ? ` · ${card.hotelStars}★` : ''} · {t.nightsLabel(card.nights)}
-              {card.hotelBreakfastIncluded === true && ` · ${t.breakfastIncludedLabel}`}
-              {card.hotelBreakfastIncluded === null && ` · ${t.detailsOnSiteLabel}`}
-            </p>
+              {card.hotelStars ? ` · ${card.hotelStars}★` : ''}
+              {card.hotelBreakfastIncluded === true && ' · ☕'}
+            </span>
           )}
-          {liveDeal?.carRentalUrl && <p className="deal-slide__includes-item">🚗 {t.carAvailableLabel}</p>}
+          {liveDeal?.carRentalUrl && (
+            <span className="deal-slide__info-pill">🚗 {t.carAvailableLabel}</span>
+          )}
         </div>
+
+        <h2 className="deal-slide__title">{card.title}</h2>
 
         {status === 'loading' && (
           <div className="deal-slide__price-skeleton">

@@ -45,9 +45,15 @@ export function AgentDealCard({ deal }) {
     : null;
   const dates = dep && ret ? `${dep}–${ret}` : dep || '';
 
-  async function handleClick(url) {
-    try { await agentApi.trackClick(deal.id); } catch {}
+  function handleClick(url) {
     window.open(url, '_blank', 'noopener,noreferrer');
+    agentApi.trackClick(deal.id).catch(() => {});
+  }
+
+  function handleWaClick(e, url) {
+    e.stopPropagation();
+    agentApi.trackClick(deal.id).catch(() => {});
+    // href handles navigation — no window.open needed
   }
 
   return (
@@ -166,28 +172,29 @@ export function AgentDealCard({ deal }) {
               </motion.button>
 
               {effectiveWa && (
-                <motion.button
+                <a
                   className="adc__btn adc__btn--wa"
-                  whileTap={{ scale: 0.95 }}
-                  onClick={e => {
-                    e.stopPropagation();
-                    handleClick(buildWhatsAppUrl(effectiveWa, deal.agent_whatsapp_template, deal.destination_name || deal.destination, dates));
-                  }}
+                  href={buildWhatsAppUrl(effectiveWa, deal.agent_whatsapp_template, deal.destination_name || deal.destination, dates)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={e => handleWaClick(e, buildWhatsAppUrl(effectiveWa, deal.agent_whatsapp_template, deal.destination_name || deal.destination, dates))}
                   aria-label="שאל בWhatsApp"
                 >
                   <MessageCircle size={14} />
-                </motion.button>
+                </a>
               )}
 
               {deal.purchase_link && (
-                <motion.button
+                <a
                   className="adc__btn adc__btn--book"
-                  whileTap={{ scale: 0.95 }}
-                  onClick={e => { e.stopPropagation(); handleClick(addUtmParams(deal.purchase_link, deal.id)); }}
+                  href={addUtmParams(deal.purchase_link, deal.id)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={e => { e.stopPropagation(); agentApi.trackClick(deal.id).catch(() => {}); }}
                 >
                   <ExternalLink size={13} />
                   <span>{t.buyNowButton || 'הזמן'}</span>
-                </motion.button>
+                </a>
               )}
             </div>
           </div>

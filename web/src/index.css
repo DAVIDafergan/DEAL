@@ -63,6 +63,15 @@ button {
   position: sticky;
   top: 0;
   z-index: 200;
+  transition: box-shadow 0.25s ease;
+}
+
+.top-bar-wrapper--scrolled {
+  box-shadow: 0 2px 20px -4px rgba(0,0,0,0.14), 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.top-bar-wrapper--scrolled .top-bar {
+  background: rgba(255,255,255,0.97);
 }
 
 .top-bar {
@@ -4074,4 +4083,292 @@ body {
   .adm-page .adm-kpi-row { grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 16px; }
   .adm-header__nav-item { padding: 8px 10px; }
   .adm-page .adm-list { padding: 0 12px; }
+}
+
+/* ── Header drawer additions ─────────────────────────────────────────────── */
+.header-drawer__divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: 6px 14px;
+}
+.header-drawer__item--muted {
+  color: var(--color-text-muted);
+  font-size: 0.84rem;
+  font-weight: 500;
+}
+.header-drawer__item--muted:hover {
+  color: var(--color-text-secondary);
+  background: rgba(0,0,0,0.04);
+}
+
+/* ── TVC discount badge — pulsing live animation ─────────────────────────── */
+@keyframes tvc-badge-pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 2px 10px rgba(37,99,235,0.3); }
+  50%       { transform: scale(1.08); box-shadow: 0 4px 18px rgba(37,99,235,0.55); }
+}
+.tvc__discount {
+  box-shadow: 0 2px 10px rgba(37,99,235,0.3);
+}
+.tvc__discount--pulse {
+  animation: tvc-badge-pulse 2.5s ease-in-out infinite;
+}
+
+/* ── Agent social profile ─────────────────────────────────────────────────── */
+.agent-social-profile {
+  min-height: 100vh;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+}
+.agent-social-profile--error {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 60vh; gap: 12px; color: var(--color-text-muted);
+}
+
+/* Cover */
+.agent-social-profile__cover {
+  position: relative;
+  height: 200px;
+  background: linear-gradient(135deg, #1e3a5f 0%, #2563EB 40%, #17c3b2 100%);
+  overflow: hidden;
+}
+.agent-social-profile__cover--skeleton {
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: price-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+.agent-social-profile__cover-bg {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 30% 60%, rgba(255,255,255,0.08) 0%, transparent 60%),
+              radial-gradient(ellipse at 80% 20%, rgba(255,255,255,0.06) 0%, transparent 50%);
+}
+.agent-social-profile__back {
+  position: absolute; top: 14px; inset-inline-start: 16px;
+  display: inline-flex; align-items: center; gap: 5px;
+  color: rgba(255,255,255,0.85); font-size: 0.82rem; font-weight: 600;
+  text-decoration: none; background: rgba(0,0,0,0.28); backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.18); border-radius: 999px; padding: 5px 12px;
+  transition: background 0.2s;
+}
+.agent-social-profile__back:hover { background: rgba(0,0,0,0.45); color: #fff; }
+
+/* Header section */
+.agent-social-profile__header {
+  display: flex; flex-direction: column; gap: 12px;
+  padding-top: 0; padding-bottom: 20px;
+  margin-top: -56px;
+}
+
+/* Avatar overlapping cover */
+.agent-social-profile__avatar-wrap {
+  width: 104px; height: 104px;
+  border-radius: 50%;
+  border: 4px solid var(--color-surface);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  overflow: hidden;
+  background: var(--gradient-accent);
+  flex-shrink: 0;
+}
+.agent-social-profile__avatar {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.agent-social-profile__avatar-placeholder {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.4rem; font-weight: 800; color: #fff;
+}
+
+/* Meta info */
+.agent-social-profile__meta { display: flex; flex-direction: column; gap: 10px; }
+
+.agent-social-profile__name-row {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.agent-social-profile__name {
+  margin: 0; font-size: 1.5rem; font-weight: 800; color: var(--color-text-primary);
+}
+.agent-social-profile__verified {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 0.78rem; font-weight: 700; color: #2563EB;
+}
+
+/* Stats row */
+.agent-social-profile__stats {
+  display: flex; gap: 20px; align-items: center;
+}
+.agent-social-profile__stat {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+}
+.agent-social-profile__stat strong {
+  font-size: 1.1rem; font-weight: 800; color: var(--color-text-primary);
+}
+.agent-social-profile__stat span {
+  font-size: 0.75rem; font-weight: 500; color: var(--color-text-muted);
+}
+.agent-social-profile__stat-detail {
+  font-size: 0.82rem; color: var(--color-text-muted); white-space: nowrap;
+}
+
+/* Bio */
+.agent-social-profile__bio {
+  margin: 0; font-size: 0.9rem; color: var(--color-text-secondary); line-height: 1.5;
+  max-width: 480px;
+}
+
+/* CTA buttons */
+.agent-social-profile__cta { display: flex; gap: 8px; flex-wrap: wrap; }
+.agent-social-profile__wa-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 20px; border-radius: 999px;
+  background: #25d366; color: #fff; font-size: 0.9rem; font-weight: 700;
+  text-decoration: none; transition: opacity 0.2s;
+}
+.agent-social-profile__wa-btn:hover { opacity: 0.88; }
+.agent-social-profile__share-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 20px; border-radius: 999px;
+  background: var(--color-surface); border: 1.5px solid var(--color-border);
+  color: var(--color-text-primary); font-size: 0.9rem; font-weight: 700; cursor: pointer;
+  transition: border-color 0.2s;
+}
+.agent-social-profile__share-btn:hover { border-color: var(--color-text-muted); }
+
+/* Divider */
+.agent-social-profile__divider {
+  height: 1px; background: var(--color-border); margin: 8px 0 20px;
+}
+
+/* Deals section */
+.agent-social-profile__deals { padding-bottom: 48px; }
+.agent-social-profile__deals-title {
+  font-size: 1rem; font-weight: 700; margin: 0 0 16px; color: var(--color-text-primary);
+}
+.agent-social-profile__deals-count { color: var(--color-text-muted); font-weight: 500; }
+.agent-social-profile__empty { color: var(--color-text-muted); font-size: 0.9rem; }
+
+.agent-social-profile__deals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+/* Deal card */
+.agent-social-deal-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.agent-social-deal-card:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+.agent-social-deal-card__media {
+  height: 160px; position: relative; overflow: hidden;
+}
+.agent-social-deal-card__img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
+.agent-social-deal-card__img-placeholder {
+  width: 100%; height: 100%; background: var(--ds-slate);
+}
+.agent-social-deal-card__overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.7) 100%);
+}
+.agent-social-deal-card__badge {
+  position: absolute; top: 10px; inset-inline-end: 10px;
+  padding: 3px 9px; border-radius: 999px;
+  background: var(--gradient-accent); color: #fff; font-size: 0.75rem; font-weight: 800;
+}
+.agent-social-deal-card__exclusive {
+  position: absolute; top: 10px; inset-inline-start: 10px;
+  padding: 3px 9px; border-radius: 999px;
+  background: var(--gradient-accent); color: #fff; font-size: 0.72rem; font-weight: 700;
+}
+.agent-social-deal-card__fav {
+  position: absolute; top: 10px; inset-inline-start: 10px;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: rgba(255,255,255,0.9); border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ds-coral);
+}
+.agent-social-deal-card__fav.is-fav { color: var(--ds-coral); }
+.agent-social-deal-card__price-overlay {
+  position: absolute; bottom: 10px; inset-inline-start: 12px;
+  font-size: 1.1rem; font-weight: 800; color: #fff;
+  text-shadow: 0 1px 8px rgba(0,0,0,0.6);
+}
+.agent-social-deal-card__body {
+  padding: 12px; display: flex; flex-direction: column; gap: 3px;
+}
+.agent-social-deal-card__dest {
+  margin: 0; font-size: 0.95rem; font-weight: 800; color: var(--color-text-primary);
+}
+.agent-social-deal-card__dates {
+  margin: 0; font-size: 0.8rem; color: var(--color-text-secondary);
+}
+.agent-social-deal-card__meta {
+  margin: 0; font-size: 0.78rem; color: var(--color-text-muted);
+}
+.agent-social-deal-card__actions {
+  display: flex; gap: 6px; margin-top: 8px;
+}
+.agent-social-deal-card__btn {
+  flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  padding: 7px 10px; border-radius: var(--radius-sm);
+  font-size: 0.8rem; font-weight: 700; text-decoration: none;
+  cursor: pointer; border: none;
+}
+.agent-social-deal-card__btn--book {
+  background: var(--gradient-accent); color: #fff;
+}
+.agent-social-deal-card__btn--wa {
+  background: #25d366; color: #fff; flex: 0 0 40px;
+}
+
+/* ── Settings page — full-width layout ────────────────────────────────────── */
+.settings-page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 20px 80px;
+  min-height: 100vh;
+  color: var(--color-text-primary);
+}
+.settings-page__header {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+.settings-page__title {
+  margin: 0; font-size: 1.4rem; font-weight: 800;
+}
+.settings-page__back {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 0.88rem; font-weight: 600; color: var(--color-text-secondary);
+  text-decoration: none; border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm); padding: 6px 12px;
+  transition: border-color 0.15s, color 0.15s;
+}
+.settings-page__back:hover { border-color: var(--color-text-muted); color: var(--color-text-primary); }
+
+.settings-page__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 640px) {
+  .settings-page__grid { grid-template-columns: 1fr; }
+}
+
+.settings-card--wide { grid-column: 1 / -1; }
+
+.settings-card .settings-fields-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 500px) {
+  .settings-card .settings-fields-2col { grid-template-columns: 1fr; }
 }
