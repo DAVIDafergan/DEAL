@@ -2227,12 +2227,6 @@ label { color: var(--color-text-secondary); }
   }
   /* Container padding on small screens */
   .container { padding: 0 14px; }
-  /* Top value deals grid — full scroll on mobile */
-  .top-value-deals__grid {
-    grid-template-columns: repeat(2, 240px);
-    display: flex; overflow-x: auto;
-    gap: 14px;
-  }
   /* Agent page: shrink form padding */
   .agent-page { padding: 0 0 80px; }
   /* Wizard step title smaller on mobile */
@@ -2379,22 +2373,6 @@ label { color: var(--color-text-secondary); }
 .top-value-deals--hero .top-value-deals__title {
   font-size: 1.25rem;
   margin-bottom: 20px;
-}
-.top-value-card {
-  cursor: pointer;
-  user-select: none;
-}
-.top-value-card:focus-visible {
-  outline: 2px solid var(--color-accent-from);
-  outline-offset: 3px;
-}
-.top-value-card__tap-hint {
-  display: inline-block;
-  margin-top: 6px;
-  font-size: .72rem;
-  color: var(--color-accent-from);
-  font-weight: 600;
-  opacity: .8;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -2898,29 +2876,6 @@ body {
   align-items: center;
   gap: 10px;
 }
-/* Top value card media: taller */
-.top-value-deals--hero .top-value-card__media {
-  height: 240px;
-}
-/* Price in top value card: amber */
-.top-value-card__price {
-  color: var(--ds-amber) !important;
-  font-family: var(--font-display);
-  font-variant-numeric: tabular-nums;
-}
-/* Destination name: larger & display font */
-.top-value-card__dest {
-  font-family: var(--font-display);
-  font-size: 1.05rem;
-  font-weight: 700;
-}
-/* Agent label: glass pill */
-.top-value-card__agent-label {
-  font-size: 0.68rem;
-  background: rgba(255,255,255,0.1);
-  border-radius: 999px;
-  padding: 2px 8px;
-}
 
 /* ── 6. ADMIN PANEL — Full Design System Application ────────────────────── */
 .adm-page {
@@ -2998,8 +2953,8 @@ body {
 .adm-kpi-row {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  padding: 20px;
+  gap: 16px;
+  padding: 28px 24px;
   max-width: 900px;
   margin: 0 auto;
 }
@@ -3010,16 +2965,16 @@ body {
   background: var(--ds-ink);
   border: 1px solid rgba(255,255,255,0.07);
   border-radius: var(--radius-md);
-  padding: 16px;
+  padding: 22px 20px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 .adm-kpi__icon { flex-shrink: 0; }
-.adm-kpi__icon--amber { color: var(--ds-amber); }
-.adm-kpi__icon--teal  { color: var(--ds-teal); }
-.adm-kpi__icon--coral { color: var(--ds-coral); }
-.adm-kpi__icon--green { color: var(--color-success); }
+.adm-kpi__icon--amber,
+.adm-kpi__icon--teal,
+.adm-kpi__icon--coral,
+.adm-kpi__icon--green { color: var(--ds-teal); }
 .adm-kpi__value {
   font-family: var(--font-display);
   font-size: 2rem;
@@ -3086,10 +3041,10 @@ body {
 .adm-list {
   max-width: 900px;
   margin: 16px auto;
-  padding: 0 20px;
+  padding: 0 24px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 14px;
 }
 .adm-list__empty {
   color: var(--ds-ash);
@@ -3140,16 +3095,15 @@ body {
   gap: 5px;
   padding: 7px 14px;
   border-radius: 8px;
-  border: none;
-  background: rgba(34,197,94,0.12);
-  border: 1px solid rgba(34,197,94,0.25);
-  color: #22c55e;
+  background: rgba(23,195,178,0.12);
+  border: 1px solid rgba(23,195,178,0.25);
+  color: var(--ds-teal);
   font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
   transition: background 0.15s;
 }
-.adm-row__approve:hover { background: rgba(34,197,94,0.22); }
+.adm-row__approve:hover { background: rgba(23,195,178,0.22); }
 .adm-row__reject {
   display: inline-flex;
   align-items: center;
@@ -3742,8 +3696,4 @@ body {
   .page-hero p  { font-size: 0.9rem; }
 }
 
-/* 4. Top-value cards: ensure flex-shrink: 0 on mobile so cards keep min width */
-@media (max-width: 680px) {
-  .top-value-card { flex-shrink: 0; }
-}
 

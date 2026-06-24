@@ -65,14 +65,14 @@ export function App() {
             {t.agentDealsSectionSubtitle || 'עסקאות ייחודיות ישירות מסוכנים מאומתים — לחץ לפרטים מלאים'}
           </p>
           <motion.div
-            className="deals-grid"
+            className="agent-deals-carousel"
             variants={gridVariants}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: '-40px' }}
           >
             {agentDeals.map(deal => (
-              <motion.div key={deal.id} variants={cardIn}>
+              <motion.div key={deal.id} variants={cardIn} className="agent-deals-carousel__item">
                 <AgentDealCard deal={deal} />
               </motion.div>
             ))}

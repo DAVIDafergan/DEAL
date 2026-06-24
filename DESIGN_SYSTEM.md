@@ -58,6 +58,44 @@ Not terracotta-on-cream. Not generic travel-blue-and-white. Not near-black with 
 
 ---
 
+## 3. Layout Principles
+
+### 3.1 Carousel-First Discovery (travelnextlvl.de)
+
+All browsable collections — Top Value Deals, Agent Deals, Packages — render as **horizontal scroll carousels**, not static grids.
+
+**Rules:**
+- `scroll-snap-type: x mandatory` + `scroll-snap-align: start` on every track
+- Cards are `flex-shrink: 0` with a fixed pixel width (not `1fr`) so they never collapse
+- No scrollbar visible (`scrollbar-width: none`) — the clipped edge signals "drag to scroll"
+- Image is the star: **price + destination name live ON the image** as a bottom overlay, not below it
+- Discount badge is top-right corner only — no centered pulsing badge animations on top 5 cards
+
+**Card anatomy (image-first):**
+```
+┌────────────────────┐
+│  [-23%] ←top-right │
+│                    │
+│     [PHOTO]        │  ← full card height (280px)
+│                    │
+│  Barcelona         │  ← bottom overlay, font-weight 800
+│  ₪ 2,490          │  ← price bold white, ON the image
+└────────────────────┘
+│ ✓ Agent Name       │  ← teal text, below image (minimal)
+└────────────────────┘
+```
+
+### 3.2 Minimalism Over Decoration (app.sumit.co.il)
+
+Dashboard and admin screens are **serious work tools**. The visual language:
+- **Single accent color** — only `--ds-teal` in dashboards/admin; never amber + coral + green + orange together
+- **Generous spacing** — `padding: 22px 20px` on KPI cards, `gap: 14px` on lists (not `gap: 10px`)
+- **Flat buttons** — `background: var(--ds-teal)` not `var(--gradient-accent)` on dashboard actions
+- **No visual noise** — no gradient overlays on non-image elements, no multi-color icon sets, no redundant shadows
+- **Typography is enough** — weight hierarchy (900/800/600/400) creates contrast without extra decoration
+
+---
+
 ## 3. Layout Concept
 
 ### Deal Card (grid)
@@ -81,16 +119,16 @@ Hover: teal 3px left border + amber shadow lift
 
 ### Home page
 ```
-[HEADER sticky: Logo | Name | ❤ | 🌐 | Auth]
-─────────────────────────────────────────────
-[TOP 5 HERO — full width cards, 280px image]
-─────────────────────────────────────────────
+[HEADER sticky: Logo | ❤ | 🌐 | Auth (hidden mobile)]
+──────────────────────────────────────────────────────
+[TOP 5 CAROUSEL → → → — 280px image, price ON image]
+──────────────────────────────────────────────────────
 [REELS STRIP — horizontal scroll]
-─────────────────────────────────────────────
-[PACKAGES STRIP]
-─────────────────────────────────────────────
-[AGENT DEALS GRID — 2→3 cols]
-─────────────────────────────────────────────
+──────────────────────────────────────────────────────
+[PACKAGES STRIP — horizontal scroll]
+──────────────────────────────────────────────────────
+[AGENT DEALS CAROUSEL → → → — 300px wide cards]
+──────────────────────────────────────────────────────
 [FOOTER]
 ```
 
@@ -187,4 +225,5 @@ Every other animation on the site should feel slower and calmer than this.
 - No gradient everywhere — gradients are reserved for the accent CTA and the price badge
 - No shadows on everything — only cards and modals get elevation shadows
 - No Inter or Poppins as display faces
-- Never use the teal (#17c3b2) for more than 2 UI elements — it's a signature, not a theme
+- Never use multiple accent colors side-by-side in dashboards — pick ONE (teal) and use it consistently
+- Never put amber + coral + green + orange all on the same screen — visual noise kills "serious tool" feel
