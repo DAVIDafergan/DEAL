@@ -8,9 +8,23 @@ const router = Router();
 // Public: login (no auth required)
 router.post('/auth/login', (req, res) => {
   const { username, password } = req.body || {};
-  const expectedUser = process.env.ADMIN_USERNAME || 'admin';
-  const expectedPass = process.env.ADMIN_PASSWORD || 'admin-change-me';
-  if (!username || !password || username !== expectedUser || password !== expectedPass) {
+  const submitted_user = (username || '').trim();
+  const submitted_pass = (password || '').trim();
+  const expectedUser = (process.env.ADMIN_USERNAME || 'admin').trim();
+  const expectedPass = (process.env.ADMIN_PASSWORD || 'admin-change-me').trim();
+  // DEBUG: remove after Railway login is confirmed working
+  console.log('[admin-login-debug]', {
+    submitted_user_len: submitted_user.length,
+    submitted_pass_len: submitted_pass.length,
+    expected_user_len: expectedUser.length,
+    expected_pass_len: expectedPass.length,
+    ADMIN_USERNAME_defined: process.env.ADMIN_USERNAME !== undefined,
+    ADMIN_USERNAME_empty: process.env.ADMIN_USERNAME === '',
+    ADMIN_PASSWORD_defined: process.env.ADMIN_PASSWORD !== undefined,
+    ADMIN_PASSWORD_empty: process.env.ADMIN_PASSWORD === '',
+    match: submitted_user === expectedUser && submitted_pass === expectedPass,
+  });
+  if (!submitted_user || !submitted_pass || submitted_user !== expectedUser || submitted_pass !== expectedPass) {
     return res.status(401).json({ error: 'שם משתמש או סיסמה שגויים' });
   }
   res.json({ token: signAdminToken() });

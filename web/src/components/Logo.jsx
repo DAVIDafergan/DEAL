@@ -51,7 +51,7 @@ export function Logo({ size = 36 }) {
         />
       </svg>
 
-      <span className="logo__wordmark">DEAL<span className="logo__wordmark-dot">·</span>RADAR</span>
+      <span className="logo__wordmark">DEAL</span>
     </span>
   );
 }

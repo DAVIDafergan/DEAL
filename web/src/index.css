@@ -14,6 +14,12 @@ body,
   min-height: 100%;
 }
 
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
 body {
   background: var(--color-bg-gradient);
   color: var(--color-text-primary);
@@ -3682,5 +3688,62 @@ body {
   stroke-dasharray: var(--path-len, 60);
   stroke-dashoffset: var(--path-len, 60);
   animation: icon-draw-in 0.5s cubic-bezier(0.4,0,0.2,1) 0.1s forwards;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE FIXES (≤540px)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* 1. App shell panel: pad bottom so footer clears the fixed BottomNav */
+@media (max-width: 768px) {
+  .app-shell-tabs__panel {
+    padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* 2. Header: compact on small screens — hide Login/Register, slim Dashboard */
+@media (max-width: 540px) {
+  /* Hide unauthenticated buttons — reels auth bar still gives access */
+  .header-auth-btn--login,
+  .header-auth-btn--register {
+    display: none;
+  }
+
+  /* Dashboard link: icon only, no text */
+  .header-auth-btn__name {
+    display: none;
+  }
+  .header-auth-btn--dashboard {
+    padding: 6px 8px;
+    max-width: none;
+  }
+
+  /* Prevent header inner from overflowing */
+  .top-bar__actions {
+    gap: 6px;
+  }
+  .top-bar__inner {
+    padding: 12px 14px;
+  }
+}
+
+/* 3. Home typography: ensure readable base size on mobile */
+@media (max-width: 480px) {
+  body { font-size: 15px; }
+
+  .agent-deals-section__title { font-size: 1rem; }
+  .agent-deals-section__subtitle { font-size: 0.8rem; }
+
+  .top-value-deals__title { font-size: 1.1rem; }
+
+  .packages-strip__title { font-size: 1rem; }
+
+  .page-hero h1 { font-size: 1.6rem; }
+  .page-hero p  { font-size: 0.9rem; }
+}
+
+/* 4. Top-value cards: ensure flex-shrink: 0 on mobile so cards keep min width */
+@media (max-width: 680px) {
+  .top-value-card { flex-shrink: 0; }
 }
 

@@ -146,7 +146,7 @@
      יישאר ברור מעליו ולא יתנגש. בלי max-height/overflow כאן בכוונה — אינטראקציה בין
      max-height קבוע ל-bottom-nav צף יכולה לחתוך תוכן בלי שזה ברור למה; עדיף שהקופסה
      תגדל לפי תוכן בפועל. */
-  padding: 20px 16px calc(var(--bottom-nav-height) + 36px);
+  padding: 20px 16px calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + 36px);
   display: flex;
   flex-direction: column;
   gap: 10px;

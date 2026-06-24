@@ -144,6 +144,16 @@ async function main() {
     }
   }, 24 * 60 * 60 * 1000);
 
+  // DEBUG: remove after Railway admin login is confirmed working
+  console.log('[deal-radar-pro] Admin env vars at startup:', {
+    ADMIN_USERNAME_defined: process.env.ADMIN_USERNAME !== undefined,
+    ADMIN_USERNAME_empty: process.env.ADMIN_USERNAME === '',
+    ADMIN_USERNAME_len: process.env.ADMIN_USERNAME?.length,
+    ADMIN_PASSWORD_defined: process.env.ADMIN_PASSWORD !== undefined,
+    ADMIN_PASSWORD_empty: process.env.ADMIN_PASSWORD === '',
+    ADMIN_PASSWORD_len: process.env.ADMIN_PASSWORD?.length,
+  });
+
   app.listen(PORT, () => {
     console.log(`[deal-radar-pro] Server listening on http://localhost:${PORT}`);
   });

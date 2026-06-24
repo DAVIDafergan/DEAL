@@ -171,7 +171,7 @@ export function AgentDealCard({ deal }) {
                   whileTap={{ scale: 0.95 }}
                   onClick={e => {
                     e.stopPropagation();
-                    handleClick(buildWhatsAppUrl(effectiveWa, deal.whatsapp_template, deal.destination_name || deal.destination, dates));
+                    handleClick(buildWhatsAppUrl(effectiveWa, deal.agent_whatsapp_template, deal.destination_name || deal.destination, dates));
                   }}
                   aria-label="שאל בWhatsApp"
                 >

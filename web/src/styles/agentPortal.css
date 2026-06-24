@@ -1095,7 +1095,7 @@
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
   padding-top: 24px; padding-bottom: 0;
 }
-@media (max-width: 520px) { .dash-stats { grid-template-columns: 1fr; gap: 10px; } }
+@media (max-width: 520px) { .dash-stats { grid-template-columns: repeat(2, 1fr); gap: 10px; } }
 
 .dash-stat-card {
   display: flex; align-items: center; gap: 14px;

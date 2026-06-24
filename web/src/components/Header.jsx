@@ -40,13 +40,13 @@ export function Header() {
             ) : (
               <>
                 <button
-                  className="header-auth-btn header-auth-btn--ghost"
+                  className="header-auth-btn header-auth-btn--ghost header-auth-btn--login"
                   onClick={() => navigate('/agent/login')}
                 >
                   {t.headerLoginButton || 'Login'}
                 </button>
                 <button
-                  className="header-auth-btn header-auth-btn--primary"
+                  className="header-auth-btn header-auth-btn--primary header-auth-btn--register"
                   onClick={() => navigate('/register')}
                 >
                   {t.headerRegisterButton || 'Register'}
