@@ -59,10 +59,10 @@ export function App() {
         <section className="agent-deals-section container">
           <h2 className="agent-deals-section__title">
             <Briefcase size={20} color="var(--color-accent-from)" />
-            {t.agentDealsSectionTitle || 'דילים מסוכנים מאומתים'}
+            {t.agentDealsSectionTitle || 'דילים מסוכנים'}
           </h2>
           <p className="agent-deals-section__subtitle">
-            {t.agentDealsSectionSubtitle || 'עסקאות ייחודיות שסוכני נסיעות מציעים ישירות דרך הפלטפורמה'}
+            {t.agentDealsSectionSubtitle || 'עסקאות ייחודיות ישירות מסוכנים מאומתים — לחץ לפרטים מלאים'}
           </p>
           <motion.div
             className="deals-grid"

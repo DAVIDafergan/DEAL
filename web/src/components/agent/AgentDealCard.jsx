@@ -8,12 +8,7 @@ import { getCurrencySymbol } from '../../utils/currency.js';
 import { DealDetailModal } from '../DealDetailModal.jsx';
 import { useFavorites } from '../../hooks/useFavorites.js';
 
-const cardVariants = {
-  hidden: { opacity: 0, y: 24 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: 'easeOut' } },
-};
-
-function buildWhatsAppUrl(number, template, destName, dates, platformName = 'Deal Radar') {
+function buildWhatsAppUrl(number, template, destName, dates) {
   const text = (template || `שלום, ראיתי את הדיל שלכם ל-{destination} ({dates}) ב-Deal Radar Pro ואני מתעניין`)
     .replace('{destination}', destName || '')
     .replace('{dates}', dates || '');
@@ -33,7 +28,7 @@ function addUtmParams(url, dealId) {
 
 function stars(n) {
   if (!n) return '';
-  return '★'.repeat(Number(n));
+  return '★'.repeat(Math.min(Number(n), 5));
 }
 
 export function AgentDealCard({ deal }) {
@@ -42,9 +37,13 @@ export function AgentDealCard({ deal }) {
   const { isFavorite, toggleFavorite } = useFavorites();
   const fav = isFavorite(deal);
   const effectiveWa = deal.whatsapp_override || deal.agent_whatsapp;
-  const dep = deal.departure_date ? new Date(deal.departure_date).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' }) : null;
-  const ret = deal.return_date ? new Date(deal.return_date).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' }) : null;
-  const dates = dep && ret ? `${dep} → ${ret}` : dep || '';
+  const dep = deal.departure_date
+    ? new Date(deal.departure_date).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' })
+    : null;
+  const ret = deal.return_date
+    ? new Date(deal.return_date).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' })
+    : null;
+  const dates = dep && ret ? `${dep}–${ret}` : dep || '';
 
   async function handleClick(url) {
     try { await agentApi.trackClick(deal.id); } catch {}
@@ -53,44 +52,80 @@ export function AgentDealCard({ deal }) {
 
   return (
     <>
-    {showModal && <DealDetailModal deal={deal} onClose={() => setShowModal(false)} />}
-    <motion.article
-      className="deal-card agent-deal-card"
-      variants={cardVariants}
-      whileHover={{ scale: 1.02 }}
-      transition={{ type: 'spring', stiffness: 260, damping: 20 }}
-      onClick={() => setShowModal(true)}
-      style={{ cursor: 'pointer' }}
-    >
-      <div className="deal-card__media">
-        {deal.photo_url
-          ? <img src={deal.photo_url} alt={deal.destination_name} className="deal-card__media-img" />
-          : <div className="deal-card__media-placeholder" />}
-        <span className="agent-deal-card__badge">
-          <CheckCircle size={11} />
-          <Link to={`/agent/${deal.agent_slug}`} className="agent-deal-card__badge-link" onClick={e => e.stopPropagation()}>
-            {deal.business_name}
-          </Link>
-        </span>
-        {deal.is_exclusive ? <span className="deal-card__badge deal-card__badge--exclusive">{t.exclusiveDealBadge || 'Exclusive'}</span> : null}
-        <span className="deal-card__route">{deal.destination_name || deal.destination}{deal.country ? `, ${deal.country}` : ''}</span>
-      </div>
+      {showModal && <DealDetailModal deal={deal} onClose={() => setShowModal(false)} />}
 
-      <div className="deal-card__body">
-        <h3 className="deal-card__title">{deal.destination_name || deal.destination}</h3>
+      <motion.article
+        className="adc"
+        whileHover={{ y: -4 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 24 }}
+        onClick={() => setShowModal(true)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={e => e.key === 'Enter' && setShowModal(true)}
+        aria-label={`דיל ל${deal.destination_name || deal.destination}`}
+      >
+        {/* ── Media ────────────────────────────────────────────────── */}
+        <div className="adc__media">
+          {deal.photo_url
+            ? <img src={deal.photo_url} alt={deal.destination_name} className="adc__img" />
+            : <div className="adc__img-placeholder" />}
 
-        {/* Structured info rows */}
-        <div className="agent-deal-card__info">
-          {(deal.airline || dates) && (
-            <div className="agent-deal-card__info-row">
-              <span className="icon-draw icon-draw--once"><Plane size={13} strokeWidth={1.8} /></span>
-              <span>{[deal.airline, dates].filter(Boolean).join(' · ')}</span>
+          <div className="adc__media-gradient" />
+
+          {/* Value score badge — top right */}
+          {deal.value_score > 0 && (
+            <span className="adc__value-badge">
+              -{Math.round(deal.value_score)}%
+            </span>
+          )}
+
+          {/* Exclusive — top left */}
+          {deal.is_exclusive && (
+            <span className="adc__exclusive-badge">
+              🔥 {t.exclusiveDealBadge || 'בלעדי'}
+            </span>
+          )}
+
+          {/* Destination overlay — bottom */}
+          <div className="adc__overlay-bottom">
+            <div className="adc__dest-name">
+              {deal.destination_name || deal.destination}
+              {deal.country ? <span className="adc__country">{deal.country}</span> : null}
+            </div>
+            <span className="adc__agent-badge" onClick={e => e.stopPropagation()}>
+              <CheckCircle size={10} />
+              <Link to={`/agent/${deal.agent_slug}`} className="adc__agent-link" onClick={e => e.stopPropagation()}>
+                {deal.business_name}
+              </Link>
+            </span>
+          </div>
+        </div>
+
+        {/* ── Body ─────────────────────────────────────────────────── */}
+        <div className="adc__body">
+          {/* Info rows */}
+          {(deal.airline || dates || deal.departure_time) && (
+            <div className="adc__info-row">
+              <span className="icon-draw icon-draw--once adc__info-icon">
+                <Plane size={12} strokeWidth={1.8} />
+              </span>
+              <span className="adc__info-text">
+                {[
+                  deal.airline,
+                  dates,
+                  deal.departure_time && deal.arrival_time
+                    ? `${deal.departure_time}→${deal.arrival_time}`
+                    : null,
+                ].filter(Boolean).join(' · ')}
+              </span>
             </div>
           )}
           {deal.hotel_name && (
-            <div className="agent-deal-card__info-row">
-              <span className="icon-draw icon-draw--once"><Hotel size={13} strokeWidth={1.8} /></span>
-              <span>
+            <div className="adc__info-row">
+              <span className="icon-draw icon-draw--once adc__info-icon">
+                <Hotel size={12} strokeWidth={1.8} />
+              </span>
+              <span className="adc__info-text">
                 {deal.hotel_name}
                 {deal.hotel_stars ? ` ${stars(deal.hotel_stars)}` : ''}
                 {deal.hotel_breakfast ? ' · ☕' : ''}
@@ -98,56 +133,66 @@ export function AgentDealCard({ deal }) {
             </div>
           )}
           {deal.car_type && (
-            <div className="agent-deal-card__info-row">
-              <span className="icon-draw icon-draw--once"><Car size={13} strokeWidth={1.8} /></span>
-              <span>{[deal.car_type, deal.car_company].filter(Boolean).join(' · ')}</span>
+            <div className="adc__info-row">
+              <span className="icon-draw icon-draw--once adc__info-icon">
+                <Car size={12} strokeWidth={1.8} />
+              </span>
+              <span className="adc__info-text">
+                {[deal.car_type, deal.car_company].filter(Boolean).join(' · ')}
+              </span>
             </div>
           )}
-        </div>
 
-        <div className="deal-card__price-row">
-          <span className="deal-card__price">
-            {deal.price} {getCurrencySymbol(deal.currency)}
-          </span>
-          {deal.value_score > 0 && (
-            <span className="deal-card__price-avg agent-deal-card__value-badge">
-              -{Math.round(deal.value_score)}% {t.vsMarketLabel || 'vs avg'}
-            </span>
-          )}
-        </div>
+          {/* Price + actions */}
+          <div className="adc__footer">
+            <div className="adc__price-block">
+              <span className="adc__price">
+                {Math.round(deal.price)}{' '}
+                <span className="adc__currency">{getCurrencySymbol(deal.currency)}</span>
+              </span>
+              {deal.description && (
+                <span className="adc__desc-snippet">{deal.description.slice(0, 40)}</span>
+              )}
+            </div>
 
-        {deal.description && <p className="deal-card__desc">{deal.description}</p>}
+            <div className="adc__actions" onClick={e => e.stopPropagation()}>
+              <motion.button
+                className={`adc__btn adc__btn--fav${fav ? ' is-fav' : ''}`}
+                whileTap={{ scale: 0.88 }}
+                onClick={e => { e.stopPropagation(); toggleFavorite(deal); }}
+                aria-label={fav ? 'הסר ממועדפים' : 'שמור למועדפים'}
+              >
+                <Heart size={15} fill={fav ? 'currentColor' : 'none'} />
+              </motion.button>
 
-        <div className="deal-card__actions">
-          <motion.button
-            className={`deal-card__action agent-deal-card__fav-btn${fav ? ' is-fav' : ''}`}
-            whileTap={{ scale: 0.88 }}
-            onClick={e => { e.stopPropagation(); toggleFavorite(deal); }}
-            aria-label={fav ? 'הסר ממועדפים' : 'הוסף למועדפים'}
-          >
-            <Heart size={14} fill={fav ? 'currentColor' : 'none'} />
-          </motion.button>
-          {effectiveWa && (
-            <motion.button
-              className="deal-card__action agent-deal-card__wa-btn"
-              whileTap={{ scale: 0.96 }}
-              onClick={e => { e.stopPropagation(); handleClick(buildWhatsAppUrl(effectiveWa, deal.whatsapp_template, deal.destination_name || deal.destination, dates)); }}
-            >
-              <MessageCircle size={14} /> WhatsApp
-            </motion.button>
-          )}
-          {deal.purchase_link && (
-            <motion.button
-              className="deal-card__action deal-card__action--buy"
-              whileTap={{ scale: 0.96 }}
-              onClick={e => { e.stopPropagation(); handleClick(addUtmParams(deal.purchase_link, deal.id)); }}
-            >
-              <ExternalLink size={13} /> {t.buyNowButton || 'Book'}
-            </motion.button>
-          )}
+              {effectiveWa && (
+                <motion.button
+                  className="adc__btn adc__btn--wa"
+                  whileTap={{ scale: 0.95 }}
+                  onClick={e => {
+                    e.stopPropagation();
+                    handleClick(buildWhatsAppUrl(effectiveWa, deal.whatsapp_template, deal.destination_name || deal.destination, dates));
+                  }}
+                  aria-label="שאל בWhatsApp"
+                >
+                  <MessageCircle size={14} />
+                </motion.button>
+              )}
+
+              {deal.purchase_link && (
+                <motion.button
+                  className="adc__btn adc__btn--book"
+                  whileTap={{ scale: 0.95 }}
+                  onClick={e => { e.stopPropagation(); handleClick(addUtmParams(deal.purchase_link, deal.id)); }}
+                >
+                  <ExternalLink size={13} />
+                  <span>{t.buyNowButton || 'הזמן'}</span>
+                </motion.button>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
-    </motion.article>
+      </motion.article>
     </>
   );
 }

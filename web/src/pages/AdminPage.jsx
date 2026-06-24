@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, XCircle, Eye, RefreshCw, ArrowLeft, Trash2, ChevronLeft, ChevronRight, User, LogIn, LogOut } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, RefreshCw, ArrowLeft, Trash2, ChevronLeft, ChevronRight, User, LogIn, LogOut, Users, FileCheck, LayoutDashboard, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { adminApi } from '../api/client.js';
+import { Logo } from '../components/Logo.jsx';
 
 const AGENTS_PER_PAGE = 25;
 
 function DealPreview({ deal }) {
   return (
-    <div className="admin-deal-preview">
-      {deal.photo_url && <img src={deal.photo_url} alt="" className="admin-deal-preview__img" />}
-      <div className="admin-deal-preview__info">
+    <div className="adm-deal-preview">
+      {deal.photo_url && <img src={deal.photo_url} alt="" className="adm-deal-preview__img" />}
+      <div className="adm-deal-preview__info">
         <strong>{deal.destination_name || deal.destination}</strong>
         <span>{deal.departure_date}{deal.return_date ? ` → ${deal.return_date}` : ''}</span>
         <span>{deal.price} {deal.currency}</span>
@@ -28,12 +29,12 @@ function DealPreview({ deal }) {
 function Pagination({ page, totalPages, onPage }) {
   if (totalPages <= 1) return null;
   return (
-    <div className="admin-pagination">
-      <button className="admin-pagination__btn" disabled={page === 1} onClick={() => onPage(page - 1)}><ChevronRight size={16} /></button>
+    <div className="adm-pagination">
+      <button className="adm-pagination__btn" disabled={page === 1} onClick={() => onPage(page - 1)}><ChevronRight size={16} /></button>
       {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-        <button key={p} className={`admin-pagination__btn${p === page ? ' is-active' : ''}`} onClick={() => onPage(p)}>{p}</button>
+        <button key={p} className={`adm-pagination__btn${p === page ? ' is-active' : ''}`} onClick={() => onPage(p)}>{p}</button>
       ))}
-      <button className="admin-pagination__btn" disabled={page === totalPages} onClick={() => onPage(page + 1)}><ChevronLeft size={16} /></button>
+      <button className="adm-pagination__btn" disabled={page === totalPages} onClick={() => onPage(page + 1)}><ChevronLeft size={16} /></button>
     </div>
   );
 }
@@ -61,22 +62,23 @@ function LoginScreen({ onLogin }) {
   }
 
   return (
-    <div className="admin-login-page" dir="rtl">
+    <div className="adm-login-page" dir="rtl">
       <motion.div
-        className="admin-login-card"
+        className="adm-login-card"
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35 }}
       >
-        <div className="admin-login-card__icon">
-          <LogIn size={28} />
+        <div className="adm-login-card__logo">
+          <Logo size={40} />
         </div>
-        <h1 className="admin-login-card__title">פאנל ניהול</h1>
-        <p className="admin-login-card__sub">Deal Radar Pro</p>
-        <form onSubmit={handleSubmit} className="admin-login-form">
-          <div className="admin-login-field">
-            <label>שם משתמש</label>
+        <h1 className="adm-login-card__title">כניסת מנהל</h1>
+        <p className="adm-login-card__sub">Deal Radar Pro — Admin</p>
+        <form onSubmit={handleSubmit} className="adm-login-form">
+          <div className="adm-login-field">
+            <label className="adm-login-label">שם משתמש</label>
             <input
+              className="adm-login-input"
               type="text"
               value={username}
               onChange={e => setUsername(e.target.value)}
@@ -85,9 +87,10 @@ function LoginScreen({ onLogin }) {
               autoFocus
             />
           </div>
-          <div className="admin-login-field">
-            <label>סיסמה</label>
+          <div className="adm-login-field">
+            <label className="adm-login-label">סיסמה</label>
             <input
+              className="adm-login-input"
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
@@ -95,17 +98,17 @@ function LoginScreen({ onLogin }) {
               autoComplete="current-password"
             />
           </div>
-          {error && <p className="admin-login-error">{error}</p>}
+          {error && <p className="adm-login-error">{error}</p>}
           <motion.button
             type="submit"
-            className="admin-login-btn"
+            className="adm-login-btn"
             whileTap={{ scale: 0.97 }}
             disabled={loading}
           >
-            {loading ? 'מתחבר…' : 'כניסה'}
+            {loading ? 'מתחבר…' : 'כניסה לפאנל'}
           </motion.button>
         </form>
-        <Link to="/" className="admin-login-back"><ArrowLeft size={14} /> דף הבית</Link>
+        <Link to="/" className="adm-login-back"><ArrowLeft size={14} /> חזרה לאתר</Link>
       </motion.div>
     </div>
   );
@@ -216,71 +219,110 @@ export function AdminPage() {
   const pagedAgents = allAgents.slice((agentsPage - 1) * AGENTS_PER_PAGE, agentsPage * AGENTS_PER_PAGE);
 
   function statusLabel(s) {
-    if (s === 'approved') return { label: 'מאושר', cls: 'admin-status--approved' };
-    if (s === 'rejected') return { label: 'נדחה', cls: 'admin-status--rejected' };
-    return { label: 'ממתין', cls: 'admin-status--pending' };
+    if (s === 'approved') return { label: 'מאושר', cls: 'adm-status--approved' };
+    if (s === 'rejected') return { label: 'נדחה', cls: 'adm-status--rejected' };
+    return { label: 'ממתין', cls: 'adm-status--pending' };
   }
 
   return (
-    <div className="admin-page" dir="rtl">
-      {notification && (
-        <div className={`admin-page__notification admin-page__notification--${notification.type}`}>{notification.msg}</div>
-      )}
+    <div className="adm-page" dir="rtl">
+      <AnimatePresence>
+        {notification && (
+          <motion.div
+            className={`adm-toast adm-toast--${notification.type}`}
+            initial={{ opacity: 0, y: -16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -16 }}
+          >
+            {notification.msg}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      <div className="admin-page__header">
-        <Link to="/" className="admin-page__back-btn"><ArrowLeft size={18} /> דף הבית</Link>
-        <h1>פאנל ניהול</h1>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button className="admin-page__refresh" onClick={load} disabled={loading}>
+      {/* Header */}
+      <header className="adm-header">
+        <div className="adm-header__brand">
+          <Logo size={30} />
+          <span className="adm-header__label">ניהול</span>
+        </div>
+        <div className="adm-header__actions">
+          <Link to="/" className="adm-icon-btn" title="חזרה לאתר">
+            <ArrowLeft size={16} />
+          </Link>
+          <button className="adm-icon-btn" onClick={load} disabled={loading} title="רענן">
             <RefreshCw size={16} className={loading ? 'spinning' : ''} />
           </button>
-          <button className="admin-page__refresh" onClick={handleLogout} title="התנתקות">
+          <button className="adm-icon-btn adm-icon-btn--danger" onClick={handleLogout} title="התנתקות">
             <LogOut size={16} />
           </button>
         </div>
+      </header>
+
+      {/* KPI row */}
+      <div className="adm-kpi-row">
+        <div className="adm-kpi">
+          <Clock size={18} className="adm-kpi__icon adm-kpi__icon--amber" />
+          <span className="adm-kpi__value">{pendingAgents.length}</span>
+          <span className="adm-kpi__label">סוכנים ממתינים</span>
+        </div>
+        <div className="adm-kpi">
+          <Users size={18} className="adm-kpi__icon adm-kpi__icon--teal" />
+          <span className="adm-kpi__value">{allAgents.length}</span>
+          <span className="adm-kpi__label">סה"כ סוכנים</span>
+        </div>
+        <div className="adm-kpi">
+          <Clock size={18} className="adm-kpi__icon adm-kpi__icon--coral" />
+          <span className="adm-kpi__value">{pendingDeals.length}</span>
+          <span className="adm-kpi__label">דילים ממתינים</span>
+        </div>
+        <div className="adm-kpi">
+          <FileCheck size={18} className="adm-kpi__icon adm-kpi__icon--green" />
+          <span className="adm-kpi__value">{approvedDeals.length}</span>
+          <span className="adm-kpi__label">דילים פעילים</span>
+        </div>
       </div>
 
-      <div className="admin-tabs">
-        <button className={`admin-tabs__btn${tab === 'pending-agents' ? ' is-active' : ''}`} onClick={() => setTab('pending-agents')}>
-          סוכנים ממתינים {pendingAgents.length > 0 && <span className="admin-tabs__badge">{pendingAgents.length}</span>}
+      <div className="adm-tabs">
+        <button className={`adm-tabs__btn${tab === 'pending-agents' ? ' is-active' : ''}`} onClick={() => setTab('pending-agents')}>
+          סוכנים ממתינים {pendingAgents.length > 0 && <span className="adm-tabs__badge">{pendingAgents.length}</span>}
         </button>
-        <button className={`admin-tabs__btn${tab === 'all-agents' ? ' is-active' : ''}`} onClick={() => setTab('all-agents')}>
-          כל הסוכנים <span className="admin-tabs__badge admin-tabs__badge--neutral">{allAgents.length}</span>
+        <button className={`adm-tabs__btn${tab === 'all-agents' ? ' is-active' : ''}`} onClick={() => setTab('all-agents')}>
+          כל הסוכנים <span className="adm-tabs__badge adm-tabs__badge--neutral">{allAgents.length}</span>
         </button>
-        <button className={`admin-tabs__btn${tab === 'pending-deals' ? ' is-active' : ''}`} onClick={() => setTab('pending-deals')}>
-          דילים ממתינים {pendingDeals.length > 0 && <span className="admin-tabs__badge">{pendingDeals.length}</span>}
+        <button className={`adm-tabs__btn${tab === 'pending-deals' ? ' is-active' : ''}`} onClick={() => setTab('pending-deals')}>
+          דילים ממתינים {pendingDeals.length > 0 && <span className="adm-tabs__badge">{pendingDeals.length}</span>}
         </button>
-        <button className={`admin-tabs__btn${tab === 'active-deals' ? ' is-active' : ''}`} onClick={() => setTab('active-deals')}>
-          דילים פעילים <span className="admin-tabs__badge admin-tabs__badge--neutral">{approvedDeals.length}</span>
+        <button className={`adm-tabs__btn${tab === 'active-deals' ? ' is-active' : ''}`} onClick={() => setTab('active-deals')}>
+          דילים פעילים <span className="adm-tabs__badge adm-tabs__badge--neutral">{approvedDeals.length}</span>
         </button>
       </div>
 
       {loading && <p style={{ textAlign: 'center', padding: 32, color: 'var(--color-text-muted)' }}>טוען…</p>}
 
       {!loading && tab === 'pending-agents' && (
-        <div className="admin-list">
-          {pendingAgents.length === 0 && <p className="admin-list__empty">אין סוכנים ממתינים</p>}
+        <div className="adm-list">
+          {pendingAgents.length === 0 && <p className="adm-list__empty">אין סוכנים ממתינים</p>}
           {pendingAgents.map(agent => (
-            <div key={agent.id} className="admin-row">
-              <div className="admin-row__info">
+            <div key={agent.id} className="adm-row">
+              <div className="adm-row__info">
                 <strong>{agent.business_name}</strong>
                 <span>{agent.contact_name} · {agent.email}</span>
                 {agent.phone && <span>{agent.phone}</span>}
                 {agent.license_number && <span>רישיון: {agent.license_number}</span>}
-                <span className="admin-row__date">{new Date(agent.created_at).toLocaleDateString('he-IL')}</span>
+                <span className="adm-row__date">{new Date(agent.created_at).toLocaleDateString('he-IL')}</span>
               </div>
-              <div className="admin-row__actions">
-                <motion.button className="admin-row__approve" whileTap={{ scale: 0.97 }} onClick={() => approveAgent(agent.id)}>
+              <div className="adm-row__actions">
+                <motion.button className="adm-row__approve" whileTap={{ scale: 0.97 }} onClick={() => approveAgent(agent.id)}>
                   <CheckCircle size={16} /> אשר
                 </motion.button>
-                <motion.button className="admin-row__reject" whileTap={{ scale: 0.97 }} onClick={() => startReject(agent.id, 'agent')}>
+                <motion.button className="adm-row__reject" whileTap={{ scale: 0.97 }} onClick={() => startReject(agent.id, 'agent')}>
                   <XCircle size={16} /> דחה
                 </motion.button>
               </div>
               {rejectId === agent.id && rejectTarget === 'agent' && (
-                <div className="admin-row__reject-form">
-                  <input className="admin-row__reject-input" value={rejectReason} onChange={e => setRejectReason(e.target.value)} placeholder="סיבה (אופציונלי)" autoFocus />
-                  <button className="admin-row__reject-confirm" onClick={() => rejectAgent(agent.id)}>אשר דחייה</button>
+                <div className="adm-row__reject-form">
+                  <input className="adm-row__reject-input" value={rejectReason} onChange={e => setRejectReason(e.target.value)} placeholder="סיבה (אופציונלי)" autoFocus />
+                  <button className="adm-row__reject-confirm" onClick={() => rejectAgent(agent.id)}>אשר דחייה</button>
                   <button onClick={() => setRejectId(null)}>ביטול</button>
                 </div>
               )}
@@ -290,34 +332,34 @@ export function AdminPage() {
       )}
 
       {!loading && tab === 'all-agents' && (
-        <div className="admin-list">
-          {allAgents.length === 0 && <p className="admin-list__empty">אין סוכנים</p>}
+        <div className="adm-list">
+          {allAgents.length === 0 && <p className="adm-list__empty">אין סוכנים</p>}
           {pagedAgents.map(agent => {
             const { label, cls } = statusLabel(agent.status);
             const isExpanded = selectedAgent === agent.id;
             return (
-              <div key={agent.id} className="admin-row admin-row--clickable" onClick={() => setSelectedAgent(isExpanded ? null : agent.id)}>
-                <div className="admin-row__info">
+              <div key={agent.id} className="adm-row adm-row--clickable" onClick={() => setSelectedAgent(isExpanded ? null : agent.id)}>
+                <div className="adm-row__info">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <User size={14} style={{ opacity: 0.5 }} />
                     <strong>{agent.business_name}</strong>
-                    <span className={`admin-status ${cls}`}>{label}</span>
+                    <span className={`adm-status ${cls}`}>{label}</span>
                   </div>
                   <span>{agent.contact_name} · {agent.email}</span>
-                  <span className="admin-row__date">{new Date(agent.created_at).toLocaleDateString('he-IL')}</span>
+                  <span className="adm-row__date">{new Date(agent.created_at).toLocaleDateString('he-IL')}</span>
                 </div>
                 <AnimatePresence>
                   {isExpanded && (
                     <motion.div
-                      className="admin-agent-detail"
+                      className="adm-agent-detail"
                       initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.22 }}
                       onClick={e => e.stopPropagation()}
                     >
-                      {agent.phone && <div className="admin-agent-detail__row"><span>טלפון:</span> {agent.phone}</div>}
-                      <div className="admin-agent-detail__row"><span>לידים:</span> {agent.lead_count || 0}</div>
-                      <div className="admin-agent-detail__row">
-                        <a href={`/agent/${agent.slug}`} target="_blank" rel="noopener noreferrer" className="admin-agent-detail__link">
+                      {agent.phone && <div className="adm-agent-detail__row"><span>טלפון:</span> {agent.phone}</div>}
+                      <div className="adm-agent-detail__row"><span>לידים:</span> {agent.lead_count || 0}</div>
+                      <div className="adm-agent-detail__row">
+                        <a href={`/agent/${agent.slug}`} target="_blank" rel="noopener noreferrer" className="adm-agent-detail__link">
                           <Eye size={12} /> פרופיל ציבורי
                         </a>
                       </div>
@@ -332,23 +374,23 @@ export function AdminPage() {
       )}
 
       {!loading && tab === 'pending-deals' && (
-        <div className="admin-list">
-          {pendingDeals.length === 0 && <p className="admin-list__empty">אין דילים ממתינים</p>}
+        <div className="adm-list">
+          {pendingDeals.length === 0 && <p className="adm-list__empty">אין דילים ממתינים</p>}
           {pendingDeals.map(deal => (
-            <div key={deal.id} className="admin-row">
+            <div key={deal.id} className="adm-row">
               <DealPreview deal={deal} />
-              <div className="admin-row__actions">
-                <motion.button className="admin-row__approve" whileTap={{ scale: 0.97 }} onClick={() => approveDeal(deal.id)}>
+              <div className="adm-row__actions">
+                <motion.button className="adm-row__approve" whileTap={{ scale: 0.97 }} onClick={() => approveDeal(deal.id)}>
                   <CheckCircle size={16} /> אשר
                 </motion.button>
-                <motion.button className="admin-row__reject" whileTap={{ scale: 0.97 }} onClick={() => startReject(deal.id, 'deal')}>
+                <motion.button className="adm-row__reject" whileTap={{ scale: 0.97 }} onClick={() => startReject(deal.id, 'deal')}>
                   <XCircle size={16} /> דחה
                 </motion.button>
               </div>
               {rejectId === deal.id && rejectTarget === 'deal' && (
-                <div className="admin-row__reject-form">
-                  <input className="admin-row__reject-input" value={rejectReason} onChange={e => setRejectReason(e.target.value)} placeholder="סיבה לדחייה" autoFocus />
-                  <button className="admin-row__reject-confirm" onClick={() => rejectDeal(deal.id)}>אשר דחייה</button>
+                <div className="adm-row__reject-form">
+                  <input className="adm-row__reject-input" value={rejectReason} onChange={e => setRejectReason(e.target.value)} placeholder="סיבה לדחייה" autoFocus />
+                  <button className="adm-row__reject-confirm" onClick={() => rejectDeal(deal.id)}>אשר דחייה</button>
                   <button onClick={() => setRejectId(null)}>ביטול</button>
                 </div>
               )}
@@ -358,20 +400,20 @@ export function AdminPage() {
       )}
 
       {!loading && tab === 'active-deals' && (
-        <div className="admin-list">
-          {approvedDeals.length === 0 && <p className="admin-list__empty">אין דילים פעילים</p>}
+        <div className="adm-list">
+          {approvedDeals.length === 0 && <p className="adm-list__empty">אין דילים פעילים</p>}
           {approvedDeals.map(deal => (
-            <div key={deal.id} className="admin-row">
+            <div key={deal.id} className="adm-row">
               <DealPreview deal={deal} />
-              <div className="admin-row__actions">
+              <div className="adm-row__actions">
                 {deleteConfirmId === deal.id ? (
                   <>
                     <span style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>למחוק?</span>
-                    <button className="admin-row__reject" onClick={() => deleteDeal(deal.id)}>כן, מחק</button>
+                    <button className="adm-row__reject" onClick={() => deleteDeal(deal.id)}>כן, מחק</button>
                     <button onClick={() => setDeleteConfirmId(null)}>ביטול</button>
                   </>
                 ) : (
-                  <motion.button className="admin-row__delete" whileTap={{ scale: 0.97 }} onClick={() => setDeleteConfirmId(deal.id)}>
+                  <motion.button className="adm-row__delete" whileTap={{ scale: 0.97 }} onClick={() => setDeleteConfirmId(deal.id)}>
                     <Trash2 size={14} /> מחק
                   </motion.button>
                 )}

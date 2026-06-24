@@ -27,11 +27,13 @@ export function FavoritesPage() {
 
       {favorites.length === 0 ? (
         <div className="favorites-page__empty">
-          <div className="favorites-page__empty-icon">❤️</div>
-          <p className="favorites-page__empty-text">אין לך מועדפים עדיין</p>
-          <p className="favorites-page__empty-sub">לחץ על ❤️ על כל דיל כדי לשמור אותו כאן</p>
-          <Link to="/" style={{ marginTop: 16, display: 'inline-block', color: 'var(--color-accent-from)' }}>
-            חזרה לדף הבית →
+          <div className="favorites-page__empty-icon">✈️</div>
+          <p className="favorites-page__empty-text">עדיין לא שמרת דילים</p>
+          <p className="favorites-page__empty-sub">
+            לחץ על ❤️ על כל דיל שאהבת — הוא ישמר כאן, מוכן לשיתוף או הזמנה
+          </p>
+          <Link to="/" style={{ marginTop: 20, display: 'inline-block', color: 'var(--ds-teal, #17c3b2)', fontWeight: 700 }}>
+            מצא דיל עכשיו →
           </Link>
         </div>
       ) : (

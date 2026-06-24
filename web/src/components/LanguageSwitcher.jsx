@@ -35,19 +35,19 @@ export function LanguageSwitcher() {
     <div className="lang-dropdown" ref={ref}>
       <button
         type="button"
-        className="lang-dropdown__trigger"
+        className="lang-dropdown__trigger lang-dropdown__trigger--compact"
         onClick={() => setOpen(o => !o)}
         aria-haspopup="listbox"
         aria-expanded={open}
+        title={current.label}
       >
         <span className="lang-dropdown__flag">{current.flag}</span>
-        <span className="lang-dropdown__label">{current.label}</span>
         <motion.span
           animate={{ rotate: open ? 180 : 0 }}
           transition={{ duration: 0.2 }}
-          style={{ display: 'flex', alignItems: 'center' }}
+          style={{ display: 'flex', alignItems: 'center', opacity: 0.55 }}
         >
-          <ChevronDown size={13} />
+          <ChevronDown size={11} />
         </motion.span>
       </button>
 
