@@ -852,7 +852,7 @@
 @media (min-width: 960px) { .tvc { width: 240px; } }
 
 .tvc--skeleton {
-  background: linear-gradient(90deg, var(--color-surface) 25%, rgba(255,255,255,0.05) 50%, var(--color-surface) 75%);
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
   background-size: 200% 100%;
   animation: price-skeleton-shimmer 1.4s ease-in-out infinite;
   min-height: 280px;
@@ -862,6 +862,8 @@
   height: 280px;
   position: relative;
   overflow: hidden;
+  /* Fallback when no destination image loads */
+  background: linear-gradient(145deg, #1e3a5f 0%, #2563EB 50%, #17c3b2 100%);
 }
 .tvc__media img,
 .tvc__media > div:first-child { width: 100%; height: 100%; object-fit: cover; }

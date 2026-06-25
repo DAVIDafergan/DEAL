@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AppShell } from './AppShell.jsx';
+import { PublicLayout } from './components/PublicLayout.jsx';
 import { LanguageProvider } from './context/LanguageContext.jsx';
 import { AgentAuthProvider } from './context/AgentAuthContext.jsx';
 import { RegisterPage } from './pages/RegisterPage.jsx';
@@ -23,17 +24,24 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <AgentAuthProvider>
         <BrowserRouter>
           <Routes>
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/register/traveler" element={<TravelerRegisterPage />} />
-            <Route path="/agent/register" element={<AgentRegisterPage />} />
-            <Route path="/agent/login" element={<AgentLoginPage />} />
+            {/* Routes with shared public header */}
+            <Route element={<PublicLayout />}>
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/register/traveler" element={<TravelerRegisterPage />} />
+              <Route path="/agent/register" element={<AgentRegisterPage />} />
+              <Route path="/agent/login" element={<AgentLoginPage />} />
+              <Route path="/agent/:slug" element={<AgentPublicProfilePage />} />
+              <Route path="/my/favorites" element={<FavoritesPage />} />
+              <Route path="/terms" element={<TermsPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
+            </Route>
+
+            {/* Routes with their own navigation (no shared header) */}
             <Route path="/agent/dashboard/settings" element={<AgentSettingsPage />} />
             <Route path="/agent/dashboard" element={<AgentDashboardPage />} />
-            <Route path="/agent/:slug" element={<AgentPublicProfilePage />} />
             <Route path="/admin" element={<AdminPage />} />
-            <Route path="/my/favorites" element={<FavoritesPage />} />
-            <Route path="/terms" element={<TermsPage />} />
-            <Route path="/privacy" element={<PrivacyPage />} />
+
+            {/* App shell — 3 tabs (home/reels/plan), header lives inside AppShell */}
             <Route path="/*" element={<AppShell />} />
           </Routes>
         </BrowserRouter>

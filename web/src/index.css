@@ -74,6 +74,39 @@ button {
   background: rgba(255,255,255,0.97);
 }
 
+/* Reels tab — fixed overlay so it doesn't push the full-screen feed down */
+.top-bar-wrapper--reels {
+  position: fixed;
+  top: 0;
+  inset-inline: 0;
+  z-index: 200;
+}
+.top-bar-wrapper--reels .top-bar {
+  background: rgba(10, 12, 22, 0.55);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.top-bar-wrapper--reels .brand-sub,
+.top-bar-wrapper--reels .top-bar__inner .brand-block span {
+  color: rgba(255,255,255,0.8);
+}
+.top-bar-wrapper--reels .header-auth-btn--ghost {
+  color: rgba(255,255,255,0.85);
+  border-color: rgba(255,255,255,0.2);
+}
+.top-bar-wrapper--reels .header-fav-btn {
+  color: rgba(255,255,255,0.85);
+}
+.top-bar-wrapper--reels .header-hamburger {
+  color: rgba(255,255,255,0.9);
+}
+.top-bar-wrapper--reels .header-login-pill {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.25);
+}
+
 .top-bar {
   position: relative;
   backdrop-filter: blur(14px);
@@ -2378,16 +2411,6 @@ label { color: var(--color-text-secondary); }
   color: var(--color-accent-from);
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   TOP VALUE DEALS — HERO / LUXURY UPGRADE
-   ═══════════════════════════════════════════════════════════════════════════ */
-.top-value-deals--hero {
-  padding-top: 28px;
-}
-.top-value-deals--hero .top-value-deals__title {
-  font-size: 1.25rem;
-  margin-bottom: 20px;
-}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DEAL WIZARD — FLIGHT DURATION

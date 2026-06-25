@@ -3,6 +3,7 @@ import { App } from './App.jsx';
 import { DealsTab } from './vibe/DealsTab.jsx';
 import { PlanTab } from './components/PlanTab.jsx';
 import { BottomNav } from './components/BottomNav.jsx';
+import { Header } from './components/Header.jsx';
 import { ALL_VIBES_KEY, VIBES } from './vibe/vibeConstants.js';
 
 function deriveActiveTab(pathname) {
@@ -38,6 +39,8 @@ export function AppShell() {
 
   return (
     <div className="app-shell-tabs">
+      <Header reels={activeTab === 'deals'} />
+
       <div className="app-shell-tabs__panel" style={{ display: activeTab === 'home' ? 'block' : 'none' }}>
         <App />
       </div>

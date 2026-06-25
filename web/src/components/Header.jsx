@@ -7,7 +7,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { LayoutDashboard, LogOut, Heart, Menu, X, User, FileText, Compass } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export function Header() {
+export function Header({ reels = false }) {
   const { t } = useLanguage();
   const { agent, token, loading, logout } = useAgentAuth();
   const navigate = useNavigate();
@@ -29,7 +29,7 @@ export function Header() {
   }
 
   return (
-    <div className={`top-bar-wrapper${scrolled ? ' top-bar-wrapper--scrolled' : ''}`}>
+    <div className={`top-bar-wrapper${reels ? ' top-bar-wrapper--reels' : ''}${scrolled && !reels ? ' top-bar-wrapper--scrolled' : ''}`}>
       <header className="top-bar">
         <div className="container top-bar__inner">
           <div className="brand-block">

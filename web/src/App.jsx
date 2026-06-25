@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useLanguage } from './context/LanguageContext.jsx';
 import { NowProvider } from './context/NowContext.jsx';
 import { fetchPopularPackages, agentApi } from './api/client.js';
-import { Header } from './components/Header.jsx';
 import { PackagesStrip } from './components/PackagesStrip.jsx';
 import { TopValueDeals } from './components/TopValueDeals.jsx';
 import { AgentDealCard } from './components/agent/AgentDealCard.jsx';
@@ -43,8 +42,6 @@ export function App() {
 
   return (
     <NowProvider>
-      <Header />
-
       {/* Top 5 most valuable deals — hero section */}
       <TopValueDeals hero />
 
