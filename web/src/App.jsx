@@ -4,6 +4,7 @@ import { NowProvider } from './context/NowContext.jsx';
 import { fetchPopularPackages, agentApi } from './api/client.js';
 import { PackagesStrip } from './components/PackagesStrip.jsx';
 import { TopValueDeals } from './components/TopValueDeals.jsx';
+import { HowItWorks } from './components/HowItWorks.jsx';
 import { AgentDealCard } from './components/agent/AgentDealCard.jsx';
 import { ReelsStrip } from './components/ReelsStrip.jsx';
 import { SiteFooter } from './components/SiteFooter.jsx';
@@ -42,6 +43,9 @@ export function App() {
 
   return (
     <NowProvider>
+      {/* Animated explainer: agents → system → best deal */}
+      <HowItWorks />
+
       {/* Top 5 most valuable deals — hero section */}
       <TopValueDeals hero />
 

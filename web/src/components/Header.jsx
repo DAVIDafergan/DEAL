@@ -4,10 +4,10 @@ import { LanguageSwitcher } from './LanguageSwitcher.jsx';
 import { Logo } from './Logo.jsx';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { useNavigate, Link } from 'react-router-dom';
-import { LayoutDashboard, LogOut, Heart, Menu, X, User, FileText, Compass } from 'lucide-react';
+import { LayoutDashboard, LogOut, Heart, Menu, X, User, FileText, Compass, Home, Play } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export function Header({ reels = false }) {
+export function Header({ reels = false, activeTab = 'home' }) {
   const { t } = useLanguage();
   const { agent, token, loading, logout } = useAgentAuth();
   const navigate = useNavigate();
@@ -80,8 +80,42 @@ export function Header({ reels = false }) {
             )}
           </div>
 
-          {/* Mobile: login pill / avatar + hamburger */}
+          {/* Mobile: hamburger | ❤️ | personal area | language */}
           <div className="top-bar__actions top-bar__mobile-actions">
+            <button
+              className="header-hamburger"
+              onClick={() => { setMenuOpen(v => !v); setAvatarOpen(false); }}
+              aria-label="תפריט"
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                {menuOpen ? (
+                  <motion.span
+                    key="x"
+                    initial={{ rotate: -90, opacity: 0 }}
+                    animate={{ rotate: 0, opacity: 1 }}
+                    exit={{ rotate: 90, opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    style={{ display: 'flex' }}
+                  >
+                    <X size={22} />
+                  </motion.span>
+                ) : (
+                  <motion.span
+                    key="menu"
+                    initial={{ rotate: 90, opacity: 0 }}
+                    animate={{ rotate: 0, opacity: 1 }}
+                    exit={{ rotate: -90, opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    style={{ display: 'flex' }}
+                  >
+                    <Menu size={22} />
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </button>
+            <Link to="/my/favorites" className="header-fav-btn" title="המועדפים שלי">
+              <Heart size={17} />
+            </Link>
             {!loading && (
               token && agent ? (
                 <div className="header-avatar-wrap">
@@ -132,37 +166,9 @@ export function Header({ reels = false }) {
                 </button>
               )
             )}
-            <button
-              className="header-hamburger"
-              onClick={() => { setMenuOpen(v => !v); setAvatarOpen(false); }}
-              aria-label="תפריט"
-            >
-              <AnimatePresence mode="wait" initial={false}>
-                {menuOpen ? (
-                  <motion.span
-                    key="x"
-                    initial={{ rotate: -90, opacity: 0 }}
-                    animate={{ rotate: 0, opacity: 1 }}
-                    exit={{ rotate: 90, opacity: 0 }}
-                    transition={{ duration: 0.15 }}
-                    style={{ display: 'flex' }}
-                  >
-                    <X size={22} />
-                  </motion.span>
-                ) : (
-                  <motion.span
-                    key="menu"
-                    initial={{ rotate: 90, opacity: 0 }}
-                    animate={{ rotate: 0, opacity: 1 }}
-                    exit={{ rotate: -90, opacity: 0 }}
-                    transition={{ duration: 0.15 }}
-                    style={{ display: 'flex' }}
-                  >
-                    <Menu size={22} />
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </button>
+            <div className="header-lang-mobile">
+              <LanguageSwitcher />
+            </div>
           </div>
         </div>
       </header>
@@ -179,18 +185,23 @@ export function Header({ reels = false }) {
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.18 }}
             >
-              <Link to="/plan" className="header-drawer__item" onClick={closeAll}>
+              <Link to="/" className={`header-drawer__item${activeTab === 'home' ? ' header-drawer__item--active' : ''}`} onClick={closeAll}>
+                <Home size={16} />
+                {t.homeLink || 'דף הבית'}
+              </Link>
+              <Link to="/reels" className={`header-drawer__item${activeTab === 'deals' ? ' header-drawer__item--active' : ''}`} onClick={closeAll}>
+                <Play size={16} />
+                {t.dealsLink || 'פיד דילים'}
+              </Link>
+              <Link to="/plan" className={`header-drawer__item${activeTab === 'plan' ? ' header-drawer__item--active' : ''}`} onClick={closeAll}>
                 <Compass size={16} />
                 {t.buildVacationLink || 'בניית חופשה'}
               </Link>
-              <Link to="/my/favorites" className="header-drawer__item" onClick={closeAll}>
-                <Heart size={16} />
-                המועדפים שלי
-              </Link>
-              <div className="header-drawer__lang">
-                <LanguageSwitcher />
-              </div>
               <div className="header-drawer__divider" />
+              <Link to="/my/favorites" className="header-drawer__item" onClick={closeAll}>
+                <Heart size={15} />
+                {t.favoritesLink || 'המועדפים שלי'}
+              </Link>
               <Link to="/terms" className="header-drawer__item header-drawer__item--muted" onClick={closeAll}>
                 <FileText size={15} />
                 {t.termsLink || 'תנאי שימוש'}
@@ -204,7 +215,7 @@ export function Header({ reels = false }) {
                   className="header-drawer__item"
                   onClick={() => { navigate('/register'); closeAll(); }}
                 >
-                  הרשמה
+                  {t.registerLink || 'הרשמת סוכן'}
                 </button>
               )}
             </motion.nav>

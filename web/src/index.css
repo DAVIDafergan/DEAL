@@ -14,6 +14,10 @@ body,
   min-height: 100%;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 html,
 body {
   overflow-x: hidden;
@@ -3685,10 +3689,9 @@ body {
    MOBILE FIXES (≤540px)
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* 1. App shell panel: pad bottom so footer clears the fixed BottomNav */
 @media (max-width: 768px) {
   .app-shell-tabs__panel {
-    padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+    padding-bottom: 0;
   }
 }
 
@@ -3767,12 +3770,14 @@ body {
   text-align: start;
   transition: background 0.15s, color 0.15s;
 }
-.header-drawer__item:hover {
+.header-drawer__item:hover,
+.header-drawer__item--active {
   background: rgba(37,99,235,0.06);
   color: var(--color-accent-from);
 }
-.header-drawer__lang {
-  padding: 6px 14px;
+.header-lang-mobile {
+  display: flex;
+  align-items: center;
 }
 
 /* ---------- avatar button + dropdown menu ---------- */
@@ -4394,4 +4399,105 @@ body {
 }
 @media (max-width: 500px) {
   .settings-card .settings-fields-2col { grid-template-columns: 1fr; }
+}
+
+/* ── How It Works — homepage animated explainer ──────────────────────────── */
+.how-it-works {
+  padding: 40px 0 24px;
+  direction: rtl;
+}
+
+.how-it-works__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.how-it-works__step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+}
+
+.how-it-works__icon-wrap {
+  position: relative;
+  width: 68px;
+  height: 68px;
+  flex-shrink: 0;
+}
+
+.how-it-works__ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.how-it-works__icon-inner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-accent-from);
+}
+
+.how-it-works__body { display: flex; flex-direction: column; gap: 6px; }
+
+.how-it-works__title {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.how-it-works__sub {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+}
+
+@media (max-width: 540px) {
+  .how-it-works__grid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .how-it-works__step {
+    flex-direction: row;
+    text-align: start;
+    align-items: center;
+  }
+}
+
+/* ── Agent social profile: clean header without cover ──────────────────────── */
+.agent-social-profile__topbar {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px 0;
+}
+.agent-social-profile__back-clean {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  transition: color 0.15s, border-color 0.15s;
+}
+.agent-social-profile__back-clean:hover {
+  color: var(--color-text-primary);
+  border-color: var(--color-text-muted);
+}
+.agent-social-profile__header--clean {
+  margin-top: 0 !important;
+  padding-top: 24px;
 }

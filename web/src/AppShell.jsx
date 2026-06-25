@@ -2,7 +2,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { App } from './App.jsx';
 import { DealsTab } from './vibe/DealsTab.jsx';
 import { PlanTab } from './components/PlanTab.jsx';
-import { BottomNav } from './components/BottomNav.jsx';
 import { Header } from './components/Header.jsx';
 import { ALL_VIBES_KEY, VIBES } from './vibe/vibeConstants.js';
 
@@ -29,17 +28,13 @@ export function AppShell() {
   const activeTab = deriveActiveTab(location.pathname);
   const vibe = deriveVibe(location.pathname);
 
-  function handleNavigate(tab) {
-    navigate(tab.path);
-  }
-
   function handleChangeVibe(nextVibe) {
     navigate(nextVibe === ALL_VIBES_KEY ? '/reels' : `/reels/${nextVibe}`);
   }
 
   return (
     <div className="app-shell-tabs">
-      <Header reels={activeTab === 'deals'} />
+      <Header reels={activeTab === 'deals'} activeTab={activeTab} />
 
       <div className="app-shell-tabs__panel" style={{ display: activeTab === 'home' ? 'block' : 'none' }}>
         <App />
@@ -52,8 +47,6 @@ export function AppShell() {
       <div className="app-shell-tabs__panel" style={{ display: activeTab === 'plan' ? 'block' : 'none' }}>
         <PlanTab onExit={() => navigate('/')} />
       </div>
-
-      <BottomNav activeTab={activeTab} onNavigate={handleNavigate} />
     </div>
   );
 }

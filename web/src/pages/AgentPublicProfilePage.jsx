@@ -56,7 +56,6 @@ export function AgentPublicProfilePage() {
 
   if (loading) return (
     <div className="agent-social-profile" dir="rtl">
-      <div className="agent-social-profile__cover agent-social-profile__cover--skeleton" />
       <div style={{ padding: 24, textAlign: 'center', color: 'var(--color-text-muted)' }}>טוען…</div>
     </div>
   );
@@ -80,16 +79,15 @@ export function AgentPublicProfilePage() {
         />
       )}
 
-      {/* Cover image — full-width banner */}
-      <div className="agent-social-profile__cover">
-        <div className="agent-social-profile__cover-bg" />
-        <Link to="/" className="agent-social-profile__back">
-          <ArrowLeft size={16} /> {t.backToFeedButton || 'חזרה'}
+      {/* Back link */}
+      <div className="agent-social-profile__topbar container">
+        <Link to="/" className="agent-social-profile__back-clean">
+          <ArrowLeft size={14} /> {t.backToFeedButton || 'חזרה'}
         </Link>
       </div>
 
-      {/* Profile header — avatar overlapping cover */}
-      <div className="agent-social-profile__header container">
+      {/* Profile header — clean, no cover */}
+      <div className="agent-social-profile__header container agent-social-profile__header--clean">
         <div className="agent-social-profile__avatar-wrap">
           {agent.logo_url
             ? <img src={agent.logo_url} alt={agent.business_name} className="agent-social-profile__avatar" />
