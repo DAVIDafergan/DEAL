@@ -30,64 +30,67 @@ export function TopValueDeals({ hero }) {
       .finally(() => setLoading(false));
   }, []);
 
-  if (!loading && deals.length === 0) return null;
-
   return (
     <section className={`top-value-deals container${hero ? ' top-value-deals--hero' : ''}`}>
       <h2 className="top-value-deals__title">
         <Flame size={20} color="var(--color-accent-from)" />
-        {t.topValueDealsTitle || '5 Most Valuable Deals Today'}
+        {t.topValueDealsTitle || '5 הדילים המשתלמים ביותר היום'}
       </h2>
 
-      <motion.div
-        className="top-value-deals__track"
-        variants={trackVariants}
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: '-40px' }}
-      >
-        {loading
-          ? [...Array(5)].map((_, i) => (
-              <div key={i} className="tvc tvc--skeleton" />
-            ))
-          : deals.map((deal) => (
-              <motion.div
-                key={`${deal.deal_source}-${deal.id}`}
-                className="tvc"
-                variants={cardVariants}
-                whileHover={{ y: -5, scale: 1.02 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-                onClick={() => setSelected(deal)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={e => e.key === 'Enter' && setSelected(deal)}
-              >
-                <div className="tvc__media">
-                  <DestinationImage iataCode={deal.destination} />
-                  <div className="tvc__gradient" />
+      {!loading && deals.length === 0 ? (
+        <p className="top-value-deals__empty">
+          {t.noTopDealsYet || 'הדילים המשתלמים ביותר יופיעו כאן בקרוב ✈️'}
+        </p>
+      ) : (
+        <motion.div
+          className="top-value-deals__track"
+          variants={trackVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-40px' }}
+        >
+          {loading
+            ? [...Array(5)].map((_, i) => (
+                <div key={i} className="tvc tvc--skeleton" />
+              ))
+            : deals.map((deal) => (
+                <motion.div
+                  key={`${deal.deal_source}-${deal.id}`}
+                  className="tvc"
+                  variants={cardVariants}
+                  whileHover={{ y: -5, scale: 1.02 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+                  onClick={() => setSelected(deal)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={e => e.key === 'Enter' && setSelected(deal)}
+                >
+                  <div className="tvc__media">
+                    <DestinationImage iataCode={deal.destination} />
+                    <div className="tvc__gradient" />
 
-                  {/* Pulsing discount badge */}
-                  {deal.value_score > 0 && (
-                    <span className="tvc__discount tvc__discount--pulse">
-                      -{Math.round(deal.value_score)}%
-                    </span>
-                  )}
+                    {deal.value_score > 0 && (
+                      <span className="tvc__discount tvc__discount--pulse">
+                        -{Math.round(deal.value_score)}%
+                      </span>
+                    )}
 
-                  <div className="tvc__caption">
-                    <p className="tvc__dest">{deal.destination_name || deal.destination}</p>
-                    <p className="tvc__price">
-                      {Math.round(deal.price)}
-                      <span className="tvc__currency"> {getCurrencySymbol(deal.currency)}</span>
-                    </p>
+                    <div className="tvc__caption">
+                      <p className="tvc__dest">{deal.destination_name || deal.destination}</p>
+                      <p className="tvc__price">
+                        {Math.round(deal.price)}
+                        <span className="tvc__currency"> {getCurrencySymbol(deal.currency)}</span>
+                      </p>
+                    </div>
                   </div>
-                </div>
 
-                {deal.business_name && (
-                  <div className="tvc__agent">✓ {deal.business_name}</div>
-                )}
-              </motion.div>
-            ))}
-      </motion.div>
+                  {deal.business_name && (
+                    <div className="tvc__agent">✓ {deal.business_name}</div>
+                  )}
+                </motion.div>
+              ))}
+        </motion.div>
+      )}
 
       <AnimatePresence>
         {selected && (

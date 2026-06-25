@@ -13,6 +13,7 @@ import { AgentSettingsPage } from './pages/AgentSettingsPage.jsx';
 import { AdminPage } from './pages/AdminPage.jsx';
 import { AgentPublicProfilePage } from './pages/AgentPublicProfilePage.jsx';
 import { FavoritesPage } from './pages/FavoritesPage.jsx';
+import { AccountPage } from './pages/AccountPage.jsx';
 import { TermsPage } from './pages/TermsPage.jsx';
 import { PrivacyPage } from './pages/PrivacyPage.jsx';
 import { TravelerRegisterPage } from './pages/TravelerRegisterPage.jsx';
@@ -32,6 +33,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               <Route path="/agent/login" element={<AgentLoginPage />} />
               <Route path="/agent/:slug" element={<AgentPublicProfilePage />} />
               <Route path="/my/favorites" element={<FavoritesPage />} />
+              <Route path="/account" element={<AccountPage />} />
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
             </Route>

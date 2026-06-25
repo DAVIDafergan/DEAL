@@ -1545,10 +1545,21 @@ select.wizard-input { cursor: pointer; }
 }
 
 .deal-modal__detail-row {
-  display: flex; align-items: center; gap: 8px;
+  display: flex; align-items: flex-start; gap: 10px;
   font-size: 0.88rem; color: var(--color-text-secondary);
 }
-.deal-modal__detail-row svg { color: var(--color-accent-from); flex-shrink: 0; }
+.deal-modal__detail-row svg { color: var(--color-accent-from); flex-shrink: 0; margin-top: 2px; }
+
+.deal-modal__detail-block {
+  display: flex; flex-direction: column; gap: 1px;
+}
+.deal-modal__detail-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-accent-from);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
 
 .deal-modal__inclusions {
   display: flex; gap: 12px; flex-wrap: wrap;

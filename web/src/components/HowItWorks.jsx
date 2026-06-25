@@ -1,78 +1,154 @@
 import { motion } from 'framer-motion';
-import { Upload, Sparkles, Award } from 'lucide-react';
+import { Upload, Sparkles, Trophy } from 'lucide-react';
 
 const steps = [
   {
     icon: Upload,
+    num: '01',
     title: 'סוכנים מעלים דילים',
-    sub: 'כל יום מוסיפים סוכני הנסיעות הטובים בישראל עסקאות ייחודיות',
+    sub: 'סוכני הנסיעות הטובים בישראל מעלים עסקאות ייחודיות כל יום — ישירות מהשדה',
+    color: 'var(--color-accent-from)',
+    glow: 'rgba(37,99,235,0.18)',
   },
   {
     icon: Sparkles,
+    num: '02',
     title: 'המערכת מדרגת ומסננת',
-    sub: 'אלגוריתם חכם בוחר רק את הדילים הטובים ביותר ומאמת אותם',
+    sub: 'אלגוריתם חכם בוחר רק את הדילים הכי טובים, מאמת אותם ומוודא שהם אמיתיים',
+    color: '#17c3b2',
+    glow: 'rgba(23,195,178,0.18)',
   },
   {
-    icon: Award,
+    icon: Trophy,
+    num: '03',
     title: 'אתה מקבל רק את הטוב ביותר',
-    sub: 'עסקאות מדהימות מסוכנים מאומתים — ישירות אליך',
+    sub: 'עסקאות מדהימות מסוכנים מאומתים — ישירות אליך, בלי רעש',
+    color: '#f5a623',
+    glow: 'rgba(245,166,35,0.18)',
   },
 ];
 
-const container = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.2 } },
+const stepVariant = {
+  hidden: { opacity: 0, y: 40 },
+  visible: (i) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.6, delay: i * 0.22, ease: [0.22, 1, 0.36, 1] },
+  }),
 };
 
-const stepVariant = {
-  hidden: { opacity: 0, y: 28 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] } },
+const ringVariant = {
+  hidden: { pathLength: 0 },
+  visible: (i) => ({
+    pathLength: 1,
+    transition: { duration: 1.1, delay: i * 0.22 + 0.1, ease: 'easeOut' },
+  }),
+};
+
+const iconVariant = {
+  rest: { scale: 1, rotate: 0 },
+  hover: { scale: 1.12, rotate: [0, -8, 8, 0], transition: { duration: 0.4 } },
 };
 
 export function HowItWorks() {
   return (
-    <section className="how-it-works container">
-      <motion.div
-        className="how-it-works__grid"
-        variants={container}
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: '-40px' }}
-      >
-        {steps.map(({ icon: Icon, title, sub }, i) => (
-          <motion.div key={i} className="how-it-works__step" variants={stepVariant}>
-            <div className="how-it-works__icon-wrap">
-              <svg className="how-it-works__ring" viewBox="0 0 68 68" fill="none">
-                <defs>
-                  <linearGradient id={`hiw-grad-${i}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="var(--color-accent-from)" />
-                    <stop offset="100%" stopColor="#17c3b2" />
-                  </linearGradient>
-                </defs>
-                <motion.circle
-                  cx="34"
-                  cy="34"
-                  r="32"
-                  stroke={`url(#hiw-grad-${i})`}
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  initial={{ pathLength: 0 }}
-                  whileInView={{ pathLength: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.9, delay: i * 0.22, ease: 'easeOut' }}
+    <section className="hiw-section">
+      <div className="hiw-inner container">
+        <motion.p
+          className="hiw-eyebrow"
+          initial={{ opacity: 0, y: 12 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.45 }}
+        >
+          איך זה עובד?
+        </motion.p>
+        <motion.h2
+          className="hiw-heading"
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.06 }}
+        >
+          הדרך הכי חכמה למצוא דיל
+        </motion.h2>
+
+        <div className="hiw-grid">
+          {steps.map(({ icon: Icon, num, title, sub, color, glow }, i) => (
+            <motion.div
+              key={i}
+              className="hiw-step"
+              custom={i}
+              variants={stepVariant}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: '-30px' }}
+              whileHover="hover"
+            >
+              {/* Animated ring + icon */}
+              <div className="hiw-icon-wrap" style={{ '--hiw-glow': glow }}>
+                <svg className="hiw-ring" viewBox="0 0 96 96" fill="none">
+                  <defs>
+                    <linearGradient id={`hiw-g-${i}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor={color} stopOpacity="0.9" />
+                      <stop offset="100%" stopColor={color} stopOpacity="0.35" />
+                    </linearGradient>
+                  </defs>
+                  {/* Background circle */}
+                  <circle cx="48" cy="48" r="44" stroke={color} strokeWidth="1" opacity="0.15" />
+                  {/* Animated draw circle */}
+                  <motion.circle
+                    cx="48" cy="48" r="44"
+                    stroke={`url(#hiw-g-${i})`}
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    custom={i}
+                    variants={ringVariant}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true }}
+                  />
+                </svg>
+
+                <motion.div className="hiw-icon-inner" variants={iconVariant}>
+                  <Icon size={36} strokeWidth={1.4} color={color} />
+                </motion.div>
+
+                {/* Pulsing glow dot */}
+                <motion.div
+                  className="hiw-pulse"
+                  style={{ background: color }}
+                  animate={{ scale: [1, 1.6, 1], opacity: [0.7, 0, 0.7] }}
+                  transition={{ duration: 2.4, repeat: Infinity, delay: i * 0.5 }}
                 />
-              </svg>
-              <div className="how-it-works__icon-inner">
-                <Icon size={26} strokeWidth={1.5} />
               </div>
-            </div>
-            <div className="how-it-works__body">
-              <h3 className="how-it-works__title">{title}</h3>
-              <p className="how-it-works__sub">{sub}</p>
-            </div>
-          </motion.div>
-        ))}
-      </motion.div>
+
+              <div className="hiw-step-num" style={{ color }}>{num}</div>
+              <h3 className="hiw-step-title">{title}</h3>
+              <p className="hiw-step-sub">{sub}</p>
+
+              {/* Connector arrow (not on last item) */}
+              {i < steps.length - 1 && (
+                <div className="hiw-connector" aria-hidden="true">
+                  <motion.svg viewBox="0 0 40 20" fill="none" className="hiw-arrow">
+                    <motion.path
+                      d="M0 10 L32 10 M26 4 L32 10 L26 16"
+                      stroke="var(--color-border)"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      initial={{ pathLength: 0 }}
+                      whileInView={{ pathLength: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.6, delay: i * 0.22 + 0.7 }}
+                    />
+                  </motion.svg>
+                </div>
+              )}
+            </motion.div>
+          ))}
+        </div>
+      </div>
     </section>
   );
 }

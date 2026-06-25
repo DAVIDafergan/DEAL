@@ -177,7 +177,6 @@ export async function computeValueScore(deal) {
 export async function listTopValueDeals(limit = 5) {
   const pool = getPool();
   const now = new Date().toISOString().slice(0, 10);
-  // Only agent deals — live radar deals stay in the Radar section
   const [agentDeals] = await pool.query(
     `SELECT ad.id, 'agent' AS deal_source, NULL AS origin, ad.destination, ad.destination_name,
             ad.departure_date, ad.return_date, ad.price, ad.currency, ad.purchase_link,
@@ -190,12 +189,10 @@ export async function listTopValueDeals(limit = 5) {
             ad.car_type, ad.car_company
      FROM agent_deals ad JOIN agents a ON a.id=ad.agent_id
      WHERE ad.status='approved' AND a.status='approved'
-       AND (a.subscription_status='active' OR a.subscription_status='trial')
-       AND (a.subscription_expires_at IS NULL OR a.subscription_expires_at >= ?)
        AND (ad.expires_at IS NULL OR ad.expires_at >= ?)
      ORDER BY ad.value_score DESC, ad.click_count DESC, ad.approved_at DESC
      LIMIT ?`,
-    [now, now, limit]
+    [now, limit]
   );
   return agentDeals;
 }

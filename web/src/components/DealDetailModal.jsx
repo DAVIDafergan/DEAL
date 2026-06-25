@@ -42,6 +42,16 @@ const panelVariants = {
   exit: { opacity: 0, y: 40, scale: 0.97, transition: { duration: 0.2 } },
 };
 
+const detailsContainer = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.12, delayChildren: 0.25 } },
+};
+
+const detailRow = {
+  hidden: { opacity: 0, x: 12 },
+  visible: { opacity: 1, x: 0, transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] } },
+};
+
 export function DealDetailModal({ deal, onClose }) {
   const { t } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
@@ -141,31 +151,57 @@ export function DealDetailModal({ deal, onClose }) {
               </Link>
             )}
 
-            {/* Details */}
-            <div className="deal-modal__details">
-              {(deal.airline || dates) && (
-                <div className="deal-modal__detail-row">
+            {/* Details — animated entrance */}
+            <motion.div
+              className="deal-modal__details"
+              variants={detailsContainer}
+              initial="hidden"
+              animate="visible"
+            >
+              {deal.departure_date && (
+                <motion.div className="deal-modal__detail-row" variants={detailRow}>
                   <Plane size={15} />
-                  <span>{[deal.airline, dates].filter(Boolean).join(' · ')}</span>
-                </div>
+                  <div className="deal-modal__detail-block">
+                    <span className="deal-modal__detail-label">יוצאים</span>
+                    <span>{new Date(deal.departure_date).toLocaleDateString('he-IL', { day: '2-digit', month: 'long', year: 'numeric' })}{deal.departure_time ? ` · ${deal.departure_time}` : ''}</span>
+                  </div>
+                </motion.div>
+              )}
+              {deal.return_date && (
+                <motion.div className="deal-modal__detail-row" variants={detailRow}>
+                  <Plane size={15} style={{ transform: 'scaleX(-1)' }} />
+                  <div className="deal-modal__detail-block">
+                    <span className="deal-modal__detail-label">חוזרים</span>
+                    <span>{new Date(deal.return_date).toLocaleDateString('he-IL', { day: '2-digit', month: 'long', year: 'numeric' })}{deal.arrival_time ? ` · ${deal.arrival_time}` : ''}</span>
+                  </div>
+                </motion.div>
+              )}
+              {deal.airline && (
+                <motion.div className="deal-modal__detail-row" variants={detailRow}>
+                  <Plane size={15} opacity={0.5} />
+                  <span>{deal.airline}</span>
+                </motion.div>
               )}
               {deal.hotel_name && (
-                <div className="deal-modal__detail-row">
+                <motion.div className="deal-modal__detail-row" variants={detailRow}>
                   <Hotel size={15} />
-                  <span>
-                    {deal.hotel_name}
-                    {deal.hotel_stars ? ` ${stars(deal.hotel_stars)}` : ''}
-                    {deal.hotel_breakfast ? ' · ☕' : ''}
-                  </span>
-                </div>
+                  <div className="deal-modal__detail-block">
+                    <span className="deal-modal__detail-label">מלון</span>
+                    <span>
+                      {deal.hotel_name}
+                      {deal.hotel_stars ? ` ${stars(deal.hotel_stars)}` : ''}
+                      {deal.hotel_breakfast ? ' · ☕ ארוחת בוקר' : ''}
+                    </span>
+                  </div>
+                </motion.div>
               )}
               {deal.car_type && (
-                <div className="deal-modal__detail-row">
+                <motion.div className="deal-modal__detail-row" variants={detailRow}>
                   <Car size={15} />
                   <span>{[deal.car_type, deal.car_company].filter(Boolean).join(' · ')}</span>
-                </div>
+                </motion.div>
               )}
-            </div>
+            </motion.div>
 
             {/* Baggage */}
             {(deal.includes_checked_baggage || deal.includes_cabin_baggage || deal.includes_meal) && (
