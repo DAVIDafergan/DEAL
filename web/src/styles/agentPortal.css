@@ -2194,153 +2194,179 @@ img, svg { max-width: 100%; }
 .star-rating__star:hover { transform: scale(1.15); }
 .star-rating__star:disabled { cursor: default; }
 
-/* ── Deal search hero — prominent entry point below HowItWorks ───────────── */
-.deal-search-hero {
-  margin: 0 auto 8px;
-  padding: 28px 32px 24px;
-  background: var(--color-surface);
-  border-radius: 20px;
-  border: 1px solid var(--color-border);
-  box-shadow: 0 4px 32px rgba(0,0,0,0.08), 0 1px 6px rgba(0,0,0,0.04);
+/* ── Floating pill search — no outer box, each field floats independently ─── */
+
+/* Section wrapper: no card, just spacing + centered text */
+.dsh {
+  margin: 0 auto 16px;
+  padding: 0 0 4px;
 }
 
-.deal-search-hero__header {
-  margin-bottom: 22px;
-  text-align: center;
-}
-.deal-search-hero__title {
+.dsh__title {
   margin: 0 0 6px;
-  font-size: clamp(1.2rem, 3vw, 1.5rem);
+  font-size: clamp(1.25rem, 3vw, 1.55rem);
   font-weight: 900;
   color: var(--color-text-primary);
+  text-align: center;
 }
-.deal-search-hero__sub {
-  margin: 0;
-  font-size: 0.87rem;
+.dsh__sub {
+  margin: 0 0 20px;
+  font-size: 0.86rem;
   color: var(--color-text-secondary);
-  line-height: 1.5;
+  text-align: center;
+  line-height: 1.55;
 }
 
-.deal-search-hero__fields {
-  display: grid;
-  grid-template-columns: 1.6fr 1fr 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-/* Each labeled field */
-.dsh-field {
+/* Row: pills sit side-by-side, wrap on small screens */
+.dsh__row {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
 }
-.dsh-field__label {
+
+/* ── Base pill ────────────────────────────────────────────────────────────── */
+.dsh__pill {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 0.72rem;
-  font-weight: 700;
+  height: 50px;
+  border-radius: 999px;
+  background: var(--color-surface, #fff);
+  box-shadow: 0 2px 14px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04);
+  transition: box-shadow 0.2s;
+  border: none;
+  overflow: hidden;
+}
+.dsh__pill:focus-within {
+  box-shadow: 0 4px 22px rgba(37,99,235,0.15), 0 1px 4px rgba(0,0,0,0.06);
+}
+
+/* Icon — inset-inline-start = right side in RTL */
+.dsh__pill-icon {
+  position: absolute;
+  inset-inline-start: 16px;
+  top: 50%;
+  transform: translateY(-50%);
   color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  pointer-events: none;
+  flex-shrink: 0;
 }
-.dsh-field__input {
+
+/* Base input inside pill */
+.dsh__pill-input {
+  height: 100%;
   width: 100%;
-  padding: 11px 14px;
-  font-size: 0.92rem;
-  font-weight: 500;
-  border: 1.5px solid var(--color-border);
-  border-radius: 10px;
-  background: var(--color-bg);
-  color: var(--color-text-primary);
-  transition: border-color 0.15s, box-shadow 0.15s;
-  box-sizing: border-box;
-}
-.dsh-field__input:focus {
+  background: transparent;
+  border: none;
   outline: none;
-  border-color: var(--color-accent-from);
-  box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  /* Space for icon on the inline-start side */
+  padding-inline-start: 44px;
+  padding-inline-end: 18px;
+  font-family: inherit;
 }
-.dsh-field__input--select {
+.dsh__pill-input::placeholder {
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+/* Sizes for each pill */
+.dsh__pill--dest  { min-width: 220px; flex: 1.8; }
+.dsh__pill--date  { min-width: 155px; flex: 1; }
+.dsh__pill--price { min-width: 155px; flex: 1; }
+.dsh__pill--sort  { min-width: 185px; flex: 1.2; }
+
+/* Date: hide default calendar icon so our custom icon shows cleanly */
+.dsh__pill-input--date::-webkit-calendar-picker-indicator {
+  opacity: 0.5;
+  cursor: pointer;
+  margin-inline-end: 4px;
+}
+
+/* Select: no system appearance */
+.dsh__pill-input--select {
   appearance: none;
   -webkit-appearance: none;
   cursor: pointer;
-  padding-inline-end: 32px;
+  /* Extra padding for chevron on inline-end */
+  padding-inline-end: 36px;
 }
-.dsh-select-wrap {
-  position: relative;
-}
-.dsh-select-wrap__chevron {
+.dsh__pill-chevron {
   position: absolute;
+  inset-inline-end: 14px;
   top: 50%;
-  inset-inline-end: 10px;
   transform: translateY(-50%);
   pointer-events: none;
   color: var(--color-text-muted);
 }
 
-.deal-search-hero__actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.dsh-btn {
-  display: inline-flex;
-  align-items: center;
+/* Search button pill */
+.dsh__pill--btn {
   gap: 7px;
-  padding: 12px 24px;
+  padding: 0 24px;
   font-size: 0.92rem;
   font-weight: 700;
-  border-radius: 10px;
-  border: none;
   cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
-}
-.dsh-btn--primary {
-  background: var(--gradient-accent);
   color: #fff;
-  box-shadow: 0 3px 14px rgba(37,99,235,0.28);
+  background: var(--gradient-accent, linear-gradient(135deg,#2563eb,#1e40af));
+  box-shadow: 0 3px 16px rgba(37,99,235,0.32);
+  flex-shrink: 0;
+  min-width: 110px;
+  justify-content: center;
 }
-.dsh-btn--primary:hover {
-  opacity: 0.92;
+.dsh__pill--btn:hover { opacity: 0.91; }
+/* override focus-within glow for button */
+.dsh__pill--btn:focus-within { box-shadow: 0 3px 16px rgba(37,99,235,0.32); }
+
+/* Clear button — small icon-only pill */
+.dsh__pill--clear {
+  width: 50px;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  color: var(--color-text-muted);
 }
-.dsh-btn--ghost {
-  background: transparent;
-  color: var(--color-text-secondary);
-  border: 1.5px solid var(--color-border);
-}
-.dsh-btn--ghost:hover {
+.dsh__pill--clear:hover {
   background: #FEF2F2;
   color: #dc2626;
-  border-color: #fca5a5;
+  box-shadow: 0 2px 14px rgba(220,38,38,0.12);
 }
 
-.deal-search-hero__count {
-  margin: 10px 0 0;
+/* Result count */
+.dsh__count {
+  margin: 12px 0 0;
   font-size: 0.82rem;
   font-weight: 600;
   color: var(--color-accent-from);
+  text-align: center;
 }
 
-/* Responsive: stack to 2 columns on tablet, 1 on mobile */
+/* ── Responsive ──────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
-  .deal-search-hero {
-    padding: 20px 18px 18px;
+  .dsh__pill--dest,
+  .dsh__pill--date,
+  .dsh__pill--price,
+  .dsh__pill--sort {
+    flex: 1 1 calc(50% - 5px);
+    min-width: 140px;
   }
-  .deal-search-hero__fields {
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
+  .dsh__pill--btn { flex: 1 1 100%; }
+  .dsh__pill--clear { flex: 0 0 50px; }
 }
 @media (max-width: 480px) {
-  .deal-search-hero__fields {
-    grid-template-columns: 1fr;
+  .dsh__pill--dest,
+  .dsh__pill--date,
+  .dsh__pill--price,
+  .dsh__pill--sort {
+    flex: 1 1 100%;
+    min-width: 0;
+    height: 52px;
   }
-  .deal-search-hero {
-    border-radius: 14px;
-    padding: 16px 14px;
-  }
-  .dsh-btn--primary { flex: 1; justify-content: center; }
+  .dsh__pill--btn { height: 52px; font-size: 1rem; }
 }
 
 /* ── Legacy: deals-filter-empty still used in grid ──────────────────────── */
