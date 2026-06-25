@@ -90,6 +90,20 @@ export async function listApprovedDeals({ limit = 100 } = {}) {
   return rows;
 }
 
+export async function listAllApprovedDealsAdmin({ limit = 500 } = {}) {
+  const pool = getPool();
+  const [rows] = await pool.query(
+    `SELECT ad.*, a.business_name, a.slug AS agent_slug, a.whatsapp_number AS agent_whatsapp,
+            a.subscription_status, a.subscription_expires_at
+     FROM agent_deals ad JOIN agents a ON a.id=ad.agent_id
+     WHERE ad.status='approved'
+     ORDER BY ad.approved_at DESC
+     LIMIT ?`,
+    [limit]
+  );
+  return rows;
+}
+
 export async function listApprovedDealsByAgent(agentId) {
   const pool = getPool();
   const [rows] = await pool.query(

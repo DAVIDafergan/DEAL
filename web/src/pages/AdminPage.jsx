@@ -150,7 +150,11 @@ export function AdminPage() {
       setPendingDeals(pDeals || []);
       setApprovedDeals(aDeals || []);
     } catch (err) {
-      if (err.message?.includes('401') || err.message?.includes('Unauthorized')) {
+      const isAuthError = err.message?.includes('401')
+        || err.message?.includes('Unauthorized')
+        || err.message?.includes('Invalid or expired token')
+        || err.message?.includes('Forbidden');
+      if (isAuthError) {
         adminApi.clearToken();
         setToken(null);
       } else {

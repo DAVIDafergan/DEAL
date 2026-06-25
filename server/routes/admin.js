@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { requireAdminAuth, signAdminToken } from '../middleware/adminAuth.js';
 import { listAgentsPending, listAgentsAll, updateAgentStatus } from '../store/agentStore.js';
-import { listPendingDeals, updateAgentDealStatus, listApprovedDeals, adminDeleteAgentDeal } from '../store/agentDealStore.js';
+import { listPendingDeals, updateAgentDealStatus, listAllApprovedDealsAdmin, adminDeleteAgentDeal } from '../store/agentDealStore.js';
 
 const router = Router();
 
@@ -59,7 +59,7 @@ router.get('/deals/pending', async (_req, res) => {
 });
 
 router.get('/deals/approved', async (_req, res) => {
-  try { res.json({ deals: await listApprovedDeals({ limit: 500 }) }); }
+  try { res.json({ deals: await listAllApprovedDealsAdmin({ limit: 500 }) }); }
   catch { res.status(500).json({ error: 'Internal error' }); }
 });
 
