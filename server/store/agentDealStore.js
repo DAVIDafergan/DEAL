@@ -8,8 +8,8 @@ export async function createAgentDeal(agentId, fields) {
       (agent_id,destination,destination_name,country,video_url,photo_url,departure_date,return_date,
        price,currency,purchase_link,whatsapp_override,is_exclusive,expires_at,description,
        airline,includes_checked_baggage,includes_cabin_baggage,includes_meal,
-       hotel_name,hotel_stars,hotel_breakfast,car_type,car_company,
-       departure_time,arrival_time,
+       hotel_name,hotel_stars,hotel_breakfast,hotel_lunch,hotel_dinner,hotel_link,
+       car_type,car_company,departure_time,arrival_time,
        status,click_count,created_at,updated_at)
      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending',0,?,?)`,
     [
@@ -35,6 +35,9 @@ export async function createAgentDeal(agentId, fields) {
       fields.hotel_name || null,
       fields.hotel_stars || null,
       fields.hotel_breakfast ? 1 : 0,
+      fields.hotel_lunch ? 1 : 0,
+      fields.hotel_dinner ? 1 : 0,
+      fields.hotel_link || null,
       fields.car_type || null,
       fields.car_company || null,
       fields.departure_time || null,
@@ -74,8 +77,8 @@ export async function listApprovedDeals({ limit = 100 } = {}) {
   const pool = getPool();
   const now = new Date().toISOString().slice(0, 10);
   const [rows] = await pool.query(
-    `SELECT ad.*, a.business_name, a.slug AS agent_slug, a.whatsapp_number AS agent_whatsapp,
-            a.whatsapp_template AS agent_whatsapp_template,
+    `SELECT ad.*, a.business_name, a.slug AS agent_slug, a.logo_url AS agent_logo_url,
+            a.whatsapp_number AS agent_whatsapp, a.whatsapp_template AS agent_whatsapp_template,
             a.subscription_status, a.subscription_expires_at
      FROM agent_deals ad JOIN agents a ON a.id=ad.agent_id
      WHERE ad.status='approved'
@@ -129,8 +132,8 @@ export async function updateAgentDeal(id, agentId, fields) {
     'departure_date','return_date','price','currency','purchase_link','whatsapp_override',
     'is_exclusive','expires_at','description',
     'airline','includes_checked_baggage','includes_cabin_baggage','includes_meal',
-    'hotel_name','hotel_stars','hotel_breakfast','car_type','car_company',
-    'departure_time','arrival_time'];
+    'hotel_name','hotel_stars','hotel_breakfast','hotel_lunch','hotel_dinner','hotel_link',
+    'car_type','car_company','departure_time','arrival_time'];
   const sets = [];
   const vals = [];
   for (const k of allowed) {
@@ -183,7 +186,8 @@ export async function listTopValueDeals(limit = 5) {
             ad.photo_url, ad.video_url, ad.whatsapp_override, ad.description,
             ad.includes_checked_baggage, ad.includes_cabin_baggage, ad.includes_meal,
             ad.departure_time, ad.arrival_time,
-            ad.agent_id, a.business_name, a.slug AS agent_slug,
+            ad.hotel_lunch, ad.hotel_dinner, ad.hotel_link,
+            ad.agent_id, a.business_name, a.slug AS agent_slug, a.logo_url AS agent_logo_url,
             a.whatsapp_number AS agent_whatsapp, a.whatsapp_template AS agent_whatsapp_template,
             ad.value_score, ad.airline, ad.hotel_name, ad.hotel_stars, ad.hotel_breakfast,
             ad.car_type, ad.car_company

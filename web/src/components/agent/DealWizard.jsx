@@ -134,6 +134,9 @@ export function DealWizard({ onSuccess, onCancel }) {
   const [hotelName, setHotelName] = useState('');
   const [hotelStars, setHotelStars] = useState('');
   const [hotelBreakfast, setHotelBreakfast] = useState(false);
+  const [hotelLunch, setHotelLunch] = useState(false);
+  const [hotelDinner, setHotelDinner] = useState(false);
+  const [hotelLink, setHotelLink] = useState('');
 
   // Step 5 — car
   const [includeCar, setIncludeCar] = useState(null);
@@ -214,6 +217,9 @@ export function DealWizard({ onSuccess, onCancel }) {
         hotel_name: includeHotel ? hotelName || null : null,
         hotel_stars: includeHotel && hotelStars ? Number(hotelStars) : null,
         hotel_breakfast: includeHotel ? (hotelBreakfast ? 1 : 0) : 0,
+        hotel_lunch: includeHotel ? (hotelLunch ? 1 : 0) : 0,
+        hotel_dinner: includeHotel ? (hotelDinner ? 1 : 0) : 0,
+        hotel_link: includeHotel ? hotelLink || null : null,
         car_type: includeCar ? carType || null : null,
         car_company: includeCar ? carCompany || null : null,
         purchase_link: purchaseLink || null,
@@ -391,10 +397,24 @@ export function DealWizard({ onSuccess, onCancel }) {
                           </select>
                         </div>
                       </div>
-                      <label className="wizard-checkbox">
-                        <input type="checkbox" checked={hotelBreakfast} onChange={e => setHotelBreakfast(e.target.checked)} />
-                        {t.hotelBreakfastLabel || '☕ כולל ארוחת בוקר'}
-                      </label>
+                      <div className="wizard-checkboxes">
+                        <label className="wizard-checkbox">
+                          <input type="checkbox" checked={hotelBreakfast} onChange={e => setHotelBreakfast(e.target.checked)} />
+                          {t.hotelBreakfastLabel || '🍳 ארוחת בוקר'}
+                        </label>
+                        <label className="wizard-checkbox">
+                          <input type="checkbox" checked={hotelLunch} onChange={e => setHotelLunch(e.target.checked)} />
+                          {t.hotelLunchLabel || '🍽️ ארוחת צהריים'}
+                        </label>
+                        <label className="wizard-checkbox">
+                          <input type="checkbox" checked={hotelDinner} onChange={e => setHotelDinner(e.target.checked)} />
+                          {t.hotelDinnerLabel || '🌙 ארוחת ערב'}
+                        </label>
+                      </div>
+                      <div className="wizard-field" style={{ marginTop: 12 }}>
+                        <label className="wizard-label">{t.hotelLinkLabel || 'לינק למלון (אופציונלי)'}</label>
+                        <input className="wizard-input" type="url" value={hotelLink} onChange={e => setHotelLink(e.target.value)} placeholder="https://…" />
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>

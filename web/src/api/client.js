@@ -123,6 +123,10 @@ export const agentApi = {
   getApprovedDeals: () => getJson('/agents/deals/approved'),
   getTopValueDeals: (limit = 5) => getJson(`/agents/deals/top-value?limit=${limit}`),
   trackClick: (id) => postJson(`/agents/deals/${id}/click`, {}),
+  getRatings: (agentId) => getJson(`/agents/${agentId}/ratings`),
+  getMyRating: (agentId, sessionId) => getJson(`/agents/${agentId}/my-rating?session_id=${encodeURIComponent(sessionId)}`),
+  rateAgent: (agentId, sessionId, rating) => postJson(`/agents/${agentId}/rate`, { session_id: sessionId, rating }),
+  getMyRatings: (sessionId) => getJson(`/agents/my-ratings?session_id=${encodeURIComponent(sessionId)}`),
 };
 
 export const billingApi = {

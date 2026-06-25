@@ -11,6 +11,7 @@ import {
 } from '../store/agentDealStore.js';
 import { requireAgentAuth, signAgentToken } from '../middleware/agentAuth.js';
 import { fetchDestinationMediaForAgent } from '../services/agentMediaService.js';
+import { upsertRating, getAgentRatingSummary, getSessionRating, getSessionAllRatings } from '../store/ratingStore.js';
 
 const router = Router();
 
@@ -199,6 +200,44 @@ router.get('/profile/:slug', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Internal error' });
   }
+});
+
+// ── Ratings (specific routes MUST come before /:id wildcard) ─────────────────
+
+router.get('/my-ratings', async (req, res) => {
+  try {
+    const { session_id } = req.query;
+    if (!session_id) return res.status(400).json({ error: 'session_id required' });
+    const ratings = await getSessionAllRatings(session_id);
+    res.json({ ratings });
+  } catch { res.status(500).json({ error: 'Internal error' }); }
+});
+
+router.get('/:id/ratings', async (req, res) => {
+  try {
+    const summary = await getAgentRatingSummary(req.params.id);
+    res.json(summary);
+  } catch { res.status(500).json({ error: 'Internal error' }); }
+});
+
+router.get('/:id/my-rating', async (req, res) => {
+  try {
+    const { session_id } = req.query;
+    if (!session_id) return res.status(400).json({ error: 'session_id required' });
+    const rating = await getSessionRating(session_id, req.params.id);
+    res.json({ rating });
+  } catch { res.status(500).json({ error: 'Internal error' }); }
+});
+
+router.post('/:id/rate', async (req, res) => {
+  try {
+    const { session_id, rating } = req.body;
+    const r = Number(rating);
+    if (!session_id || !r || r < 1 || r > 5) return res.status(400).json({ error: 'Invalid rating' });
+    await upsertRating(session_id, req.params.id, r);
+    const summary = await getAgentRatingSummary(req.params.id);
+    res.json(summary);
+  } catch { res.status(500).json({ error: 'Internal error' }); }
 });
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

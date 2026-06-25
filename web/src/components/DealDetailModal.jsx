@@ -6,6 +6,7 @@ import { useLanguage } from '../context/LanguageContext.jsx';
 import { getCurrencySymbol } from '../utils/currency.js';
 import { agentApi } from '../api/client.js';
 import { useFavorites } from '../hooks/useFavorites.js';
+import { StarRating } from './StarRating.jsx';
 
 function buildWhatsAppUrl(number, template, dest, dates) {
   const text = (template || `שלום, ראיתי את הדיל שלכם ל-{destination} ({dates}) ב-Deal Radar Pro ואני מתעניין`)
@@ -144,11 +145,16 @@ export function DealDetailModal({ deal, onClose }) {
             <h2 className="deal-modal__title">{deal.destination_name || deal.destination}</h2>
             {deal.country && <p className="deal-modal__country">{deal.country}</p>}
 
-            {/* Agent badge */}
+            {/* Agent badge + star rating */}
             {deal.business_name && (
-              <Link to={`/agent/${deal.agent_slug}`} className="deal-modal__agent-badge" onClick={onClose}>
-                <CheckCircle size={13} /> {deal.business_name}
-              </Link>
+              <div className="deal-modal__agent-row">
+                <Link to={`/agent/${deal.agent_slug}`} className="deal-modal__agent-badge" onClick={onClose}>
+                  <CheckCircle size={13} /> {deal.business_name}
+                </Link>
+                {deal.agent_id && (
+                  <StarRating agentId={deal.agent_id} size="sm" />
+                )}
+              </div>
             )}
 
             {/* Details — animated entrance */}
@@ -190,7 +196,9 @@ export function DealDetailModal({ deal, onClose }) {
                     <span>
                       {deal.hotel_name}
                       {deal.hotel_stars ? ` ${stars(deal.hotel_stars)}` : ''}
-                      {deal.hotel_breakfast ? ' · ☕ ארוחת בוקר' : ''}
+                      {deal.hotel_breakfast ? ' · 🍳' : ''}
+                      {deal.hotel_lunch ? ' · 🍽️' : ''}
+                      {deal.hotel_dinner ? ' · 🌙' : ''}
                     </span>
                   </div>
                 </motion.div>
@@ -232,6 +240,15 @@ export function DealDetailModal({ deal, onClose }) {
                   onClick={() => handleAction(addUtmParams(deal.purchase_link, deal.id))}
                 >
                   <ExternalLink size={18} /> {t.bookNowButton || 'הזמן עכשיו'}
+                </motion.button>
+              )}
+              {deal.hotel_link && (
+                <motion.button
+                  className="deal-modal__btn deal-modal__btn--hotel"
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => window.open(deal.hotel_link, '_blank', 'noopener,noreferrer')}
+                >
+                  <Hotel size={18} /> לצפייה במלון
                 </motion.button>
               )}
             </div>

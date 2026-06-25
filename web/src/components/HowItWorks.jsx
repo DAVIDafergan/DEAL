@@ -8,7 +8,7 @@ const steps = [
     title: 'סוכנים מעלים דילים',
     sub: 'סוכני הנסיעות הטובים בישראל מעלים עסקאות ייחודיות כל יום — ישירות מהשדה',
     color: 'var(--color-accent-from)',
-    glow: 'rgba(37,99,235,0.18)',
+    glow: 'rgba(37,99,235,0.20)',
   },
   {
     icon: Sparkles,
@@ -16,7 +16,7 @@ const steps = [
     title: 'המערכת מדרגת ומסננת',
     sub: 'אלגוריתם חכם בוחר רק את הדילים הכי טובים, מאמת אותם ומוודא שהם אמיתיים',
     color: '#17c3b2',
-    glow: 'rgba(23,195,178,0.18)',
+    glow: 'rgba(23,195,178,0.20)',
   },
   {
     icon: Trophy,
@@ -24,35 +24,64 @@ const steps = [
     title: 'אתה מקבל רק את הטוב ביותר',
     sub: 'עסקאות מדהימות מסוכנים מאומתים — ישירות אליך, בלי רעש',
     color: '#f5a623',
-    glow: 'rgba(245,166,35,0.18)',
+    glow: 'rgba(245,166,35,0.20)',
   },
 ];
 
+// Parent triggers children stagger
+const containerVariants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.28 } },
+};
+
+// Each step: whole block slides+fades in
 const stepVariant = {
   hidden: { opacity: 0, y: 40 },
   visible: (i) => ({
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.6, delay: i * 0.22, ease: [0.22, 1, 0.36, 1] },
+    opacity: 1, y: 0,
+    transition: { duration: 0.55, delay: i * 0.05, ease: [0.22, 1, 0.36, 1] },
   }),
 };
 
+// Ring draws after step appears
 const ringVariant = {
+  hidden: { pathLength: 0, opacity: 0 },
+  visible: (i) => ({
+    pathLength: 1, opacity: 1,
+    transition: { duration: 1.1, delay: i * 0.28 + 0.15, ease: [0.4, 0, 0.2, 1] },
+  }),
+};
+
+// Icon pops in with spring after ring starts drawing
+const iconVariant = {
+  hidden: { scale: 0.5, opacity: 0 },
+  visible: (i) => ({
+    scale: 1, opacity: 1,
+    transition: { type: 'spring', stiffness: 380, damping: 20, delay: i * 0.28 + 0.35 },
+  }),
+};
+
+// Text slides up after icon
+const textVariant = {
+  hidden: { opacity: 0, y: 18 },
+  visible: (i) => ({
+    opacity: 1, y: 0,
+    transition: { duration: 0.45, delay: i * 0.28 + 0.5, ease: [0.22, 1, 0.36, 1] },
+  }),
+};
+
+// Connector line draws (RTL: points LEFT — from step N toward step N+1)
+const connectorVariant = {
   hidden: { pathLength: 0 },
   visible: (i) => ({
     pathLength: 1,
-    transition: { duration: 1.1, delay: i * 0.22 + 0.1, ease: 'easeOut' },
+    transition: { duration: 0.45, delay: i * 0.28 + 0.55, ease: 'easeOut' },
   }),
-};
-
-const iconVariant = {
-  rest: { scale: 1, rotate: 0 },
-  hover: { scale: 1.12, rotate: [0, -8, 8, 0], transition: { duration: 0.4 } },
 };
 
 export function HowItWorks() {
   return (
-    <section className="hiw-section">
+    <section className="hiw-section" dir="rtl">
       <div className="hiw-inner container">
         <motion.p
           className="hiw-eyebrow"
@@ -65,7 +94,7 @@ export function HowItWorks() {
         </motion.p>
         <motion.h2
           className="hiw-heading"
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: 18 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.06 }}
@@ -73,16 +102,19 @@ export function HowItWorks() {
           הדרך הכי חכמה למצוא דיל
         </motion.h2>
 
-        <div className="hiw-grid">
+        <motion.div
+          className="hiw-grid"
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-30px' }}
+        >
           {steps.map(({ icon: Icon, num, title, sub, color, glow }, i) => (
             <motion.div
               key={i}
               className="hiw-step"
               custom={i}
               variants={stepVariant}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: '-30px' }}
               whileHover="hover"
             >
               {/* Animated ring + icon */}
@@ -91,12 +123,12 @@ export function HowItWorks() {
                   <defs>
                     <linearGradient id={`hiw-g-${i}`} x1="0%" y1="0%" x2="100%" y2="100%">
                       <stop offset="0%" stopColor={color} stopOpacity="0.9" />
-                      <stop offset="100%" stopColor={color} stopOpacity="0.35" />
+                      <stop offset="100%" stopColor={color} stopOpacity="0.3" />
                     </linearGradient>
                   </defs>
-                  {/* Background circle */}
-                  <circle cx="48" cy="48" r="44" stroke={color} strokeWidth="1" opacity="0.15" />
-                  {/* Animated draw circle */}
+                  {/* Static background ring */}
+                  <circle cx="48" cy="48" r="44" stroke={color} strokeWidth="1" opacity="0.14" />
+                  {/* Animated stroke-draw ring */}
                   <motion.circle
                     cx="48" cy="48" r="44"
                     stroke={`url(#hiw-g-${i})`}
@@ -104,50 +136,49 @@ export function HowItWorks() {
                     strokeLinecap="round"
                     custom={i}
                     variants={ringVariant}
-                    initial="hidden"
-                    whileInView="visible"
-                    viewport={{ once: true }}
                   />
                 </svg>
 
-                <motion.div className="hiw-icon-inner" variants={iconVariant}>
+                {/* Icon bounces in via spring */}
+                <motion.div className="hiw-icon-inner" custom={i} variants={iconVariant}>
                   <Icon size={36} strokeWidth={1.4} color={color} />
                 </motion.div>
 
-                {/* Pulsing glow dot */}
+                {/* Continuous pulsing glow dot */}
                 <motion.div
                   className="hiw-pulse"
                   style={{ background: color }}
-                  animate={{ scale: [1, 1.6, 1], opacity: [0.7, 0, 0.7] }}
-                  transition={{ duration: 2.4, repeat: Infinity, delay: i * 0.5 }}
+                  animate={{ scale: [1, 1.65, 1], opacity: [0.65, 0, 0.65] }}
+                  transition={{ duration: 2.4, repeat: Infinity, delay: i * 0.6, ease: 'easeInOut' }}
                 />
               </div>
 
-              <div className="hiw-step-num" style={{ color }}>{num}</div>
-              <h3 className="hiw-step-title">{title}</h3>
-              <p className="hiw-step-sub">{sub}</p>
+              {/* Step content animates after icon */}
+              <motion.div custom={i} variants={textVariant}>
+                <div className="hiw-step-num" style={{ color }}>{num}</div>
+                <h3 className="hiw-step-title">{title}</h3>
+                <p className="hiw-step-sub">{sub}</p>
+              </motion.div>
 
-              {/* Connector arrow (not on last item) */}
+              {/* RTL-correct connector: arrow points LEFT (→ toward next step in RTL layout) */}
               {i < steps.length - 1 && (
                 <div className="hiw-connector" aria-hidden="true">
                   <motion.svg viewBox="0 0 40 20" fill="none" className="hiw-arrow">
                     <motion.path
-                      d="M0 10 L32 10 M26 4 L32 10 L26 16"
+                      d="M32 10 L0 10 M6 4 L0 10 L6 16"
                       stroke="var(--color-border)"
                       strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      initial={{ pathLength: 0 }}
-                      whileInView={{ pathLength: 1 }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 0.6, delay: i * 0.22 + 0.7 }}
+                      custom={i}
+                      variants={connectorVariant}
                     />
                   </motion.svg>
                 </div>
               )}
             </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   );

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useLanguage } from './context/LanguageContext.jsx';
 import { NowProvider } from './context/NowContext.jsx';
 import { agentApi } from './api/client.js';
@@ -8,7 +8,7 @@ import { AgentDealCard } from './components/agent/AgentDealCard.jsx';
 import { ReelsStrip } from './components/ReelsStrip.jsx';
 import { SiteFooter } from './components/SiteFooter.jsx';
 import { motion } from 'framer-motion';
-import { Briefcase } from 'lucide-react';
+import { Briefcase, SlidersHorizontal, X } from 'lucide-react';
 
 const gridVariants = { hidden: {}, visible: { transition: { staggerChildren: 0.08 } } };
 const cardIn = { hidden: { opacity: 0, y: 22 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
@@ -17,11 +17,46 @@ export function App() {
   const { t } = useLanguage();
   const [agentDeals, setAgentDeals] = useState([]);
 
+  // Filter state
+  const [filterDest, setFilterDest] = useState('');
+  const [filterDate, setFilterDate] = useState('');
+  const [filterMaxPrice, setFilterMaxPrice] = useState('');
+  const [sortDir, setSortDir] = useState('asc'); // 'asc' | 'desc'
+
   useEffect(() => {
     agentApi.getApprovedDeals()
       .then(({ deals }) => setAgentDeals(deals || []))
       .catch(() => setAgentDeals([]));
   }, []);
+
+  const filteredDeals = useMemo(() => {
+    let result = [...agentDeals];
+    if (filterDest.trim()) {
+      const q = filterDest.trim().toLowerCase();
+      result = result.filter(d =>
+        (d.destination_name || '').toLowerCase().includes(q) ||
+        (d.destination || '').toLowerCase().includes(q) ||
+        (d.country || '').toLowerCase().includes(q)
+      );
+    }
+    if (filterDate) {
+      result = result.filter(d => d.departure_date && d.departure_date >= filterDate);
+    }
+    if (filterMaxPrice && Number(filterMaxPrice) > 0) {
+      result = result.filter(d => Number(d.price) <= Number(filterMaxPrice));
+    }
+    result.sort((a, b) => sortDir === 'asc' ? a.price - b.price : b.price - a.price);
+    return result;
+  }, [agentDeals, filterDest, filterDate, filterMaxPrice, sortDir]);
+
+  const hasFilter = filterDest || filterDate || filterMaxPrice;
+
+  function clearFilters() {
+    setFilterDest('');
+    setFilterDate('');
+    setFilterMaxPrice('');
+    setSortDir('asc');
+  }
 
   return (
     <NowProvider>
@@ -44,6 +79,45 @@ export function App() {
           <p className="agent-deals-section__subtitle">
             {t.agentDealsSectionSubtitle || 'עסקאות ייחודיות ישירות מסוכנים מאומתים — לחץ לפרטים מלאים'}
           </p>
+
+          {/* Filter bar */}
+          <div className="deals-filter-bar" dir="rtl">
+            <span className="deals-filter-bar__icon"><SlidersHorizontal size={15} /></span>
+            <input
+              className="deals-filter-input"
+              placeholder="יעד…"
+              value={filterDest}
+              onChange={e => setFilterDest(e.target.value)}
+            />
+            <input
+              className="deals-filter-input deals-filter-input--date"
+              type="date"
+              value={filterDate}
+              onChange={e => setFilterDate(e.target.value)}
+            />
+            <input
+              className="deals-filter-input deals-filter-input--price"
+              type="number"
+              min="0"
+              placeholder="מחיר מקסימלי"
+              value={filterMaxPrice}
+              onChange={e => setFilterMaxPrice(e.target.value)}
+            />
+            <select
+              className="deals-filter-select"
+              value={sortDir}
+              onChange={e => setSortDir(e.target.value)}
+            >
+              <option value="asc">מחיר: נמוך לגבוה</option>
+              <option value="desc">מחיר: גבוה לנמוך</option>
+            </select>
+            {hasFilter && (
+              <button className="deals-filter-clear" onClick={clearFilters} aria-label="נקה סינון">
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
           <motion.div
             className="agent-deals-carousel"
             variants={gridVariants}
@@ -51,7 +125,9 @@ export function App() {
             whileInView="visible"
             viewport={{ once: true, margin: '-40px' }}
           >
-            {agentDeals.map(deal => (
+            {filteredDeals.length === 0 ? (
+              <p className="deals-filter-empty">לא נמצאו דילים התואמים את הסינון</p>
+            ) : filteredDeals.map(deal => (
               <motion.div key={deal.id} variants={cardIn} className="agent-deals-carousel__item">
                 <AgentDealCard deal={deal} />
               </motion.div>

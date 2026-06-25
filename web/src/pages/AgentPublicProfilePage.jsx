@@ -7,6 +7,7 @@ import { useLanguage } from '../context/LanguageContext.jsx';
 import { getCurrencySymbol } from '../utils/currency.js';
 import { DealDetailModal } from '../components/DealDetailModal.jsx';
 import { useFavorites } from '../hooks/useFavorites.js';
+import { StarRating } from '../components/StarRating.jsx';
 
 function buildWhatsAppUrl(number, template, dest, dates) {
   const text = (template || `שלום, ראיתי את הדיל שלכם ל-{destination} ({dates}) ב-Deal Radar Pro ואני מתעניין`)
@@ -115,6 +116,9 @@ export function AgentPublicProfilePage() {
               </div>
             )}
           </div>
+
+          {/* Agent star rating */}
+          <StarRating agentId={agent.id} size="md" />
 
           {/* Bio/About */}
           {agent.description && (

@@ -134,7 +134,9 @@ export function AgentDealCard({ deal }) {
               <span className="adc__info-text">
                 {deal.hotel_name}
                 {deal.hotel_stars ? ` ${stars(deal.hotel_stars)}` : ''}
-                {deal.hotel_breakfast ? ' · ☕' : ''}
+                {deal.hotel_breakfast ? ' · 🍳' : ''}
+                {deal.hotel_lunch ? ' · 🍽️' : ''}
+                {deal.hotel_dinner ? ' · 🌙' : ''}
               </span>
             </div>
           )}

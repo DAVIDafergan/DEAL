@@ -99,6 +99,10 @@ const MIGRATIONS = [
   (connection) => ensureColumn(connection, 'agent_deals', 'car_company', 'VARCHAR(120) NULL'),
   (connection) => ensureColumn(connection, 'agent_deals', 'departure_time', 'VARCHAR(5) NULL'),
   (connection) => ensureColumn(connection, 'agent_deals', 'arrival_time', 'VARCHAR(5) NULL'),
+  // hotel meals + link
+  (connection) => ensureColumn(connection, 'agent_deals', 'hotel_lunch', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'agent_deals', 'hotel_dinner', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'agent_deals', 'hotel_link', 'TEXT NULL'),
 ];
 
 const SCHEMA_STATEMENTS = [
@@ -266,6 +270,17 @@ const SCHEMA_STATEMENTS = [
     INDEX idx_agent_deals_agent (agent_id),
     INDEX idx_agent_deals_status (status),
     INDEX idx_agent_deals_destination (destination),
+    FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB`,
+  `CREATE TABLE IF NOT EXISTS agent_ratings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    session_id VARCHAR(128) NOT NULL,
+    agent_id INT NOT NULL,
+    rating TINYINT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_session_agent (session_id, agent_id),
+    INDEX idx_agent_ratings_agent (agent_id),
     FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
   ) ENGINE=InnoDB`,
   `CREATE TABLE IF NOT EXISTS user_favorites (
