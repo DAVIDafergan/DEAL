@@ -2376,3 +2376,111 @@ img, svg { max-width: 100%; }
   padding: 16px 0;
   text-align: center;
 }
+
+/* ── Top5: grid on desktop, horizontal scroll on mobile ─────────────────── */
+@media (min-width: 640px) {
+  .top-value-deals__track {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    overflow-x: visible;
+    scroll-snap-type: none;
+  }
+  .tvc {
+    flex-shrink: unset;
+    width: auto;
+  }
+}
+
+/* ── TVC share button ────────────────────────────────────────────────────── */
+.tvc__share-btn {
+  margin-inline-start: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+.tvc__share-btn:hover {
+  background: rgba(37,99,235,0.10);
+  color: var(--color-accent-from);
+}
+
+/* ── Deal modal share button ─────────────────────────────────────────────── */
+.deal-modal__btn--share {
+  background: rgba(37,99,235,0.08);
+  color: var(--color-accent-from);
+  border: 1.5px solid rgba(37,99,235,0.22);
+}
+.deal-modal__btn--share:hover { background: rgba(37,99,235,0.15); }
+
+/* ── Passenger label in modal ────────────────────────────────────────────── */
+.deal-modal__pax {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-subtle, rgba(0,0,0,0.04));
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+/* ── Passenger label in deal card ────────────────────────────────────────── */
+.adc__pax {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  display: block;
+  margin-top: 1px;
+}
+
+/* ── Wizard: passenger count buttons ────────────────────────────────────── */
+.wizard-passenger-choices {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.wizard-pax-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 14px;
+  min-width: 64px;
+  border-radius: 12px;
+  border: 2px solid var(--color-border, #e5e7eb);
+  background: var(--color-surface, #fff);
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  font-family: inherit;
+}
+.wizard-pax-btn__icon { font-size: 1.5rem; line-height: 1; }
+.wizard-pax-btn__label { font-size: 0.78rem; font-weight: 700; color: var(--color-text-primary); }
+.wizard-pax-btn--active {
+  border-color: var(--color-accent-from, #2563eb);
+  background: rgba(37,99,235,0.07);
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+}
+
+/* ── Dashboard: edit button ──────────────────────────────────────────────── */
+.dash-deal-edit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(37,99,235,0.08);
+  color: var(--color-accent-from, #2563eb);
+  cursor: pointer;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.dash-deal-edit:hover { background: rgba(37,99,235,0.18); }

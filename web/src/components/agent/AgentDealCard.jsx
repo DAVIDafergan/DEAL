@@ -158,6 +158,11 @@ export function AgentDealCard({ deal }) {
                 {Math.round(deal.price)}{' '}
                 <span className="adc__currency">{getCurrencySymbol(deal.currency)}</span>
               </span>
+              {deal.passenger_count && (
+                <span className="adc__pax">
+                  {{ 1: 'ליחיד', 2: 'לזוג', 3: 'ל-3', 4: 'ל-4+' }[deal.passenger_count] || `ל-${deal.passenger_count}`}
+                </span>
+              )}
               {deal.description && (
                 <span className="adc__desc-snippet">{deal.description.slice(0, 40)}</span>
               )}

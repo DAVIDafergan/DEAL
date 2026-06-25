@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   PlusCircle, Settings, LogOut, CheckCircle, XCircle, TrendingUp,
-  MessageCircle, LayoutDashboard, Trash2, Zap,
+  MessageCircle, LayoutDashboard, Trash2, Zap, Pencil,
 } from 'lucide-react';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { agentApi } from '../api/client.js';
@@ -47,18 +47,24 @@ export function AgentDashboardPage() {
   const [dealsLoading, setDealsLoading] = useState(true);
   const [notification, setNotification] = useState(null);
   const [showWizard, setShowWizard] = useState(false);
+  const [editingDeal, setEditingDeal] = useState(null);
 
   useEffect(() => {
     if (!loading && !token) navigate('/agent/login', { replace: true });
   }, [loading, token, navigate]);
 
-  useEffect(() => {
+  function refreshDeals() {
     if (!token) return;
     agentApi.getDeals(token)
       .then(({ deals: d }) => setDeals(d || []))
       .catch(() => setDeals([]))
       .finally(() => setDealsLoading(false));
-  }, [token, showWizard]);
+  }
+
+  useEffect(() => {
+    refreshDeals();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   function notify(msg, type = 'success') {
     setNotification({ msg, type });
@@ -68,7 +74,13 @@ export function AgentDashboardPage() {
   function handleDealAdded() {
     setShowWizard(false);
     notify(t.dealSubmittedMessage || 'הדיל הוגש לאישור!');
-    agentApi.getDeals(token).then(({ deals: d }) => setDeals(d || [])).catch(() => {});
+    refreshDeals();
+  }
+
+  function handleDealEdited() {
+    setEditingDeal(null);
+    notify('הדיל עודכן ונשלח לאישור מחדש');
+    refreshDeals();
   }
 
   async function handleDeleteDeal(id) {
@@ -92,7 +104,7 @@ export function AgentDashboardPage() {
 
   return (
     <div className="dash-page" dir="rtl">
-      {/* Wizard overlay */}
+      {/* Wizard overlay — new deal */}
       <AnimatePresence>
         {showWizard && (
           <motion.div className="dash-wizard-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -102,6 +114,26 @@ export function AgentDashboardPage() {
               transition={{ type: 'spring', stiffness: 260, damping: 32 }}
             >
               <DealWizard onSuccess={handleDealAdded} onCancel={() => setShowWizard(false)} />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Wizard overlay — edit deal */}
+      <AnimatePresence>
+        {editingDeal && (
+          <motion.div className="dash-wizard-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div
+              className="dash-wizard-sheet"
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', stiffness: 260, damping: 32 }}
+            >
+              <DealWizard
+                initialData={editingDeal}
+                dealId={editingDeal.id}
+                onSuccess={handleDealEdited}
+                onCancel={() => setEditingDeal(null)}
+              />
             </motion.div>
           </motion.div>
         )}
@@ -250,6 +282,14 @@ export function AgentDashboardPage() {
                 </span>
                 <span className="dash-deal-clicks"><TrendingUp size={12} /> {deal.click_count}</span>
                 {deal.whatsapp_override && <span className="dash-deal-wa"><MessageCircle size={12} /></span>}
+                <motion.button
+                  className="dash-deal-edit"
+                  whileTap={{ scale: 0.9 }}
+                  onClick={e => { e.stopPropagation(); setEditingDeal(deal); }}
+                  title="ערוך דיל"
+                >
+                  <Pencil size={14} />
+                </motion.button>
                 <motion.button
                   className="dash-deal-delete"
                   whileTap={{ scale: 0.9 }}

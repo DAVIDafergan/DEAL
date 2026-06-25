@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Flame, CheckCircle } from 'lucide-react';
+import { Flame, CheckCircle, Share2 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { agentApi } from '../api/client.js';
 import { getCurrencySymbol } from '../utils/currency.js';
@@ -29,6 +29,18 @@ function AgentAvatar({ logoUrl, name }) {
         : <span className="tvc__avatar-initial">{initial}</span>}
     </div>
   );
+}
+
+async function shareCard(e, deal) {
+  e.stopPropagation();
+  const url = deal.agent_slug
+    ? `${window.location.origin}/agent/${deal.agent_slug}`
+    : window.location.href;
+  const title = `דיל ל${deal.destination_name || deal.destination} — ${deal.price} ${deal.currency}`;
+  if (navigator.share) {
+    try { await navigator.share({ title, url }); return; } catch {}
+  }
+  try { await navigator.clipboard.writeText(url); } catch {}
 }
 
 export function TopValueDeals({ hero }) {
@@ -110,6 +122,14 @@ export function TopValueDeals({ hero }) {
                           <CheckCircle size={10} /> מאומת
                         </span>
                       </div>
+                      <motion.button
+                        className="tvc__share-btn"
+                        whileTap={{ scale: 0.88 }}
+                        onClick={(e) => shareCard(e, deal)}
+                        aria-label="שתף דיל"
+                      >
+                        <Share2 size={13} />
+                      </motion.button>
                     </div>
                   )}
                 </motion.div>

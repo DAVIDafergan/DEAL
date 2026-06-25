@@ -1,12 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Heart, MessageCircle, ExternalLink, Plane, Hotel, Car, CheckCircle } from 'lucide-react';
+import { X, Heart, MessageCircle, ExternalLink, Plane, Hotel, Car, CheckCircle, Share2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { getCurrencySymbol } from '../utils/currency.js';
 import { agentApi } from '../api/client.js';
 import { useFavorites } from '../hooks/useFavorites.js';
-import { StarRating } from './StarRating.jsx';
 
 function buildWhatsAppUrl(number, template, dest, dates) {
   const text = (template || `שלום, ראיתי את הדיל שלכם ל-{destination} ({dates}) ב-Deal Radar Pro ואני מתעניין`)
@@ -53,9 +52,12 @@ const detailRow = {
   visible: { opacity: 1, x: 0, transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] } },
 };
 
+const PAX_LABEL = { 1: 'ליחיד', 2: 'לזוג', 3: 'ל-3 נוסעים', 4: 'ל-4+ נוסעים' };
+
 export function DealDetailModal({ deal, onClose }) {
   const { t } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -80,6 +82,21 @@ export function DealDetailModal({ deal, onClose }) {
   async function handleAction(url) {
     try { await agentApi.trackClick(deal.id); } catch {}
     window.open(url, '_blank', 'noopener,noreferrer');
+  }
+
+  async function handleShare() {
+    const url = deal.agent_slug
+      ? `${window.location.origin}/agent/${deal.agent_slug}`
+      : window.location.href;
+    const title = `דיל ל${deal.destination_name || deal.destination} — ${deal.price} ${deal.currency}`;
+    if (navigator.share) {
+      try { await navigator.share({ title, url }); return; } catch {}
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {}
   }
 
   return (
@@ -145,14 +162,14 @@ export function DealDetailModal({ deal, onClose }) {
             <h2 className="deal-modal__title">{deal.destination_name || deal.destination}</h2>
             {deal.country && <p className="deal-modal__country">{deal.country}</p>}
 
-            {/* Agent badge + star rating */}
+            {/* Agent badge */}
             {deal.business_name && (
               <div className="deal-modal__agent-row">
                 <Link to={`/agent/${deal.agent_slug}`} className="deal-modal__agent-badge" onClick={onClose}>
                   <CheckCircle size={13} /> {deal.business_name}
                 </Link>
-                {deal.agent_id && (
-                  <StarRating agentId={deal.agent_id} size="sm" />
+                {deal.passenger_count && (
+                  <span className="deal-modal__pax">{PAX_LABEL[deal.passenger_count] || `ל-${deal.passenger_count} נוסעים`}</span>
                 )}
               </div>
             )}
@@ -251,6 +268,13 @@ export function DealDetailModal({ deal, onClose }) {
                   <Hotel size={18} /> לצפייה במלון
                 </motion.button>
               )}
+              <motion.button
+                className="deal-modal__btn deal-modal__btn--share"
+                whileTap={{ scale: 0.97 }}
+                onClick={handleShare}
+              >
+                <Share2 size={18} /> {copied ? '✓ הועתק!' : 'שתף'}
+              </motion.button>
             </div>
           </div>
         </motion.div>

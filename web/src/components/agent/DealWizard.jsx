@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useAgentAuth } from '../../context/AgentAuthContext.jsx';
@@ -98,9 +98,11 @@ function BigChoice({ label, icon, selected, onClick }) {
   );
 }
 
-export function DealWizard({ onSuccess, onCancel }) {
+// initialData: existing deal object for edit mode; dealId: ID to PATCH
+export function DealWizard({ onSuccess, onCancel, initialData = null, dealId = null }) {
   const { token } = useAgentAuth();
   const { t } = useLanguage();
+  const isEditing = !!dealId;
 
   const [step, setStep] = useState(1);
   const [dir, setDir] = useState(1);
@@ -120,7 +122,7 @@ export function DealWizard({ onSuccess, onCancel }) {
   const [returnDate, setReturnDate] = useState('');
   const [datesError, setDatesError] = useState('');
 
-  // Step 3 — flight
+  // Step 3 — flight + passengers
   const [airline, setAirline] = useState('');
   const [departureTime, setDepartureTime] = useState('');
   const [arrivalTime, setArrivalTime] = useState('');
@@ -128,9 +130,10 @@ export function DealWizard({ onSuccess, onCancel }) {
   const [checkedBag, setCheckedBag] = useState(false);
   const [meal, setMeal] = useState(false);
   const [isExclusive, setIsExclusive] = useState(false);
+  const [passengerCount, setPassengerCount] = useState(2);
 
   // Step 4 — hotel
-  const [includeHotel, setIncludeHotel] = useState(null); // null|true|false
+  const [includeHotel, setIncludeHotel] = useState(null);
   const [hotelName, setHotelName] = useState('');
   const [hotelStars, setHotelStars] = useState('');
   const [hotelBreakfast, setHotelBreakfast] = useState(false);
@@ -151,6 +154,46 @@ export function DealWizard({ onSuccess, onCancel }) {
   const [description, setDescription] = useState('');
   const [expiresAt, setExpiresAt] = useState('');
   const [priceError, setPriceError] = useState('');
+
+  // Pre-fill when editing
+  useEffect(() => {
+    if (!initialData) return;
+    const d = initialData;
+    const dest = DESTINATIONS.find(x => x.iata === d.destination);
+    if (dest) {
+      setSelectedDest(dest);
+      setDestQuery(`${dest.name}, ${dest.country}`);
+    } else if (d.destination) {
+      setSelectedDest({ iata: d.destination, name: d.destination_name || d.destination, country: d.country || '' });
+      setDestQuery(`${d.destination_name || d.destination}${d.country ? ', ' + d.country : ''}`);
+    }
+    if (d.departure_date) setDeparture(d.departure_date.slice(0, 10));
+    if (d.return_date) setReturnDate(d.return_date.slice(0, 10));
+    if (d.airline) setAirline(d.airline);
+    if (d.departure_time) setDepartureTime(d.departure_time);
+    if (d.arrival_time) setArrivalTime(d.arrival_time);
+    setCabinBag(!!d.includes_cabin_baggage);
+    setCheckedBag(!!d.includes_checked_baggage);
+    setMeal(!!d.includes_meal);
+    setIsExclusive(!!d.is_exclusive);
+    setPassengerCount(d.passenger_count || 2);
+    setIncludeHotel(d.hotel_name ? true : false);
+    if (d.hotel_name) setHotelName(d.hotel_name);
+    if (d.hotel_stars) setHotelStars(String(d.hotel_stars));
+    setHotelBreakfast(!!d.hotel_breakfast);
+    setHotelLunch(!!d.hotel_lunch);
+    setHotelDinner(!!d.hotel_dinner);
+    if (d.hotel_link) setHotelLink(d.hotel_link);
+    setIncludeCar(d.car_type ? true : false);
+    if (d.car_type) setCarType(d.car_type);
+    if (d.car_company) setCarCompany(d.car_company);
+    if (d.price) setPrice(String(d.price));
+    if (d.currency) setCurrency(d.currency);
+    if (d.purchase_link) setPurchaseLink(d.purchase_link);
+    if (d.whatsapp_override) setWhatsapp(d.whatsapp_override);
+    if (d.description) setDescription(d.description);
+    if (d.expires_at) setExpiresAt(d.expires_at.slice(0, 10));
+  }, [initialData]);
 
   const filtered = DESTINATIONS.filter(d =>
     !destQuery || d.name.includes(destQuery) || d.iata.toLowerCase().includes(destQuery.toLowerCase()) || d.country.includes(destQuery)
@@ -196,37 +239,43 @@ export function DealWizard({ onSuccess, onCancel }) {
     setPriceError('');
     setSubmitting(true);
     setApiError(null);
+    const payload = {
+      destination: selectedDest.iata,
+      destination_name: selectedDest.name,
+      country: selectedDest.country,
+      photo_url: media?.photo_url || (initialData?.photo_url ?? null),
+      video_url: media?.video_url || (initialData?.video_url ?? null),
+      departure_date: departure,
+      return_date: returnDate || null,
+      price: Number(price),
+      currency,
+      airline: airline || null,
+      departure_time: departureTime || null,
+      arrival_time: arrivalTime || null,
+      includes_cabin_baggage: cabinBag ? 1 : 0,
+      includes_checked_baggage: checkedBag ? 1 : 0,
+      includes_meal: meal ? 1 : 0,
+      is_exclusive: isExclusive ? 1 : 0,
+      passenger_count: passengerCount,
+      hotel_name: includeHotel ? hotelName || null : null,
+      hotel_stars: includeHotel && hotelStars ? Number(hotelStars) : null,
+      hotel_breakfast: includeHotel ? (hotelBreakfast ? 1 : 0) : 0,
+      hotel_lunch: includeHotel ? (hotelLunch ? 1 : 0) : 0,
+      hotel_dinner: includeHotel ? (hotelDinner ? 1 : 0) : 0,
+      hotel_link: includeHotel ? hotelLink || null : null,
+      car_type: includeCar ? carType || null : null,
+      car_company: includeCar ? carCompany || null : null,
+      purchase_link: purchaseLink || null,
+      whatsapp_override: whatsapp || null,
+      description: description || null,
+      expires_at: expiresAt || null,
+    };
     try {
-      await agentApi.createDeal(token, {
-        destination: selectedDest.iata,
-        destination_name: selectedDest.name,
-        country: selectedDest.country,
-        photo_url: media?.photo_url || null,
-        video_url: media?.video_url || null,
-        departure_date: departure,
-        return_date: returnDate || null,
-        price: Number(price),
-        currency,
-        airline: airline || null,
-        departure_time: departureTime || null,
-        arrival_time: arrivalTime || null,
-        includes_cabin_baggage: cabinBag ? 1 : 0,
-        includes_checked_baggage: checkedBag ? 1 : 0,
-        includes_meal: meal ? 1 : 0,
-        is_exclusive: isExclusive ? 1 : 0,
-        hotel_name: includeHotel ? hotelName || null : null,
-        hotel_stars: includeHotel && hotelStars ? Number(hotelStars) : null,
-        hotel_breakfast: includeHotel ? (hotelBreakfast ? 1 : 0) : 0,
-        hotel_lunch: includeHotel ? (hotelLunch ? 1 : 0) : 0,
-        hotel_dinner: includeHotel ? (hotelDinner ? 1 : 0) : 0,
-        hotel_link: includeHotel ? hotelLink || null : null,
-        car_type: includeCar ? carType || null : null,
-        car_company: includeCar ? carCompany || null : null,
-        purchase_link: purchaseLink || null,
-        whatsapp_override: whatsapp || null,
-        description: description || null,
-        expires_at: expiresAt || null,
-      });
+      if (isEditing) {
+        await agentApi.updateDeal(token, dealId, payload);
+      } else {
+        await agentApi.createDeal(token, payload);
+      }
       onSuccess?.();
     } catch (err) {
       setApiError(err.message);
@@ -337,6 +386,31 @@ export function DealWizard({ onSuccess, onCancel }) {
                   }
                   return null;
                 })()}
+
+                {/* Passenger count */}
+                <div className="wizard-field" style={{ marginTop: 16 }}>
+                  <label className="wizard-label">👥 מספר נוסעים</label>
+                  <div className="wizard-passenger-choices">
+                    {[
+                      { val: 1, label: 'יחיד', icon: '👤' },
+                      { val: 2, label: 'זוגי', icon: '👫' },
+                      { val: 3, label: '3', icon: '👨‍👩‍👧' },
+                      { val: 4, label: '4+', icon: '👨‍👩‍👧‍👦' },
+                    ].map(({ val, label, icon }) => (
+                      <motion.button
+                        key={val}
+                        type="button"
+                        className={`wizard-pax-btn${passengerCount === val ? ' wizard-pax-btn--active' : ''}`}
+                        onClick={() => setPassengerCount(val)}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <span className="wizard-pax-btn__icon">{icon}</span>
+                        <span className="wizard-pax-btn__label">{label}</span>
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="wizard-checkboxes">
                   <label className="wizard-checkbox">
                     <input type="checkbox" checked={cabinBag} onChange={e => setCabinBag(e.target.checked)} />
@@ -363,18 +437,8 @@ export function DealWizard({ onSuccess, onCancel }) {
             <motion.div key="s4" custom={dir} variants={slideVariants} initial="enter" animate="center" exit="exit">
               <WizardStep title={t.dealStepHotel || 'מלון'} iconName="building">
                 <div className="wizard-big-choices">
-                  <BigChoice
-                    label={t.yesInclude || 'כן, כולל מלון'}
-                    icon="🏨"
-                    selected={includeHotel === true}
-                    onClick={() => setIncludeHotel(true)}
-                  />
-                  <BigChoice
-                    label={t.noInclude || 'לא'}
-                    icon="✈️"
-                    selected={includeHotel === false}
-                    onClick={() => setIncludeHotel(false)}
-                  />
+                  <BigChoice label={t.yesInclude || 'כן, כולל מלון'} icon="🏨" selected={includeHotel === true} onClick={() => setIncludeHotel(true)} />
+                  <BigChoice label={t.noInclude || 'לא'} icon="✈️" selected={includeHotel === false} onClick={() => setIncludeHotel(false)} />
                 </div>
                 <AnimatePresence>
                   {includeHotel && (
@@ -426,18 +490,8 @@ export function DealWizard({ onSuccess, onCancel }) {
             <motion.div key="s5" custom={dir} variants={slideVariants} initial="enter" animate="center" exit="exit">
               <WizardStep title={t.dealStepCar || 'רכב שכור'} iconName="wallet">
                 <div className="wizard-big-choices">
-                  <BigChoice
-                    label={t.yesInclude || 'כן, כולל רכב'}
-                    icon="🚗"
-                    selected={includeCar === true}
-                    onClick={() => setIncludeCar(true)}
-                  />
-                  <BigChoice
-                    label={t.noInclude || 'לא'}
-                    icon="✈️"
-                    selected={includeCar === false}
-                    onClick={() => setIncludeCar(false)}
-                  />
+                  <BigChoice label={t.yesInclude || 'כן, כולל רכב'} icon="🚗" selected={includeCar === true} onClick={() => setIncludeCar(true)} />
+                  <BigChoice label={t.noInclude || 'לא'} icon="✈️" selected={includeCar === false} onClick={() => setIncludeCar(false)} />
                 </div>
                 <AnimatePresence>
                   {includeCar && (
@@ -546,7 +600,7 @@ export function DealWizard({ onSuccess, onCancel }) {
             onClick={handleSubmit}
             disabled={submitting}
           >
-            {submitting ? (t.submittingLabel || 'שולח…') : (t.submitDealButton || 'שלח לאישור')}
+            {submitting ? (t.submittingLabel || 'שולח…') : isEditing ? 'שמור שינויים' : (t.submitDealButton || 'שלח לאישור')}
           </motion.button>
         )}
       </div>

@@ -9,9 +9,9 @@ export async function createAgentDeal(agentId, fields) {
        price,currency,purchase_link,whatsapp_override,is_exclusive,expires_at,description,
        airline,includes_checked_baggage,includes_cabin_baggage,includes_meal,
        hotel_name,hotel_stars,hotel_breakfast,hotel_lunch,hotel_dinner,hotel_link,
-       car_type,car_company,departure_time,arrival_time,
+       car_type,car_company,departure_time,arrival_time,passenger_count,
        status,click_count,created_at,updated_at)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending',0,?,?)`,
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending',0,?,?)`,
     [
       agentId,
       fields.destination,
@@ -42,6 +42,7 @@ export async function createAgentDeal(agentId, fields) {
       fields.car_company || null,
       fields.departure_time || null,
       fields.arrival_time || null,
+      fields.passenger_count ? Number(fields.passenger_count) : 2,
       now, now,
     ]
   );
@@ -133,7 +134,7 @@ export async function updateAgentDeal(id, agentId, fields) {
     'is_exclusive','expires_at','description',
     'airline','includes_checked_baggage','includes_cabin_baggage','includes_meal',
     'hotel_name','hotel_stars','hotel_breakfast','hotel_lunch','hotel_dinner','hotel_link',
-    'car_type','car_company','departure_time','arrival_time'];
+    'car_type','car_company','departure_time','arrival_time','passenger_count'];
   const sets = [];
   const vals = [];
   for (const k of allowed) {
@@ -187,6 +188,7 @@ export async function listTopValueDeals(limit = 5) {
             ad.includes_checked_baggage, ad.includes_cabin_baggage, ad.includes_meal,
             ad.departure_time, ad.arrival_time,
             ad.hotel_lunch, ad.hotel_dinner, ad.hotel_link,
+            ad.passenger_count,
             ad.agent_id, a.business_name, a.slug AS agent_slug, a.logo_url AS agent_logo_url,
             a.whatsapp_number AS agent_whatsapp, a.whatsapp_template AS agent_whatsapp_template,
             ad.value_score, ad.airline, ad.hotel_name, ad.hotel_stars, ad.hotel_breakfast,
