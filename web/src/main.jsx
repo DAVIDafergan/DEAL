@@ -31,6 +31,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               <Route path="/register/traveler" element={<TravelerRegisterPage />} />
               <Route path="/agent/register" element={<AgentRegisterPage />} />
               <Route path="/agent/login" element={<AgentLoginPage />} />
+              <Route path="/agent/dashboard/settings" element={<AgentSettingsPage />} />
+              <Route path="/agent/dashboard" element={<AgentDashboardPage />} />
               <Route path="/agent/:slug" element={<AgentPublicProfilePage />} />
               <Route path="/my/favorites" element={<FavoritesPage />} />
               <Route path="/account" element={<AccountPage />} />
@@ -38,9 +40,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               <Route path="/privacy" element={<PrivacyPage />} />
             </Route>
 
-            {/* Routes with their own navigation (no shared header) */}
-            <Route path="/agent/dashboard/settings" element={<AgentSettingsPage />} />
-            <Route path="/agent/dashboard" element={<AgentDashboardPage />} />
+            {/* Admin — its own full-screen layout */}
             <Route path="/admin" element={<AdminPage />} />
 
             {/* App shell — 3 tabs (home/reels/plan), header lives inside AppShell */}

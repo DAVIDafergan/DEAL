@@ -3,13 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   PlusCircle, Settings, LogOut, CheckCircle, XCircle, TrendingUp,
-  MessageCircle, Home, LayoutDashboard, Trash2, Zap,
+  MessageCircle, LayoutDashboard, Trash2, Zap,
 } from 'lucide-react';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { agentApi } from '../api/client.js';
 import { DealWizard } from '../components/agent/DealWizard.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
-import { Logo } from '../components/Logo.jsx';
 
 const STATUS_ICON = {
   pending: <CheckCircle size={13} />,
@@ -120,46 +119,6 @@ export function AgentDashboardPage() {
         )}
       </AnimatePresence>
 
-      {/* Top bar — logo | nav items | right end */}
-      <header className="dash-topbar">
-        <Link to="/" className="dash-topbar__logo">
-          <Logo size={26} />
-        </Link>
-
-        <nav className="dash-topbar__nav">
-          <Link to="/" className="dash-topbar__nav-item">
-            <Home size={18} />
-            <span>בית</span>
-          </Link>
-          <div className="dash-topbar__nav-item is-active">
-            <LayoutDashboard size={18} />
-            <span>דשבורד</span>
-          </div>
-          <Link to="/agent/dashboard/settings" className="dash-topbar__nav-item">
-            <Settings size={18} />
-            <span>הגדרות</span>
-          </Link>
-        </nav>
-
-        <div className="dash-topbar__end">
-          {agent?.business_name && (
-            <span className="dash-topbar__agent-name">{agent.business_name}</span>
-          )}
-          {agent?.status && (
-            <span className={`dash-topbar__status dash-topbar__status--${agent.status}`}>
-              {agent.status === 'approved' ? 'פעיל' : agent.status === 'pending' ? 'ממתין' : 'נדחה'}
-            </span>
-          )}
-          <button
-            className="dash-topbar__btn"
-            onClick={() => { logout(); navigate('/'); }}
-            title={t.logoutButton || 'התנתקות'}
-          >
-            <LogOut size={16} />
-          </button>
-        </div>
-      </header>
-
       {/* Rejected banner */}
       {agent?.status === 'rejected' && (
         <div className="dash-banner dash-banner--rejected">
@@ -170,12 +129,21 @@ export function AgentDashboardPage() {
 
       {/* Page title */}
       <div className="dash-page-header container">
-        <h1 className="dash-page-title">
-          {t.dashboardTitle || 'דשבורד סוכן'}
-        </h1>
-        {agent?.business_name && (
-          <p className="dash-page-sub">ברוך הבא, {agent.business_name}</p>
-        )}
+        <div className="dash-page-header__top">
+          <div>
+            <h1 className="dash-page-title">
+              {t.dashboardTitle || 'דשבורד סוכן'}
+            </h1>
+            {agent?.business_name && (
+              <p className="dash-page-sub">ברוך הבא, {agent.business_name}</p>
+            )}
+          </div>
+          {agent?.status && (
+            <span className={`dash-topbar__status dash-topbar__status--${agent.status}`}>
+              {agent.status === 'approved' ? 'פעיל' : agent.status === 'pending' ? 'ממתין' : 'נדחה'}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* KPI cards */}
@@ -216,6 +184,18 @@ export function AgentDashboardPage() {
               {t.viewPublicProfileButton || 'פרופיל ציבורי'}
             </Link>
           )}
+          <Link to="/agent/dashboard/settings" className="dash-quick-pill">
+            <span className="dash-quick-pill__dot"><Settings size={15} /></span>
+            {t.settingsLink || 'הגדרות'}
+          </Link>
+          <motion.button
+            className="dash-quick-pill dash-quick-pill--ghost"
+            whileTap={{ scale: 0.97 }}
+            onClick={() => { logout(); navigate('/'); }}
+          >
+            <span className="dash-quick-pill__dot"><LogOut size={15} /></span>
+            {t.logoutButton || 'התנתקות'}
+          </motion.button>
         </div>
       </div>
 

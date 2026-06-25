@@ -1730,6 +1730,12 @@ select.wizard-input { cursor: pointer; }
 
 /* ── Page header ──────────────────────────────────────────────────────────── */
 .dash-page-header { padding-top: 28px; padding-bottom: 4px; }
+.dash-page-header__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
 .dash-page-title {
   font-size: 1.5rem;
   font-weight: 800;
@@ -1850,6 +1856,10 @@ select.wizard-input { cursor: pointer; }
   background: rgba(37,99,235,0.1);
   color: #2563EB;
 }
+.dash-quick-pill--ghost { color: #64748B; border-color: var(--color-border); }
+.dash-quick-pill--ghost:hover { background: #FEF2F2; color: #dc2626; }
+.dash-quick-pill--ghost .dash-quick-pill__dot { background: rgba(100,116,139,0.1); color: #64748B; }
+.dash-quick-pill--ghost:hover .dash-quick-pill__dot { background: rgba(220,38,38,0.1); color: #dc2626; }
 
 /* ── Profile link ─────────────────────────────────────────────────────────── */
 .dash-page .dash-profile-link__btn { color: #2563EB; }
