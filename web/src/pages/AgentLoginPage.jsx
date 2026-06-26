@@ -119,7 +119,7 @@ export function AgentLoginPage() {
         </form>
         <p className="agent-form__footer-note">
           {t.noAccountPrompt || 'אין לך חשבון?'}{' '}
-          <Link to="/agent/register" className="agent-form__footer-link">
+          <Link to="/register" className="agent-form__footer-link">
             {t.registerLink || 'הרשמה'}
           </Link>
         </p>
