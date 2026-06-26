@@ -4743,3 +4743,63 @@ body {
 }
 
 .account-card--logout .account-card__label { color: #ef4444; }
+
+/* ── Google Login Button ────────────────────────────────────────────── */
+.google-login-btn-wrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+.google-login-btn-wrap > div { width: 100% !important; }
+.agent-form__divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  margin: 8px 0;
+}
+.agent-form__divider::before,
+.agent-form__divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+/* ── RegisterPage choice screen additions ───────────────────────────── */
+.register-choice__google {
+  width: 100%;
+  margin-bottom: 8px;
+}
+.register-choice__divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  margin: 8px 0 16px;
+}
+.register-choice__divider::before,
+.register-choice__divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+/* ── PersonalizedResultsModal deal grid ─────────────────────────────── */
+.results-modal__deals-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 4px 2px;
+}
+@media (min-width: 600px) {
+  .results-modal__deals-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+}

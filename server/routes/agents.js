@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
+import { OAuth2Client } from 'google-auth-library';
 import {
   createAgent, findAgentByEmail, findAgentById, findAgentBySlug,
   updateAgentProfile, incrementAgentLeadCount,
@@ -34,6 +35,37 @@ router.post('/register', async (req, res) => {
   } catch (err) {
     console.error('[agents] register error:', err);
     res.status(500).json({ error: 'Registration failed' });
+  }
+});
+
+// ── Google OAuth Login ────────────────────────────────────────────────────────
+
+router.post('/google', async (req, res) => {
+  try {
+    const { credential } = req.body || {};
+    if (!credential) return res.status(400).json({ error: 'Missing credential' });
+
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (!clientId) return res.status(503).json({ error: 'Google login not configured on this server' });
+
+    const client = new OAuth2Client(clientId);
+    const ticket = await client.verifyIdToken({ idToken: credential, audience: clientId });
+    const payload = ticket.getPayload();
+    const { email, name, picture } = payload;
+
+    if (!email) return res.status(400).json({ error: 'Google account has no email' });
+
+    const existing = await findAgentByEmail(email);
+    if (existing) {
+      const token = signAgentToken(existing);
+      return res.json({ token, agent: safeAgent(existing) });
+    }
+
+    // New user — tell frontend to complete registration
+    res.json({ isNew: true, email, name: name || '', picture: picture || '' });
+  } catch (err) {
+    console.error('[agents] google auth error:', err.message);
+    res.status(401).json({ error: 'Google authentication failed' });
   }
 });
 

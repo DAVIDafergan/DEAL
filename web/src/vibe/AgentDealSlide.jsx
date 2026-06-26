@@ -25,10 +25,14 @@ function addUtmParams(url, dealId) {
   } catch { return url; }
 }
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+
 export function AgentDealSlide({ deal }) {
   const { t } = useLanguage();
   const slideRef = useRef(null);
   const [isActive, setIsActive] = useState(false);
+  const [fetchedVideoUrl, setFetchedVideoUrl] = useState(null);
+  const videoFetchedRef = useRef(false);
   const { isFavorite, toggleFavorite } = useFavorites();
   const fav = isFavorite(deal);
 
@@ -42,6 +46,18 @@ export function AgentDealSlide({ deal }) {
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
+
+  // Fetch Pexels video for destination on first activation (deal has no uploaded video)
+  useEffect(() => {
+    if (!isActive || deal.video_url || videoFetchedRef.current) return;
+    videoFetchedRef.current = true;
+    const query = deal.destination_name || deal.destination || '';
+    if (!query) return;
+    fetch(`${API_BASE}/images/video?q=${encodeURIComponent(query)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.url) setFetchedVideoUrl(data.url); })
+      .catch(() => {});
+  }, [isActive, deal.video_url, deal.destination_name, deal.destination]);
 
   const effectiveWa = deal.whatsapp_override || deal.agent_whatsapp;
   const dep = deal.departure_date ? new Date(deal.departure_date).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' }) : null;
@@ -62,10 +78,10 @@ export function AgentDealSlide({ deal }) {
   return (
     <section ref={slideRef} className="deal-slide agent-deal-slide">
       <div className="deal-slide__media">
-        {deal.video_url && isActive ? (
+        {(deal.video_url || fetchedVideoUrl) && isActive ? (
           <video
             className="deal-slide__video"
-            src={deal.video_url}
+            src={deal.video_url || fetchedVideoUrl}
             poster={deal.photo_url || undefined}
             autoPlay muted loop playsInline
           />

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../../context/LanguageContext.jsx';
-import { submitQuestionnaire } from '../../api/client.js';
+import { agentApi } from '../../api/client.js';
 import { QuestionStep } from './QuestionStep.jsx';
 import { ChoiceCard } from './ChoiceCard.jsx';
 
@@ -70,10 +70,22 @@ export function QuestionnaireModal({ onClose, onResults }) {
   async function submit(finalAnswers) {
     setStatus('loading');
     try {
-      const res = await submitQuestionnaire(finalAnswers);
-      onResults(res.packages || [], finalAnswers);
-      onClose();
-    } catch (err) {
+      const { budgetIls, peopleCount } = finalAnswers;
+      const { deals } = await agentApi.getApprovedDeals();
+      let filtered = deals || [];
+
+      // Filter by budget (ILS deals only — don't discard deals in other currencies)
+      if (budgetIls) {
+        filtered = filtered.filter(d =>
+          d.currency !== 'ILS' || d.price <= budgetIls
+        );
+      }
+
+      // Sort best-value first
+      filtered.sort((a, b) => (b.value_score || 0) - (a.value_score || 0));
+
+      onResults(filtered.slice(0, 9));
+    } catch {
       setStatus('error');
     }
   }

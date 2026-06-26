@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 const PEXELS_SEARCH_URL = 'https://api.pexels.com/v1/search';
+const PEXELS_VIDEO_URL = 'https://api.pexels.com/videos/search';
 const REQUEST_TIMEOUT_MS = 8000;
 
 /**
@@ -27,4 +28,24 @@ export async function searchPexelsPhoto(query, apiKey) {
     attributionName: photo.photographer || null,
     attributionUrl: photo.photographer_url || null,
   };
+}
+
+export async function searchPexelsVideo(query, apiKey) {
+  if (!apiKey) return null;
+  try {
+    const { data } = await axios.get(PEXELS_VIDEO_URL, {
+      headers: { Authorization: apiKey },
+      params: { query, per_page: 5, orientation: 'portrait' },
+      timeout: REQUEST_TIMEOUT_MS,
+    });
+    const video = data?.videos?.[0];
+    if (!video) return null;
+    // Prefer HD portrait file ≤720p for fast mobile loading
+    const file = video.video_files?.find(f => f.quality === 'hd' && f.height <= 1280 && f.width <= 720)
+      || video.video_files?.find(f => f.quality === 'sd')
+      || video.video_files?.[0];
+    return file?.link || null;
+  } catch {
+    return null;
+  }
 }

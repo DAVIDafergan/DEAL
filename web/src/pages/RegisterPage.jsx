@@ -2,10 +2,24 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Luggage, Briefcase } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext.jsx';
+import { GoogleLoginButton } from '../components/GoogleLoginButton.jsx';
+import { agentApi } from '../api/client.js';
 
 export function RegisterPage() {
   const navigate = useNavigate();
   const { t } = useLanguage();
+
+  async function handleGoogleSuccess(credential) {
+    try {
+      const res = await agentApi.googleAuth(credential);
+      if (res.isNew) {
+        navigate(`/agent/register?googleEmail=${encodeURIComponent(res.email)}&googleName=${encodeURIComponent(res.name || '')}`);
+      } else {
+        localStorage.setItem('agent_token', res.token);
+        window.location.replace('/agent/dashboard');
+      }
+    } catch {}
+  }
 
   return (
     <div className="register-choice">
@@ -17,6 +31,12 @@ export function RegisterPage() {
       >
         <h1 className="register-choice__title">{t.registerChoiceTitle || 'הצטרף ל-Deal Radar'}</h1>
         <p className="register-choice__subtitle">{t.registerChoiceSubtitle || 'אתה מחפש דילים, או מוכר אותם?'}</p>
+
+        <div className="register-choice__google">
+          <GoogleLoginButton onSuccess={handleGoogleSuccess} />
+        </div>
+
+        <div className="register-choice__divider"><span>או הירשם עם</span></div>
 
         <div className="register-choice__options">
           <motion.button

@@ -1,14 +1,18 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../../context/LanguageContext.jsx';
-import { PackageCard } from '../PackageCard.jsx';
+import { AgentDealCard } from '../agent/AgentDealCard.jsx';
 
-const listVariants = {
+const gridVariants = {
   hidden: {},
-  visible: { transition: { staggerChildren: 0.12 } },
+  visible: { transition: { staggerChildren: 0.1 } },
 };
 
-/** מציג את תוצאות השאלון — חבילות מותאמות אישית, אחרי שהמשתמש סיים לענות */
-export function PersonalizedResultsModal({ packages, onClose }) {
+const itemVariant = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+};
+
+export function PersonalizedResultsModal({ packages: deals, onClose }) {
   const { t } = useLanguage();
 
   return (
@@ -21,26 +25,37 @@ export function PersonalizedResultsModal({ packages, onClose }) {
     >
       <motion.div
         className="results-modal glass-panel"
-        onClick={(event) => event.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
         initial={{ scale: 0.92, opacity: 0, y: 16 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.92, opacity: 0, y: 16 }}
         transition={{ type: 'spring', stiffness: 280, damping: 26 }}
       >
         <div className="questionnaire-modal__header">
-          <span className="questionnaire-modal__step-label">{t.questionnaireResultsTitle}</span>
+          <span className="questionnaire-modal__step-label">
+            {t.questionnaireResultsTitle || 'דילים מתאימים לך'}
+          </span>
           <button type="button" className="questionnaire-modal__close" onClick={onClose} aria-label={t.questionnaireCloseButton}>
             ×
           </button>
         </div>
 
-        {packages.length === 0 ? (
-          <p className="questionnaire-modal__error">{t.questionnaireNoResultsLabel}</p>
+        {!deals || deals.length === 0 ? (
+          <p className="questionnaire-modal__error">
+            {t.questionnaireNoResultsLabel || 'לא נמצאו דילים — נסה תקציב גבוה יותר'}
+          </p>
         ) : (
-          <motion.div className="results-modal__list" variants={listVariants} initial="hidden" animate="visible">
+          <motion.div
+            className="results-modal__deals-grid"
+            variants={gridVariants}
+            initial="hidden"
+            animate="visible"
+          >
             <AnimatePresence>
-              {packages.map((pkg) => (
-                <PackageCard key={pkg.id} pkg={pkg} />
+              {deals.map((deal) => (
+                <motion.div key={deal.id} variants={itemVariant}>
+                  <AgentDealCard deal={deal} />
+                </motion.div>
               ))}
             </AnimatePresence>
           </motion.div>

@@ -112,6 +112,7 @@ export async function createPersonalRadar(payload) {
 export const agentApi = {
   register: (data) => postJson('/agents/register', data),
   login: (email, password) => postJson('/agents/login', { email, password }),
+  googleAuth: (credential) => postJson('/agents/google', { credential }),
   getMe: (token) => getJson('/agents/me', token),
   updateMe: (token, data) => patchJson('/agents/me', data, token),
   getDeals: (token) => getJson('/agents/me/deals', token),
@@ -142,8 +143,6 @@ export const adminApi = {
   setToken: (t) => sessionStorage.setItem(ADMIN_TOKEN_KEY, t),
   clearToken: () => sessionStorage.removeItem(ADMIN_TOKEN_KEY),
   login: (username, password) => postJson('/admin/auth/login', { username, password }),
-  getHint: () => getJson('/admin/auth/hint'),
-
   getPendingAgents: (tok) => getJson('/admin/agents/pending', tok),
   getAllAgents: (tok) => getJson('/admin/agents', tok),
   approveAgent: (tok, id) => postJson(`/admin/agents/${id}/approve`, {}, tok),
