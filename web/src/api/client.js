@@ -142,6 +142,7 @@ export const adminApi = {
   setToken: (t) => sessionStorage.setItem(ADMIN_TOKEN_KEY, t),
   clearToken: () => sessionStorage.removeItem(ADMIN_TOKEN_KEY),
   login: (username, password) => postJson('/admin/auth/login', { username, password }),
+  getHint: () => getJson('/admin/auth/hint'),
 
   getPendingAgents: (tok) => getJson('/admin/agents/pending', tok),
   getAllAgents: (tok) => getJson('/admin/agents', tok),

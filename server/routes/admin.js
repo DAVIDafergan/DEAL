@@ -5,6 +5,20 @@ import { listPendingDeals, updateAgentDealStatus, listAllApprovedDealsAdmin, adm
 
 const router = Router();
 
+// Public: hint — safe to expose (username is not a secret; password is never sent)
+router.get('/auth/hint', (_req, res) => {
+  const u = (process.env.ADMIN_USERNAME || 'admin').trim();
+  const p = (process.env.ADMIN_PASSWORD || 'admin-change-me').trim();
+  const isDefaultUser = u === 'admin';
+  const isDefaultPass = p === 'admin-change-me';
+  res.json({
+    username: u,
+    password_length: p.length,
+    password_hint: p.slice(0, 3) + '***',
+    using_defaults: isDefaultUser && isDefaultPass,
+  });
+});
+
 // Public: login (no auth required)
 router.post('/auth/login', (req, res) => {
   const { username, password } = req.body || {};

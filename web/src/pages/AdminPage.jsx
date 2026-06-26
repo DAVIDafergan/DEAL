@@ -44,6 +44,8 @@ function LoginScreen({ onLogin }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [hint, setHint] = useState(null);
+  const [hintLoading, setHintLoading] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -56,9 +58,20 @@ function LoginScreen({ onLogin }) {
       onLogin(token);
     } catch (err) {
       setError(err.message || 'שגיאה בכניסה');
+      // Auto-load hint on failure so user knows what to type
+      if (!hint) loadHint();
     } finally {
       setLoading(false);
     }
+  }
+
+  async function loadHint() {
+    setHintLoading(true);
+    try {
+      const h = await adminApi.getHint();
+      setHint(h);
+    } catch {}
+    finally { setHintLoading(false); }
   }
 
   return (
@@ -108,6 +121,27 @@ function LoginScreen({ onLogin }) {
             {loading ? 'מתחבר…' : 'כניסה לפאנל'}
           </motion.button>
         </form>
+
+        {/* Credential hint — shown after failed attempt */}
+        {hint && (
+          <div className="adm-login-hint">
+            <p className="adm-login-hint__title">💡 מה להקליד?</p>
+            <p>שם משתמש: <strong>{hint.username}</strong></p>
+            <p>סיסמה: מתחילה ב-<strong>{hint.password_hint}</strong> ({hint.password_length} תווים)</p>
+            {hint.using_defaults && <p className="adm-login-hint__note">ברירת מחדל — admin / admin-change-me</p>}
+          </div>
+        )}
+        {!hint && (
+          <button
+            type="button"
+            className="adm-login-hint-btn"
+            onClick={loadHint}
+            disabled={hintLoading}
+          >
+            {hintLoading ? '…' : '? שכחת אילו פרטים להזין'}
+          </button>
+        )}
+
         <Link to="/" className="adm-login-back"><ArrowLeft size={14} /> חזרה לאתר</Link>
       </motion.div>
     </div>

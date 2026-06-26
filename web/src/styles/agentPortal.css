@@ -925,6 +925,7 @@
 }
 .agent-deals-section__subtitle { font-size: 0.88rem; color: var(--color-text-secondary); margin: 0 0 16px; }
 
+/* Mobile: horizontal scroll carousel */
 .agent-deals-carousel {
   display: flex;
   overflow-x: auto;
@@ -940,8 +941,21 @@
   width: 300px;
   scroll-snap-align: start;
 }
-@media (min-width: 640px) { .agent-deals-carousel__item { width: 320px; } }
-@media (min-width: 960px) { .agent-deals-carousel__item { width: 340px; } }
+
+/* Desktop: grid — cards fill available width, no horizontal scroll */
+@media (min-width: 640px) {
+  .agent-deals-carousel {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    overflow-x: visible;
+    scroll-snap-type: none;
+    padding-bottom: 16px;
+  }
+  .agent-deals-carousel__item {
+    flex-shrink: unset;
+    width: auto;
+  }
+}
 
 /* ── Radar section (live deals, bottom) ──────────────────────────────────── */
 

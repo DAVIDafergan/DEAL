@@ -94,9 +94,9 @@ export function AgentDealCard({ deal }) {
 
           {/* Destination overlay — bottom */}
           <div className="adc__overlay-bottom">
-            <div className="adc__dest-name">
-              {deal.destination_name || deal.destination}
-              {deal.country ? <span className="adc__country">{deal.country}</span> : null}
+            <div>
+              <div className="adc__dest-name">{deal.destination_name || deal.destination}</div>
+              {deal.country && <span className="adc__country">{deal.country}</span>}
             </div>
             <span className="adc__agent-badge" onClick={e => e.stopPropagation()}>
               <CheckCircle size={10} />
