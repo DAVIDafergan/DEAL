@@ -41,7 +41,7 @@ export function AppShell() {
       </div>
 
       <div className="app-shell-tabs__panel" style={{ display: activeTab === 'deals' ? 'block' : 'none' }}>
-        <DealsTab vibe={vibe} onChangeVibe={handleChangeVibe} />
+        <DealsTab vibe={vibe} onChangeVibe={handleChangeVibe} isActive={activeTab === 'deals'} />
       </div>
 
       <div className="app-shell-tabs__panel" style={{ display: activeTab === 'plan' ? 'block' : 'none' }}>

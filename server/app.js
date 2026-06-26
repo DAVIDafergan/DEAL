@@ -12,6 +12,7 @@ import packagesRouter from './routes/packages.js';
 import agentsRouter from './routes/agents.js';
 import adminRouter from './routes/admin.js';
 import billingRouter from './routes/billing.js';
+import musicRouter from './routes/music.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // תיקיית ה-build הסטטי של ה-frontend (נוצרת על ידי `npm run build` בתיקיית web)
@@ -37,6 +38,7 @@ export function createApp() {
   app.use('/api/agents', agentsRouter);
   app.use('/api/admin', adminRouter);
   app.use('/api/billing', billingRouter);
+  app.use('/api/music', musicRouter);
 
   // נתיב /api/* שלא תאם שום router — תמיד JSON, לעולם לא index.html
   app.use('/api', (_req, res) => {

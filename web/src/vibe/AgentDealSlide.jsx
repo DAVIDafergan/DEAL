@@ -104,7 +104,7 @@ export function AgentDealSlide({ deal }) {
           onClick={() => toggleFavorite(deal)}
           aria-label={fav ? 'הסר ממועדפים' : 'הוסף למועדפים'}
         >
-          <Heart size={20} fill={fav ? 'currentColor' : 'none'} />
+          <Heart size={16} fill={fav ? 'currentColor' : 'none'} />
         </motion.button>
 
         {waUrl && (
@@ -116,7 +116,7 @@ export function AgentDealSlide({ deal }) {
             onClick={trackClick}
             aria-label="שאל בWhatsApp"
           >
-            <MessageCircle size={20} />
+            <MessageCircle size={16} />
           </a>
         )}
 
@@ -129,7 +129,7 @@ export function AgentDealSlide({ deal }) {
             onClick={trackClick}
             aria-label="הזמן"
           >
-            <ExternalLink size={20} />
+            <ExternalLink size={16} />
           </a>
         )}
       </div>
