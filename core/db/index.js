@@ -108,6 +108,18 @@ const MIGRATIONS = [
   // deal purchase tracking
   (connection) => ensureColumn(connection, 'agent_deals', 'purchase_count', 'INT NOT NULL DEFAULT 0'),
   (connection) => ensureColumn(connection, 'agent_deals', 'purchased_at', 'DATETIME NULL'),
+  // user auth_provider column + make password_hash nullable for Google users
+  (connection) => ensureColumn(connection, 'users', 'auth_provider', "VARCHAR(16) NOT NULL DEFAULT 'local'"),
+  async (connection) => {
+    const [rows] = await connection.query(
+      `SELECT IS_NULLABLE FROM information_schema.columns
+       WHERE table_schema = DATABASE() AND table_name = 'users' AND column_name = 'password_hash'`
+    );
+    if (rows[0] && rows[0].IS_NULLABLE === 'NO') {
+      await connection.query('ALTER TABLE users MODIFY COLUMN password_hash VARCHAR(255) NULL');
+      console.log('[deal-radar-pro] Migrated: users.password_hash → NULL allowed');
+    }
+  },
 ];
 
 const SCHEMA_STATEMENTS = [

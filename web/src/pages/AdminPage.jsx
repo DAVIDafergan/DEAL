@@ -216,6 +216,7 @@ export function AdminPage() {
   const [agentsPage, setAgentsPage] = useState(1);
   const [selectedAgent, setSelectedAgent] = useState(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [allUsers, setAllUsers] = useState([]);
   const [search, setSearch] = useState('');
   const searchDebounceRef = useRef(null);
   const [searchQ, setSearchQ] = useState('');
@@ -229,14 +230,16 @@ export function AdminPage() {
     if (!token) return;
     setLoading(true);
     try {
-      const [{ agents: pending }, { agents: all }, { deals: aDeals }] = await Promise.all([
+      const [{ agents: pending }, { agents: all }, { deals: aDeals }, usersRes] = await Promise.all([
         adminApi.getPendingAgents(token),
         adminApi.getAllAgents(token),
         adminApi.getApprovedDeals(token),
+        adminApi.getUsers(token).catch(() => ({ users: [] })),
       ]);
       setPendingAgents(pending || []);
       setAllAgents(all || []);
       setApprovedDeals(aDeals || []);
+      setAllUsers(usersRes?.users || []);
     } catch (err) {
       const isAuthError = err.message?.includes('401')
         || err.message?.includes('Unauthorized')
@@ -322,7 +325,7 @@ export function AdminPage() {
     return { label: 'ממתין', cls: 'adm-status--pending' };
   }
 
-  const showSearch = tab === 'all-agents' || tab === 'active-deals';
+  const showSearch = tab === 'all-agents' || tab === 'active-deals' || tab === 'users';
 
   return (
     <div className="adm-page" dir="rtl">
@@ -389,6 +392,13 @@ export function AdminPage() {
           <span className="adm-kpi__value">{approvedDeals.length}</span>
           <span className="adm-kpi__label">דילים פעילים</span>
         </div>
+        <div className="adm-kpi">
+          <div className="adm-kpi__icon-box" style={{ background: 'rgba(139,92,246,0.12)', color: '#8b5cf6' }}>
+            <User size={22} />
+          </div>
+          <span className="adm-kpi__value">{allUsers.length}</span>
+          <span className="adm-kpi__label">לקוחות רשומים</span>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -401,6 +411,9 @@ export function AdminPage() {
         </button>
         <button className={`adm-tabs__btn${tab === 'active-deals' ? ' is-active' : ''}`} onClick={() => setTab('active-deals')}>
           דילים פעילים <span className="adm-tabs__badge adm-tabs__badge--neutral">{approvedDeals.length}</span>
+        </button>
+        <button className={`adm-tabs__btn${tab === 'users' ? ' is-active' : ''}`} onClick={() => setTab('users')}>
+          <User size={14} /> לקוחות <span className="adm-tabs__badge adm-tabs__badge--neutral">{allUsers.length}</span>
         </button>
         <button className={`adm-tabs__btn${tab === 'analytics' ? ' is-active' : ''}`} onClick={() => setTab('analytics')}>
           <BarChart3 size={14} /> נתונים
@@ -426,6 +439,32 @@ export function AdminPage() {
       )}
 
       {loading && <p style={{ textAlign: 'center', padding: 32, color: 'var(--color-text-muted)' }}>טוען…</p>}
+
+      {/* Users (Customers) */}
+      {!loading && tab === 'users' && (
+        <div className="adm-list">
+          {(() => {
+            const q = searchQ.toLowerCase();
+            const list = q
+              ? allUsers.filter(u => (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q))
+              : allUsers;
+            if (list.length === 0) return <p className="adm-list__empty">אין לקוחות רשומים</p>;
+            return list.map(u => (
+              <div key={u.id} className="adm-row">
+                <div className="adm-row__info">
+                  <span className="adm-row__name">{u.name}</span>
+                  <span className="adm-row__email">{u.email}</span>
+                  <span className="adm-row__meta">
+                    {u.auth_provider === 'google' ? '🔵 Google' : '📧 אימייל'}
+                    {' · '}
+                    {u.created_at ? new Date(u.created_at).toLocaleDateString('he-IL') : ''}
+                  </span>
+                </div>
+              </div>
+            ));
+          })()}
+        </div>
+      )}
 
       {/* Analytics */}
       {tab === 'analytics' && <AnalyticsTab token={token} />}

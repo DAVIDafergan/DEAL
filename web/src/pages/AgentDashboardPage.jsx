@@ -324,6 +324,7 @@ export function AgentDashboardPage() {
                   title="סמן כנרכש"
                 >
                   <ShoppingBag size={13} />
+                  <span className="dash-deal-btn-label">נרכש</span>
                 </motion.button>
                 <motion.button
                   className="dash-deal-edit"
@@ -332,6 +333,7 @@ export function AgentDashboardPage() {
                   title="ערוך דיל"
                 >
                   <Pencil size={14} />
+                  <span className="dash-deal-btn-label">ערוך</span>
                 </motion.button>
                 <motion.button
                   className="dash-deal-delete"
@@ -340,6 +342,7 @@ export function AgentDashboardPage() {
                   title={t.deleteButton || 'מחק'}
                 >
                   <Trash2 size={14} />
+                  <span className="dash-deal-btn-label">מחק</span>
                 </motion.button>
               </div>
             </motion.div>

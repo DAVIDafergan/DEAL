@@ -132,6 +132,12 @@ export const agentApi = {
   getMyStats: (token) => getJson('/agents/me/stats', token),
 };
 
+export const userApi = {
+  register: (data) => postJson('/users/register', data),
+  login: (email, password) => postJson('/users/login', { email, password }),
+  googleAuth: (credential) => postJson('/users/google', { credential }),
+};
+
 export const billingApi = {
   getPlans: () => getJson('/billing/plans'),
   checkout: (token, tier) => postJson('/billing/checkout', { tier }, token),
@@ -155,4 +161,5 @@ export const adminApi = {
   rejectDeal: (tok, id, reason) => postJson(`/admin/deals/${id}/reject`, { reason }, tok),
   deleteDeal: (tok, id) => deleteReq(`/admin/deals/${id}`, tok),
   getAnalytics: (tok, year, month) => getJson(`/admin/analytics?year=${year}&month=${month}`, tok),
+  getUsers: (tok) => getJson('/admin/users', tok),
 };

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { requireAdminAuth, signAdminToken } from '../middleware/adminAuth.js';
 import { listAgentsPending, listAgentsAll, updateAgentStatus } from '../store/agentStore.js';
 import { listPendingDeals, updateAgentDealStatus, listAllApprovedDealsAdmin, adminDeleteAgentDeal, getAdminAnalytics } from '../store/agentDealStore.js';
+import { getAllUsers } from '../store/userStore.js';
 
 const router = Router();
 
@@ -63,6 +64,11 @@ router.post('/deals/:id/reject', async (req, res) => {
 
 router.delete('/deals/:id', async (req, res) => {
   try { await adminDeleteAgentDeal(req.params.id); res.json({ ok: true }); }
+  catch { res.status(500).json({ error: 'Internal error' }); }
+});
+
+router.get('/users', async (_req, res) => {
+  try { res.json({ users: await getAllUsers() }); }
   catch { res.status(500).json({ error: 'Internal error' }); }
 });
 

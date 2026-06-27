@@ -5,6 +5,7 @@
 .vibe-feed-page {
   position: relative;
   height: 100vh;
+  height: 100dvh;
   background: var(--color-heatmap-bg);
   overflow: hidden;
 }
@@ -46,7 +47,7 @@
 
 .vibe-feed-page__filter-bar {
   position: absolute;
-  top: 16px;
+  top: calc(env(safe-area-inset-top, 0px) + 60px);
   inset-inline-start: 16px;
   z-index: 10;
 }
@@ -106,6 +107,7 @@
 .deal-slide {
   position: relative;
   height: 100vh;
+  height: 100dvh;
   scroll-snap-align: start;
   scroll-snap-stop: always;
   overflow: hidden;
@@ -144,10 +146,11 @@
   position: absolute;
   inset-inline: 0;
   bottom: 0;
-  padding: 24px 16px calc(env(safe-area-inset-bottom, 0px) + 24px);
+  padding: 24px 16px calc(env(safe-area-inset-bottom, 0px) + 20px);
+  padding-inline-end: 64px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   background: linear-gradient(
     180deg,
     transparent 0%,

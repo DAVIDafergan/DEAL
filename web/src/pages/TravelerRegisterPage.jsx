@@ -3,18 +3,10 @@ import { motion } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 import { CheckCircle, ArrowRight } from 'lucide-react';
 import { GoogleLoginButton } from '../components/GoogleLoginButton.jsx';
-import { agentApi } from '../api/client.js';
+import { userApi } from '../api/client.js';
 
 const TRAVELER_KEY = 'deal_radar_traveler';
-
-function parseGoogleCredential(credential) {
-  try {
-    const payload = JSON.parse(atob(credential.split('.')[1]));
-    return { name: payload.name || '', email: payload.email || '' };
-  } catch {
-    return null;
-  }
-}
+const TRAVELER_TOKEN_KEY = 'traveler_token';
 
 export function TravelerRegisterPage() {
   const navigate = useNavigate();
@@ -24,40 +16,45 @@ export function TravelerRegisterPage() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [errors, setErrors] = useState({});
   const [done, setDone] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   function validate() {
     const e = {};
     if (!name.trim()) e.name = 'נדרש שם';
     if (!email.trim()) e.email = 'נדרשת כתובת אימייל';
-    else if (!/\S+@\S+\.\S+/.test(email)) e.email = 'האימייל אינו תקין — בדוק שכתבת כתובת מלאה (לדוגמה: name@gmail.com)';
+    else if (!/\S+@\S+\.\S+/.test(email)) e.email = 'האימייל אינו תקין — בדוק שכתבת כתובת מלאה';
     if (!password || password.length < 6) e.password = 'סיסמה חייבת להכיל לפחות 6 תווים';
     if (!termsAccepted) e.terms = 'יש לאשר את תנאי השימוש';
     return e;
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
-    localStorage.setItem(TRAVELER_KEY, JSON.stringify({ name: name.trim(), email: email.trim(), joinedAt: Date.now() }));
-    setDone(true);
+    setSubmitting(true);
+    try {
+      const { token, user } = await userApi.register({ name: name.trim(), email: email.trim(), password });
+      localStorage.setItem(TRAVELER_TOKEN_KEY, token);
+      localStorage.setItem(TRAVELER_KEY, JSON.stringify({ id: user.id, name: user.name, email: user.email, joinedAt: Date.now() }));
+      setDone(true);
+    } catch (err) {
+      setErrors({ form: err.message || 'שגיאה ברישום, נסה שנית' });
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   async function handleGoogleSuccess(credential) {
     try {
-      const res = await agentApi.googleAuth(credential);
-      if (!res.isNew) {
-        localStorage.setItem('agent_token', res.token);
-        window.location.replace('/agent/dashboard');
-        return;
-      }
-    } catch {}
-    const profile = parseGoogleCredential(credential);
-    if (profile) {
-      localStorage.setItem(TRAVELER_KEY, JSON.stringify({ name: profile.name, email: profile.email, joinedAt: Date.now() }));
-      setName(profile.name);
+      const { token, user } = await userApi.googleAuth(credential);
+      localStorage.setItem(TRAVELER_TOKEN_KEY, token);
+      localStorage.setItem(TRAVELER_KEY, JSON.stringify({ id: user.id, name: user.name, email: user.email, joinedAt: Date.now() }));
+      setName(user.name);
+      setDone(true);
+    } catch (err) {
+      setErrors({ form: err.message || 'שגיאת Google, נסה שנית' });
     }
-    setDone(true);
   }
 
   if (done) {
@@ -106,6 +103,8 @@ export function TravelerRegisterPage() {
         </div>
 
         <div className="traveler-register-card__divider"><span>או עם אימייל</span></div>
+
+        {errors.form && <p className="traveler-register-card__err" style={{ textAlign: 'center' }}>{errors.form}</p>}
 
         <form onSubmit={handleSubmit} noValidate>
           <div className="traveler-register-card__field">
@@ -166,12 +165,18 @@ export function TravelerRegisterPage() {
             type="submit"
             className="traveler-register-card__btn"
             whileTap={{ scale: 0.97 }}
-            disabled={!termsAccepted}
+            disabled={!termsAccepted || submitting}
           >
-            יאללה, בוא נלך
+            {submitting ? 'רושם...' : 'יאללה, בוא נלך'}
           </motion.button>
         </form>
 
+        <p className="traveler-register-card__footer">
+          כבר יש לך חשבון?{' '}
+          <Link to="/register/traveler/login" className="traveler-register-card__link">
+            התחברות →
+          </Link>
+        </p>
         <p className="traveler-register-card__footer">
           סוכן נסיעות?{' '}
           <Link to="/agent/register" className="traveler-register-card__link">

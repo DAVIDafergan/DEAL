@@ -17,6 +17,7 @@ import { AccountPage } from './pages/AccountPage.jsx';
 import { TermsPage } from './pages/TermsPage.jsx';
 import { PrivacyPage } from './pages/PrivacyPage.jsx';
 import { TravelerRegisterPage } from './pages/TravelerRegisterPage.jsx';
+import { TravelerLoginPage } from './pages/TravelerLoginPage.jsx';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
@@ -29,6 +30,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             <Route element={<PublicLayout />}>
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/register/traveler" element={<TravelerRegisterPage />} />
+              <Route path="/register/traveler/login" element={<TravelerLoginPage />} />
               <Route path="/agent/register" element={<AgentRegisterPage />} />
               <Route path="/agent/login" element={<AgentLoginPage />} />
               <Route path="/agent/dashboard/settings" element={<AgentSettingsPage />} />

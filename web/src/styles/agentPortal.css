@@ -1276,17 +1276,20 @@
 .dash-deal-clicks { display: flex; align-items: center; gap: 4px; font-size: 0.72rem; color: var(--color-text-muted); }
 .dash-deal-wa { color: #25d366; }
 .dash-deal-delete {
-  display: flex; align-items: center; justify-content: center;
-  width: 28px; height: 28px; border-radius: 8px;
+  display: flex; align-items: center; gap: 4px;
+  padding: 5px 9px; height: 30px; border-radius: 8px;
   background: rgba(239,68,68,0.1); color: #ef4444; border: none; cursor: pointer;
+  font-size: 0.72rem; font-weight: 600; white-space: nowrap;
 }
 .dash-deal-delete:hover { background: rgba(239,68,68,0.2); }
 .dash-deal-purchased-btn {
-  display: flex; align-items: center; justify-content: center;
-  width: 28px; height: 28px; border-radius: 8px;
+  display: flex; align-items: center; gap: 4px;
+  padding: 5px 9px; height: 30px; border-radius: 8px;
   background: rgba(5,150,105,0.1); color: #059669; border: none; cursor: pointer;
+  font-size: 0.72rem; font-weight: 600; white-space: nowrap;
 }
 .dash-deal-purchased-btn:hover { background: rgba(5,150,105,0.2); }
+.dash-deal-btn-label { font-size: 0.7rem; font-weight: 700; line-height: 1; }
 .dash-deal-purchased-badge {
   display: inline-flex; align-items: center; gap: 4px;
   margin-top: 4px; padding: 2px 8px; border-radius: 999px;
@@ -2510,15 +2513,18 @@ img, svg { max-width: 100%; }
 .dash-deal-edit {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
+  gap: 4px;
+  padding: 5px 9px;
+  height: 30px;
+  border-radius: 8px;
   border: none;
   background: rgba(37,99,235,0.08);
   color: var(--color-accent-from, #2563eb);
   cursor: pointer;
   transition: background 0.15s;
   flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
 }
 .dash-deal-edit:hover { background: rgba(37,99,235,0.18); }
