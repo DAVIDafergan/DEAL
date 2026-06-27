@@ -18,6 +18,7 @@ import { TermsPage } from './pages/TermsPage.jsx';
 import { PrivacyPage } from './pages/PrivacyPage.jsx';
 import { TravelerRegisterPage } from './pages/TravelerRegisterPage.jsx';
 import { TravelerLoginPage } from './pages/TravelerLoginPage.jsx';
+import { AccessibilityPage } from './pages/AccessibilityPage.jsx';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
@@ -40,6 +41,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               <Route path="/account" element={<AccountPage />} />
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
+              <Route path="/accessibility" element={<AccessibilityPage />} />
             </Route>
 
             {/* Admin — its own full-screen layout */}

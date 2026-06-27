@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Heart, MessageCircle, ExternalLink, Plane, Hotel, Car, CheckCircle, Share2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -60,15 +60,42 @@ export function DealDetailModal({ deal, onClose }) {
   const { t } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
   const [copied, setCopied] = useState(false);
+  const modalRef = useRef(null);
+  const previousFocusRef = useRef(null);
 
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = prev; };
+    previousFocusRef.current = document.activeElement;
+    // Focus first focusable element in modal
+    setTimeout(() => {
+      const focusable = modalRef.current?.querySelector(
+        'button, [href], input, [tabindex]:not([tabindex="-1"])'
+      );
+      focusable?.focus();
+    }, 50);
+    return () => {
+      document.body.style.overflow = prev;
+      previousFocusRef.current?.focus();
+    };
   }, []);
 
   useEffect(() => {
-    function onKey(e) { if (e.key === 'Escape') onClose(); }
+    function onKey(e) {
+      if (e.key === 'Escape') { onClose(); return; }
+      if (e.key !== 'Tab' || !modalRef.current) return;
+      const focusable = [...modalRef.current.querySelectorAll(
+        'button:not(:disabled), [href], input:not(:disabled), [tabindex]:not([tabindex="-1"])'
+      )];
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+      } else {
+        if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    }
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
@@ -110,8 +137,10 @@ export function DealDetailModal({ deal, onClose }) {
         animate="visible"
         exit="exit"
         onClick={onClose}
+        aria-hidden="true"
       >
         <motion.div
+          ref={modalRef}
           className="deal-modal"
           variants={panelVariants}
           initial="hidden"
@@ -119,6 +148,9 @@ export function DealDetailModal({ deal, onClose }) {
           exit="exit"
           onClick={e => e.stopPropagation()}
           dir="rtl"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="deal-modal-title"
         >
           {/* Close button */}
           <button className="deal-modal__close" onClick={onClose} aria-label="סגור">
@@ -161,7 +193,7 @@ export function DealDetailModal({ deal, onClose }) {
 
           {/* Body */}
           <div className="deal-modal__body">
-            <h2 className="deal-modal__title">{deal.destination_name || deal.destination}</h2>
+            <h2 id="deal-modal-title" className="deal-modal__title">{deal.destination_name || deal.destination}</h2>
             {deal.country && <p className="deal-modal__country">{deal.country}</p>}
 
             {/* Agent badge */}

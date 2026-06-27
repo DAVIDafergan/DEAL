@@ -85,8 +85,9 @@ export function AgentLoginPage() {
 
         <form onSubmit={handleSubmit} className="agent-form__step">
           <div className="agent-form__field">
-            <label className="agent-form__label">{t.emailLabel || 'Email / שם משתמש'}</label>
+            <label className="agent-form__label" htmlFor="al-username">{t.emailLabel || 'Email / שם משתמש'}</label>
             <input
+              id="al-username"
               className="agent-form__input"
               type="text"
               value={username}
@@ -94,11 +95,13 @@ export function AgentLoginPage() {
               autoFocus
               required
               autoComplete="username"
+              aria-describedby={error ? 'al-error' : undefined}
             />
           </div>
           <div className="agent-form__field">
-            <label className="agent-form__label">{t.passwordLabel || 'סיסמה'}</label>
+            <label className="agent-form__label" htmlFor="al-password">{t.passwordLabel || 'סיסמה'}</label>
             <input
+              id="al-password"
               className="agent-form__input"
               type="password"
               value={password}
@@ -107,7 +110,7 @@ export function AgentLoginPage() {
               autoComplete="current-password"
             />
           </div>
-          {error && <p className="agent-form__api-error">{error}</p>}
+          {error && <p id="al-error" className="agent-form__api-error" role="alert">{error}</p>}
           <motion.button
             className="agent-form__btn agent-form__btn--primary"
             type="submit"

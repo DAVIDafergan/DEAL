@@ -14,10 +14,13 @@ const slide = {
 function Field({ label, type = 'text', value, onChange, placeholder, hint, autoFocus, inputMode, error }) {
   const [touched, setTouched] = useState(false);
   const showErr = (touched || error) && error;
+  const fieldId = `af-${label.replace(/[^a-z0-9֐-׿]/gi, '-').toLowerCase()}`;
+  const errId = `${fieldId}-err`;
   return (
     <div className="agent-form__field">
-      <label className="agent-form__label">{label}</label>
+      <label className="agent-form__label" htmlFor={fieldId}>{label}</label>
       <input
+        id={fieldId}
         className={`agent-form__input${showErr ? ' agent-form__input--error' : ''}`}
         type={type}
         value={value}
@@ -26,9 +29,11 @@ function Field({ label, type = 'text', value, onChange, placeholder, hint, autoF
         placeholder={placeholder}
         autoFocus={autoFocus}
         inputMode={inputMode}
+        aria-describedby={showErr ? errId : undefined}
+        aria-invalid={showErr ? 'true' : undefined}
       />
       {hint && !showErr && <span className="agent-form__hint">{hint}</span>}
-      {showErr && <span className="agent-form__error-msg">{error}</span>}
+      {showErr && <span id={errId} className="agent-form__error-msg" role="alert">{error}</span>}
     </div>
   );
 }

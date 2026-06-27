@@ -46,6 +46,51 @@ button {
   cursor: pointer;
 }
 
+/* ── Accessibility: skip-to-content link ────────────────────────────────── */
+.skip-to-content {
+  position: absolute;
+  top: -100%;
+  inset-inline-start: 16px;
+  z-index: 9999;
+  padding: 10px 20px;
+  background: #2563EB;
+  color: #fff;
+  border-radius: 4px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: top 0.1s;
+  white-space: nowrap;
+}
+.skip-to-content:focus {
+  top: 8px;
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+}
+
+/* ── Accessibility: global focus-visible (keyboard-only focus ring) ──────── */
+:focus-visible {
+  outline: 3px solid #2563EB;
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* Override for dark-background surfaces */
+.deal-slide :focus-visible,
+.vibe-feed-page :focus-visible,
+.adm-page :focus-visible,
+.agent-register-page :focus-visible,
+.dash-page :focus-visible,
+.traveler-register-page :focus-visible {
+  outline-color: #fff;
+}
+
+/* Inputs already have border-color+shadow focus — suppress the outline */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+}
+
 /* ── Prevent iOS Safari auto-zoom on input focus ───────────────────────────
    iOS zooms automatically when a focused input's font-size < 16px.
    This rule ensures ALL inputs are at least 16px on touch devices.        */
@@ -4207,6 +4252,11 @@ body {
   color: #1E293B;
   outline: none;
   direction: rtl;
+}
+.adm-search-bar__input:focus-visible {
+  outline: 2px solid #2563EB;
+  outline-offset: -2px;
+  border-radius: 8px;
 }
 .adm-search-bar__clear {
   padding: 0 12px;

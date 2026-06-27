@@ -2305,10 +2305,14 @@ img, svg { max-width: 100%; }
   font-size: 0.9rem;
   font-weight: 500;
   color: var(--color-text-primary);
-  /* Space for icon on the inline-start side */
   padding-inline-start: 44px;
   padding-inline-end: 18px;
   font-family: inherit;
+}
+.dsh__pill-input:focus-visible {
+  outline: 2px solid #2563EB;
+  outline-offset: -2px;
+  border-radius: 12px;
 }
 .dsh__pill-input::placeholder {
   color: var(--color-text-muted);

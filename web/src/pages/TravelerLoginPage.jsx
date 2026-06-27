@@ -70,8 +70,9 @@ export function TravelerLoginPage() {
 
         <form onSubmit={handleSubmit} noValidate>
           <div className="traveler-register-card__field">
-            <label className="traveler-register-card__label">אימייל</label>
+            <label className="traveler-register-card__label" htmlFor="tl-email">אימייל</label>
             <input
+              id="tl-email"
               className={`traveler-register-card__input${errors.email ? ' is-error' : ''}`}
               type="email"
               inputMode="email"
@@ -79,20 +80,23 @@ export function TravelerLoginPage() {
               onChange={e => { setEmail(e.target.value); setErrors(p => ({ ...p, email: '' })); }}
               placeholder="name@gmail.com"
               autoFocus
+              aria-describedby={errors.email ? 'tl-email-err' : undefined}
             />
-            {errors.email && <p className="traveler-register-card__err">{errors.email}</p>}
+            {errors.email && <p id="tl-email-err" className="traveler-register-card__err" role="alert">{errors.email}</p>}
           </div>
 
           <div className="traveler-register-card__field">
-            <label className="traveler-register-card__label">סיסמה</label>
+            <label className="traveler-register-card__label" htmlFor="tl-password">סיסמה</label>
             <input
+              id="tl-password"
               className={`traveler-register-card__input${errors.password ? ' is-error' : ''}`}
               type="password"
               value={password}
               onChange={e => { setPassword(e.target.value); setErrors(p => ({ ...p, password: '' })); }}
               placeholder="הסיסמה שלך"
+              aria-describedby={errors.password ? 'tl-pw-err' : undefined}
             />
-            {errors.password && <p className="traveler-register-card__err">{errors.password}</p>}
+            {errors.password && <p id="tl-pw-err" className="traveler-register-card__err" role="alert">{errors.password}</p>}
           </div>
 
           <motion.button

@@ -108,41 +108,50 @@ export function TravelerRegisterPage() {
 
         <form onSubmit={handleSubmit} noValidate>
           <div className="traveler-register-card__field">
-            <label className="traveler-register-card__label">שם *</label>
+            <label className="traveler-register-card__label" htmlFor="tr-name">שם *</label>
             <input
+              id="tr-name"
               className={`traveler-register-card__input${errors.name ? ' is-error' : ''}`}
               type="text"
               value={name}
               onChange={e => { setName(e.target.value); setErrors(p => ({ ...p, name: '' })); }}
               placeholder="איך לקרוא לך?"
               autoFocus
+              aria-describedby={errors.name ? 'tr-name-err' : undefined}
+              aria-invalid={errors.name ? 'true' : undefined}
             />
-            {errors.name && <p className="traveler-register-card__err">{errors.name}</p>}
+            {errors.name && <p id="tr-name-err" className="traveler-register-card__err" role="alert">{errors.name}</p>}
           </div>
 
           <div className="traveler-register-card__field">
-            <label className="traveler-register-card__label">אימייל *</label>
+            <label className="traveler-register-card__label" htmlFor="tr-email">אימייל *</label>
             <input
+              id="tr-email"
               className={`traveler-register-card__input${errors.email ? ' is-error' : ''}`}
               type="email"
               inputMode="email"
               value={email}
               onChange={e => { setEmail(e.target.value); setErrors(p => ({ ...p, email: '' })); }}
               placeholder="name@gmail.com"
+              aria-describedby={errors.email ? 'tr-email-err' : undefined}
+              aria-invalid={errors.email ? 'true' : undefined}
             />
-            {errors.email && <p className="traveler-register-card__err">{errors.email}</p>}
+            {errors.email && <p id="tr-email-err" className="traveler-register-card__err" role="alert">{errors.email}</p>}
           </div>
 
           <div className="traveler-register-card__field">
-            <label className="traveler-register-card__label">סיסמה *</label>
+            <label className="traveler-register-card__label" htmlFor="tr-password">סיסמה *</label>
             <input
+              id="tr-password"
               className={`traveler-register-card__input${errors.password ? ' is-error' : ''}`}
               type="password"
               value={password}
               onChange={e => { setPassword(e.target.value); setErrors(p => ({ ...p, password: '' })); }}
               placeholder="לפחות 6 תווים"
+              aria-describedby={errors.password ? 'tr-pw-err' : undefined}
+              aria-invalid={errors.password ? 'true' : undefined}
             />
-            {errors.password && <p className="traveler-register-card__err">{errors.password}</p>}
+            {errors.password && <p id="tr-pw-err" className="traveler-register-card__err" role="alert">{errors.password}</p>}
           </div>
 
           <div className="traveler-register-card__terms">

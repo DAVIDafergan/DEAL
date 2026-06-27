@@ -34,9 +34,10 @@ export function AppShell() {
 
   return (
     <div className="app-shell-tabs">
+      <a href="#main-content" className="skip-to-content">דלג לתוכן העיקרי</a>
       <Header reels={activeTab === 'deals'} activeTab={activeTab} />
 
-      <div className="app-shell-tabs__panel" style={{ display: activeTab === 'home' ? 'block' : 'none' }}>
+      <div id="main-content" tabIndex="-1" className="app-shell-tabs__panel" style={{ display: activeTab === 'home' ? 'block' : 'none' }}>
         <App />
       </div>
 

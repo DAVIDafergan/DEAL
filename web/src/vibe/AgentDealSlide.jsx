@@ -77,8 +77,14 @@ export function AgentDealSlide({ deal }) {
     agentApi.trackClick(deal.id).catch(() => {});
   }
 
+  const destLabel = deal.destination_name || deal.destination || '';
+
   return (
-    <section ref={slideRef} className="deal-slide agent-deal-slide">
+    <section
+      ref={slideRef}
+      className="deal-slide agent-deal-slide"
+      aria-label={`דיל ל${destLabel}${dates ? ` — ${dates}` : ''} — ${Math.round(deal.price)}${getCurrencySymbol(deal.currency)}`}
+    >
       <div className="deal-slide__media">
         {(deal.video_url || fetchedVideoUrl) && isActive ? (
           <video
@@ -86,6 +92,7 @@ export function AgentDealSlide({ deal }) {
             src={deal.video_url || fetchedVideoUrl}
             poster={deal.photo_url || undefined}
             autoPlay muted loop playsInline
+            aria-label={`סרטון ל${destLabel}`}
           />
         ) : deal.photo_url ? (
           <img className="deal-slide__photo" src={deal.photo_url} alt="" loading="lazy" />
