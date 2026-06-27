@@ -51,7 +51,7 @@ export function AccessibilityPage() {
             אם נתקלת בבעיית נגישות או ברצונך לקבל מידע נוסף, פנה אלינו:
           </p>
           <ul>
-            <li>דואר אלקטרוני: <a href="mailto:support@dealradar.pro">support@dealradar.pro</a></li>
+            <li>דואר אלקטרוני: <a href="mailto:support@dealim.org">support@dealim.org</a></li>
             <li>WhatsApp: <a href="https://wa.me/972556674329" target="_blank" rel="noopener noreferrer">972-55-667-4329</a></li>
           </ul>
           <p>אנו נשתדל להשיב תוך 7 ימי עסקים.</p>

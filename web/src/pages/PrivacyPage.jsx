@@ -41,7 +41,7 @@ export function PrivacyPage() {
 
         <section className="legal-section">
           <h2>7. יצירת קשר</h2>
-          <p>לשאלות בנושא פרטיות: <a href="mailto:privacy@dealradar.pro">privacy@dealradar.pro</a></p>
+          <p>לשאלות בנושא פרטיות: <a href="mailto:privacy@dealim.org">privacy@dealim.org</a></p>
         </section>
       </div>
     </div>

@@ -47,7 +47,7 @@ export function AgentPublicProfilePage() {
   }, [slug]);
 
   async function shareProfile() {
-    const url = window.location.href;
+    const url = `https://dealim.org/agent/${slug}`;
     if (navigator.share) {
       await navigator.share({ title: data?.agent?.business_name, url });
     } else {

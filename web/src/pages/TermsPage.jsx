@@ -80,7 +80,7 @@ export function TermsPage() {
 
         <section className="legal-section">
           <h2>8. יצירת קשר</h2>
-          <p>לכל שאלה ניתן לפנות אל: <a href="mailto:support@dealradar.pro">support@dealradar.pro</a></p>
+          <p>לכל שאלה ניתן לפנות אל: <a href="mailto:support@dealim.org">support@dealim.org</a></p>
         </section>
       </div>
     </div>

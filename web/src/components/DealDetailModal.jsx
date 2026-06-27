@@ -114,9 +114,9 @@ export function DealDetailModal({ deal, onClose }) {
   }
 
   async function handleShare() {
-    const url = deal.agent_slug
-      ? `${window.location.origin}/agent/${deal.agent_slug}`
-      : window.location.href;
+    const url = deal.id
+      ? `https://dealim.org/deal/${deal.id}`
+      : `https://dealim.org/agent/${deal.agent_slug || ''}`;
     const title = `דיל ל${deal.destination_name || deal.destination} — ${deal.price} ${deal.currency}`;
     if (navigator.share) {
       try { await navigator.share({ title, url }); return; } catch {}
