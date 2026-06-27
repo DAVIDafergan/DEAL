@@ -105,6 +105,9 @@ const MIGRATIONS = [
   (connection) => ensureColumn(connection, 'agent_deals', 'hotel_link', 'TEXT NULL'),
   // passenger count
   (connection) => ensureColumn(connection, 'agent_deals', 'passenger_count', 'TINYINT(1) NOT NULL DEFAULT 2'),
+  // deal purchase tracking
+  (connection) => ensureColumn(connection, 'agent_deals', 'purchase_count', 'INT NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'agent_deals', 'purchased_at', 'DATETIME NULL'),
 ];
 
 const SCHEMA_STATEMENTS = [

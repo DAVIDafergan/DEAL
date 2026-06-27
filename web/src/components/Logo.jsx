@@ -1,10 +1,21 @@
+import { motion } from 'framer-motion';
+
+const EASE_EXPO = [0.16, 1, 0.3, 1];
+
 export function Logo({ size = 36 }) {
+  const scale = size / 44;
+
   return (
-    <span className="logo">
+    <motion.span
+      className="logo"
+      initial={{ opacity: 0, scale: 0.88 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.55, ease: EASE_EXPO }}
+    >
       <svg
         width={size}
         height={size}
-        viewBox="0 0 40 40"
+        viewBox="0 0 44 44"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         aria-hidden="true"
@@ -12,46 +23,78 @@ export function Logo({ size = 36 }) {
         style={{ overflow: 'visible' }}
       >
         <defs>
-          <linearGradient id="lgTeal" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stopColor="#17c3b2" />
-            <stop offset="1" stopColor="#f97316" />
+          <linearGradient id="lg-main" x1="0" y1="0" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#2563EB" />
+            <stop offset="100%" stopColor="#17c3b2" />
+          </linearGradient>
+          <linearGradient id="lg-slash" x1="30" y1="6" x2="16" y2="38" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#17c3b2" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="#2563EB" stopOpacity="0.5" />
           </linearGradient>
         </defs>
 
-        {/* Outer ring */}
-        <circle cx="20" cy="20" r="17" stroke="url(#lgTeal)" strokeWidth="0.8" opacity="0.3" />
-        {/* Middle ring */}
-        <circle cx="20" cy="20" r="11" stroke="url(#lgTeal)" strokeWidth="0.8" opacity="0.5" />
-
-        {/* Cardinal tick marks — N / E / S / W */}
-        <line x1="20" y1="2"  x2="20" y2="5.5"  stroke="url(#lgTeal)" strokeWidth="1.4" strokeLinecap="round" opacity="0.7" />
-        <line x1="38" y1="20" x2="34.5" y2="20"  stroke="url(#lgTeal)" strokeWidth="1.4" strokeLinecap="round" opacity="0.7" />
-        <line x1="20" y1="38" x2="20" y2="34.5"  stroke="url(#lgTeal)" strokeWidth="1.4" strokeLinecap="round" opacity="0.7" />
-        <line x1="2"  y1="20" x2="5.5" y2="20"   stroke="url(#lgTeal)" strokeWidth="1.4" strokeLinecap="round" opacity="0.7" />
-
-        {/* THE SIGNATURE: sweep arc  (120° clockwise from 12-o'clock)
-            Start: (20, 3)  End: (34.7, 28.5)
-            Arc length ≈ 35.6 → dasharray 36 */}
-        <path
-          d="M20 3 A17 17 0 0 1 34.7 28.5"
-          stroke="url(#lgTeal)"
-          strokeWidth="1.8"
+        {/* D-spine: vertical left bar */}
+        <motion.path
+          d="M11 7 L11 37"
+          stroke="url(#lg-main)"
+          strokeWidth="4"
           strokeLinecap="round"
           fill="none"
-          className="logo-sweep"
+          initial={{ pathLength: 0, opacity: 0 }}
+          animate={{ pathLength: 1, opacity: 1 }}
+          transition={{ pathLength: { duration: 0.45, ease: EASE_EXPO }, opacity: { duration: 0.1 } }}
         />
 
-        {/* Center dot — pulses with teal glow after draw completes */}
-        <circle
-          cx="20"
-          cy="20"
-          r="3"
-          fill="url(#lgTeal)"
-          className="logo-dot"
+        {/* D-arc: the bow of the D */}
+        <motion.path
+          d="M11 7 C11 7 35 7 35 22 C35 37 11 37 11 37"
+          stroke="url(#lg-main)"
+          strokeWidth="3.5"
+          strokeLinecap="round"
+          fill="none"
+          initial={{ pathLength: 0, opacity: 0 }}
+          animate={{ pathLength: 1, opacity: 1 }}
+          transition={{
+            pathLength: { duration: 0.65, delay: 0.2, ease: EASE_EXPO },
+            opacity: { duration: 0.1, delay: 0.2 },
+          }}
+        />
+
+        {/* Diagonal slash: the "deal-cut" signature mark */}
+        <motion.path
+          d="M30 9 L19 35"
+          stroke="url(#lg-slash)"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          fill="none"
+          initial={{ pathLength: 0, opacity: 0 }}
+          animate={{ pathLength: 1, opacity: 1 }}
+          transition={{
+            pathLength: { duration: 0.35, delay: 0.55, ease: EASE_EXPO },
+            opacity: { duration: 0.1, delay: 0.55 },
+          }}
+        />
+
+        {/* Glow dot — appears after draw completes */}
+        <motion.circle
+          cx="11"
+          cy="22"
+          r="2.2"
+          fill="url(#lg-main)"
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 520, damping: 18, delay: 0.82 }}
         />
       </svg>
 
-      <span className="logo__wordmark">DEAL</span>
-    </span>
+      <motion.span
+        className="logo__wordmark"
+        initial={{ opacity: 0, x: 6 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.45, delay: 0.7, ease: EASE_EXPO }}
+      >
+        Dealim
+      </motion.span>
+    </motion.span>
   );
 }

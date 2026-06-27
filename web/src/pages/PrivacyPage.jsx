@@ -36,7 +36,7 @@ export function PrivacyPage() {
 
         <section className="legal-section">
           <h2>6. שינויים במדיניות</h2>
-          <p>Deal Radar Pro רשאית לעדכן מדיניות זו. עדכונים מהותיים יימסרו לסוכנים רשומים בדוא"ל.</p>
+          <p>Dealim רשאית לעדכן מדיניות זו. עדכונים מהותיים יימסרו לסוכנים רשומים בדוא"ל.</p>
         </section>
 
         <section className="legal-section">

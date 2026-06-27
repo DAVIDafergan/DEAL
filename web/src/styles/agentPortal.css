@@ -1269,6 +1269,18 @@
   background: rgba(239,68,68,0.1); color: #ef4444; border: none; cursor: pointer;
 }
 .dash-deal-delete:hover { background: rgba(239,68,68,0.2); }
+.dash-deal-purchased-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 8px;
+  background: rgba(5,150,105,0.1); color: #059669; border: none; cursor: pointer;
+}
+.dash-deal-purchased-btn:hover { background: rgba(5,150,105,0.2); }
+.dash-deal-purchased-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  margin-top: 4px; padding: 2px 8px; border-radius: 999px;
+  background: rgba(5,150,105,0.12); color: #059669;
+  font-size: 0.7rem; font-weight: 700;
+}
 
 /* Toast */
 .dash-toast {

@@ -10,7 +10,7 @@ import { useFavorites } from '../hooks/useFavorites.js';
 import { StarRating } from '../components/StarRating.jsx';
 
 function buildWhatsAppUrl(number, template, dest, dates) {
-  const text = (template || `שלום, ראיתי את הדיל שלכם ל-{destination} ({dates}) ב-Deal Radar Pro ואני מתעניין`)
+  const text = (template || `שלום, ראיתי את הדיל שלכם ל-{destination} ({dates}) ב-Dealim ואני מתעניין`)
     .replace('{destination}', dest || '')
     .replace('{dates}', dates || '');
   return `https://wa.me/${number.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(text)}`;

@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, XCircle, Eye, RefreshCw, ArrowLeft, Trash2, ChevronLeft, ChevronRight, User, LogOut, Users, FileCheck, LayoutDashboard, Clock, Home } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, RefreshCw, ArrowLeft, Trash2, ChevronLeft, ChevronRight, User, LogOut, Users, FileCheck, LayoutDashboard, Clock, Home, BarChart3, Search, ShoppingBag, MousePointerClick } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { adminApi } from '../api/client.js';
 import { Logo } from '../components/Logo.jsx';
@@ -21,6 +21,7 @@ function DealPreview({ deal }) {
         {deal.hotel_name && <span>🏨 {deal.hotel_name}{deal.hotel_stars ? ` ${'★'.repeat(Number(deal.hotel_stars))}` : ''}</span>}
         {deal.car_type && <span>🚗 {deal.car_type}{deal.car_company ? ` · ${deal.car_company}` : ''}</span>}
         {deal.click_count != null && <span>👆 {deal.click_count} קליקים</span>}
+        {deal.purchase_count > 0 && <span>🛍 {deal.purchase_count} רכישות</span>}
       </div>
     </div>
   );
@@ -73,7 +74,7 @@ function LoginScreen({ onLogin }) {
           <Logo size={40} />
         </div>
         <h1 className="adm-login-card__title">כניסת מנהל</h1>
-        <p className="adm-login-card__sub">Deal Radar Pro — Admin</p>
+        <p className="adm-login-card__sub">Dealim — Admin</p>
         <form onSubmit={handleSubmit} className="adm-login-form">
           <div className="adm-login-field">
             <label className="adm-login-label">שם משתמש</label>
@@ -115,12 +116,97 @@ function LoginScreen({ onLogin }) {
   );
 }
 
+function AnalyticsTab({ token }) {
+  const now = new Date();
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setLoading(true);
+    adminApi.getAnalytics(token, year, month)
+      .then(d => setData(d))
+      .catch(() => setData(null))
+      .finally(() => setLoading(false));
+  }, [token, year, month]);
+
+  const MONTHS_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+
+  const yearOptions = [];
+  for (let y = now.getFullYear(); y >= now.getFullYear() - 2; y--) yearOptions.push(y);
+
+  return (
+    <div className="adm-analytics" dir="rtl">
+      {/* Month selector */}
+      <div className="adm-analytics__filters">
+        <select className="adm-analytics__select" value={month} onChange={e => setMonth(Number(e.target.value))}>
+          {MONTHS_HE.map((m, i) => <option key={i+1} value={i+1}>{m}</option>)}
+        </select>
+        <select className="adm-analytics__select" value={year} onChange={e => setYear(Number(e.target.value))}>
+          {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
+        </select>
+      </div>
+
+      {loading && <p style={{ textAlign: 'center', padding: 32, color: 'var(--color-text-muted)' }}>טוען…</p>}
+
+      {!loading && data && (
+        <div className="adm-analytics__grid">
+          <div className="adm-analytics-kpi">
+            <div className="adm-analytics-kpi__icon" style={{ color: '#059669', background: 'rgba(5,150,105,0.12)' }}>
+              <ShoppingBag size={26} />
+            </div>
+            <div className="adm-analytics-kpi__value">{data.purchases_total}</div>
+            <div className="adm-analytics-kpi__label">רכישות החודש</div>
+            <div className="adm-analytics-kpi__sub">{data.purchases_count} דילים נרכשו</div>
+          </div>
+
+          <div className="adm-analytics-kpi">
+            <div className="adm-analytics-kpi__icon" style={{ color: '#f59e0b', background: 'rgba(245,158,11,0.12)' }}>
+              <MousePointerClick size={26} />
+            </div>
+            <div className="adm-analytics-kpi__value">{data.clicks_total}</div>
+            <div className="adm-analytics-kpi__label">קליקים (סה"כ)</div>
+            <div className="adm-analytics-kpi__sub">מצטבר — כל הדילים הפעילים</div>
+          </div>
+
+          <div className="adm-analytics-kpi">
+            <div className="adm-analytics-kpi__icon" style={{ color: '#2563EB', background: 'rgba(37,99,235,0.12)' }}>
+              <FileCheck size={26} />
+            </div>
+            <div className="adm-analytics-kpi__value">{data.deals_active}</div>
+            <div className="adm-analytics-kpi__label">דילים פעילים כרגע</div>
+            <div className="adm-analytics-kpi__sub">{data.deals_published} פורסמו החודש</div>
+          </div>
+
+          <div className="adm-analytics-kpi">
+            <div className="adm-analytics-kpi__icon" style={{ color: '#8b5cf6', background: 'rgba(139,92,246,0.12)' }}>
+              <Users size={26} />
+            </div>
+            <div className="adm-analytics-kpi__value">{data.agents_new}</div>
+            <div className="adm-analytics-kpi__label">סוכנים חדשים החודש</div>
+            <div className="adm-analytics-kpi__sub">סה"כ {data.agents_total} סוכנים</div>
+          </div>
+
+          <div className="adm-analytics-kpi">
+            <div className="adm-analytics-kpi__icon" style={{ color: '#06b6d4', background: 'rgba(6,182,212,0.12)' }}>
+              <User size={26} />
+            </div>
+            <div className="adm-analytics-kpi__value">{data.users_new}</div>
+            <div className="adm-analytics-kpi__label">לקוחות חדשים החודש</div>
+            <div className="adm-analytics-kpi__sub">סה"כ {data.users_total} לקוחות</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function AdminPage() {
   const [token, setToken] = useState(() => adminApi.getToken());
   const [tab, setTab] = useState('pending-agents');
   const [pendingAgents, setPendingAgents] = useState([]);
   const [allAgents, setAllAgents] = useState([]);
-  const [pendingDeals, setPendingDeals] = useState([]);
   const [approvedDeals, setApprovedDeals] = useState([]);
   const [loading, setLoading] = useState(false);
   const [rejectId, setRejectId] = useState(null);
@@ -130,6 +216,9 @@ export function AdminPage() {
   const [agentsPage, setAgentsPage] = useState(1);
   const [selectedAgent, setSelectedAgent] = useState(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [search, setSearch] = useState('');
+  const searchDebounceRef = useRef(null);
+  const [searchQ, setSearchQ] = useState('');
 
   function notify(msg, type = 'success') {
     setNotification({ msg, type });
@@ -140,15 +229,13 @@ export function AdminPage() {
     if (!token) return;
     setLoading(true);
     try {
-      const [{ agents: pending }, { agents: all }, { deals: pDeals }, { deals: aDeals }] = await Promise.all([
+      const [{ agents: pending }, { agents: all }, { deals: aDeals }] = await Promise.all([
         adminApi.getPendingAgents(token),
         adminApi.getAllAgents(token),
-        adminApi.getPendingDeals(token),
         adminApi.getApprovedDeals(token),
       ]);
       setPendingAgents(pending || []);
       setAllAgents(all || []);
-      setPendingDeals(pDeals || []);
       setApprovedDeals(aDeals || []);
     } catch (err) {
       const isAuthError = err.message?.includes('401')
@@ -171,6 +258,13 @@ export function AdminPage() {
   function handleLogin(tok) { setToken(tok); }
   function handleLogout() { adminApi.clearToken(); setToken(null); }
 
+  function handleSearchChange(e) {
+    const v = e.target.value;
+    setSearch(v);
+    clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => setSearchQ(v.toLowerCase().trim()), 280);
+  }
+
   async function approveAgent(id) {
     try {
       await adminApi.approveAgent(token, id);
@@ -190,23 +284,6 @@ export function AdminPage() {
     } catch (err) { notify(err.message, 'error'); }
   }
 
-  async function approveDeal(id) {
-    try {
-      await adminApi.approveDeal(token, id);
-      notify('הדיל אושר ✓');
-      setPendingDeals(prev => prev.filter(d => d.id !== id));
-    } catch (err) { notify(err.message, 'error'); }
-  }
-
-  async function rejectDeal(id) {
-    try {
-      await adminApi.rejectDeal(token, id, rejectReason);
-      notify('הדיל נדחה');
-      setPendingDeals(prev => prev.filter(d => d.id !== id));
-      setRejectId(null); setRejectReason('');
-    } catch (err) { notify(err.message, 'error'); }
-  }
-
   async function deleteDeal(id) {
     try {
       await adminApi.deleteDeal(token, id);
@@ -220,14 +297,32 @@ export function AdminPage() {
 
   if (!token) return <LoginScreen onLogin={handleLogin} />;
 
-  const totalAgentsPages = Math.ceil(allAgents.length / AGENTS_PER_PAGE);
-  const pagedAgents = allAgents.slice((agentsPage - 1) * AGENTS_PER_PAGE, agentsPage * AGENTS_PER_PAGE);
+  // Filtered lists based on search
+  const filteredAgents = searchQ
+    ? allAgents.filter(a =>
+        (a.business_name || '').toLowerCase().includes(searchQ) ||
+        (a.email || '').toLowerCase().includes(searchQ) ||
+        (a.contact_name || '').toLowerCase().includes(searchQ)
+      )
+    : allAgents;
+
+  const filteredDeals = searchQ
+    ? approvedDeals.filter(d =>
+        (d.destination_name || d.destination || '').toLowerCase().includes(searchQ) ||
+        (d.business_name || '').toLowerCase().includes(searchQ)
+      )
+    : approvedDeals;
+
+  const totalAgentsPages = Math.ceil(filteredAgents.length / AGENTS_PER_PAGE);
+  const pagedAgents = filteredAgents.slice((agentsPage - 1) * AGENTS_PER_PAGE, agentsPage * AGENTS_PER_PAGE);
 
   function statusLabel(s) {
     if (s === 'approved') return { label: 'מאושר', cls: 'adm-status--approved' };
     if (s === 'rejected') return { label: 'נדחה', cls: 'adm-status--rejected' };
     return { label: 'ממתין', cls: 'adm-status--pending' };
   }
+
+  const showSearch = tab === 'all-agents' || tab === 'active-deals';
 
   return (
     <div className="adm-page" dir="rtl">
@@ -244,7 +339,7 @@ export function AdminPage() {
         )}
       </AnimatePresence>
 
-      {/* Header — logo | nav items | right actions */}
+      {/* Header */}
       <header className="adm-header">
         <div className="adm-header__brand">
           <Logo size={28} />
@@ -288,13 +383,6 @@ export function AdminPage() {
           <span className="adm-kpi__label">סה"כ סוכנים</span>
         </div>
         <div className="adm-kpi">
-          <div className="adm-kpi__icon-box" style={{ background: 'rgba(239,68,68,0.12)', color: '#dc2626' }}>
-            <Clock size={22} />
-          </div>
-          <span className="adm-kpi__value">{pendingDeals.length}</span>
-          <span className="adm-kpi__label">דילים ממתינים</span>
-        </div>
-        <div className="adm-kpi">
           <div className="adm-kpi__icon-box" style={{ background: 'rgba(5,150,105,0.12)', color: '#059669' }}>
             <FileCheck size={22} />
           </div>
@@ -303,6 +391,7 @@ export function AdminPage() {
         </div>
       </div>
 
+      {/* Tabs */}
       <div className="adm-tabs">
         <button className={`adm-tabs__btn${tab === 'pending-agents' ? ' is-active' : ''}`} onClick={() => setTab('pending-agents')}>
           סוכנים ממתינים {pendingAgents.length > 0 && <span className="adm-tabs__badge">{pendingAgents.length}</span>}
@@ -310,16 +399,38 @@ export function AdminPage() {
         <button className={`adm-tabs__btn${tab === 'all-agents' ? ' is-active' : ''}`} onClick={() => setTab('all-agents')}>
           כל הסוכנים <span className="adm-tabs__badge adm-tabs__badge--neutral">{allAgents.length}</span>
         </button>
-        <button className={`adm-tabs__btn${tab === 'pending-deals' ? ' is-active' : ''}`} onClick={() => setTab('pending-deals')}>
-          דילים ממתינים {pendingDeals.length > 0 && <span className="adm-tabs__badge">{pendingDeals.length}</span>}
-        </button>
         <button className={`adm-tabs__btn${tab === 'active-deals' ? ' is-active' : ''}`} onClick={() => setTab('active-deals')}>
           דילים פעילים <span className="adm-tabs__badge adm-tabs__badge--neutral">{approvedDeals.length}</span>
         </button>
+        <button className={`adm-tabs__btn${tab === 'analytics' ? ' is-active' : ''}`} onClick={() => setTab('analytics')}>
+          <BarChart3 size={14} /> נתונים
+        </button>
       </div>
+
+      {/* Search bar — visible on agents / deals tabs */}
+      {showSearch && (
+        <div className="adm-search-bar">
+          <Search size={15} className="adm-search-bar__icon" />
+          <input
+            className="adm-search-bar__input"
+            type="text"
+            placeholder={tab === 'all-agents' ? 'חיפוש סוכן לפי שם / אימייל…' : 'חיפוש דיל לפי יעד / סוכן…'}
+            value={search}
+            onChange={handleSearchChange}
+            autoComplete="off"
+          />
+          {search && (
+            <button className="adm-search-bar__clear" onClick={() => { setSearch(''); setSearchQ(''); }}>×</button>
+          )}
+        </div>
+      )}
 
       {loading && <p style={{ textAlign: 'center', padding: 32, color: 'var(--color-text-muted)' }}>טוען…</p>}
 
+      {/* Analytics */}
+      {tab === 'analytics' && <AnalyticsTab token={token} />}
+
+      {/* Pending agents */}
       {!loading && tab === 'pending-agents' && (
         <div className="adm-list">
           {pendingAgents.length === 0 && <p className="adm-list__empty">אין סוכנים ממתינים</p>}
@@ -352,9 +463,10 @@ export function AdminPage() {
         </div>
       )}
 
+      {/* All agents */}
       {!loading && tab === 'all-agents' && (
         <div className="adm-list">
-          {allAgents.length === 0 && <p className="adm-list__empty">אין סוכנים</p>}
+          {filteredAgents.length === 0 && <p className="adm-list__empty">{searchQ ? 'לא נמצאו תוצאות' : 'אין סוכנים'}</p>}
           {pagedAgents.map(agent => {
             const { label, cls } = statusLabel(agent.status);
             const isExpanded = selectedAgent === agent.id;
@@ -390,40 +502,15 @@ export function AdminPage() {
               </div>
             );
           })}
-          <Pagination page={agentsPage} totalPages={totalAgentsPages} onPage={setAgentsPage} />
+          <Pagination page={agentsPage} totalPages={totalAgentsPages} onPage={p => { setAgentsPage(p); }} />
         </div>
       )}
 
-      {!loading && tab === 'pending-deals' && (
-        <div className="adm-list">
-          {pendingDeals.length === 0 && <p className="adm-list__empty">אין דילים ממתינים</p>}
-          {pendingDeals.map(deal => (
-            <div key={deal.id} className="adm-row">
-              <DealPreview deal={deal} />
-              <div className="adm-row__actions">
-                <motion.button className="adm-row__approve" whileTap={{ scale: 0.97 }} onClick={() => approveDeal(deal.id)}>
-                  <CheckCircle size={16} /> אשר
-                </motion.button>
-                <motion.button className="adm-row__reject" whileTap={{ scale: 0.97 }} onClick={() => startReject(deal.id, 'deal')}>
-                  <XCircle size={16} /> דחה
-                </motion.button>
-              </div>
-              {rejectId === deal.id && rejectTarget === 'deal' && (
-                <div className="adm-row__reject-form">
-                  <input className="adm-row__reject-input" value={rejectReason} onChange={e => setRejectReason(e.target.value)} placeholder="סיבה לדחייה" autoFocus />
-                  <button className="adm-row__reject-confirm" onClick={() => rejectDeal(deal.id)}>אשר דחייה</button>
-                  <button onClick={() => setRejectId(null)}>ביטול</button>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
+      {/* Active deals */}
       {!loading && tab === 'active-deals' && (
         <div className="adm-list">
-          {approvedDeals.length === 0 && <p className="adm-list__empty">אין דילים פעילים</p>}
-          {approvedDeals.map(deal => (
+          {filteredDeals.length === 0 && <p className="adm-list__empty">{searchQ ? 'לא נמצאו תוצאות' : 'אין דילים פעילים'}</p>}
+          {filteredDeals.map(deal => (
             <div key={deal.id} className="adm-row">
               <DealPreview deal={deal} />
               <div className="adm-row__actions">

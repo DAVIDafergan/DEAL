@@ -10,8 +10,8 @@ export async function createAgentDeal(agentId, fields) {
        airline,includes_checked_baggage,includes_cabin_baggage,includes_meal,
        hotel_name,hotel_stars,hotel_breakfast,hotel_lunch,hotel_dinner,hotel_link,
        car_type,car_company,departure_time,arrival_time,passenger_count,
-       status,click_count,created_at,updated_at)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending',0,?,?)`,
+       status,click_count,created_at,updated_at,approved_at)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'approved',0,?,?,?)`,
     [
       agentId,
       fields.destination,
@@ -43,7 +43,7 @@ export async function createAgentDeal(agentId, fields) {
       fields.departure_time || null,
       fields.arrival_time || null,
       fields.passenger_count ? Number(fields.passenger_count) : 2,
-      now, now,
+      now, now, now, // approved_at = now (auto-publish)
     ]
   );
   return result.insertId;
@@ -145,7 +145,7 @@ export async function updateAgentDeal(id, agentId, fields) {
   }
   if (sets.length === 0) return;
   const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
-  sets.push("status='pending'", 'updated_at=?');
+  sets.push('updated_at=?');
   vals.push(now, id, agentId);
   await pool.query(`UPDATE agent_deals SET ${sets.join(',')} WHERE id=? AND agent_id=?`, vals);
 }
@@ -163,6 +163,75 @@ export async function adminDeleteAgentDeal(id) {
 export async function incrementDealClickCount(id) {
   const pool = getPool();
   await pool.query('UPDATE agent_deals SET click_count=click_count+1 WHERE id=?', [id]);
+}
+
+export async function markDealPurchased(id, agentId) {
+  const pool = getPool();
+  const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+  await pool.query(
+    `UPDATE agent_deals
+     SET purchase_count=purchase_count+1, purchased_at=IF(purchased_at IS NULL, ?, purchased_at), updated_at=?
+     WHERE id=? AND agent_id=?`,
+    [now, now, id, agentId]
+  );
+}
+
+export async function getAgentStats(agentId) {
+  const pool = getPool();
+  const [rows] = await pool.query(
+    `SELECT
+       COUNT(*) AS total_deals,
+       SUM(CASE WHEN status='approved' THEN 1 ELSE 0 END) AS active_deals,
+       COALESCE(SUM(click_count), 0) AS total_clicks,
+       COALESCE(SUM(purchase_count), 0) AS total_purchases
+     FROM agent_deals WHERE agent_id=?`,
+    [agentId]
+  );
+  return rows[0] || { total_deals: 0, active_deals: 0, total_clicks: 0, total_purchases: 0 };
+}
+
+export async function getAdminAnalytics(year, month) {
+  const pool = getPool();
+  const pad = (n) => String(n).padStart(2, '0');
+  const monthStart = `${year}-${pad(month)}-01 00:00:00`;
+  const nextMonth = month === 12 ? `${year + 1}-01-01 00:00:00` : `${year}-${pad(month + 1)}-01 00:00:00`;
+
+  const [[agentsNew]] = await pool.query(
+    'SELECT COUNT(*) AS cnt FROM agents WHERE created_at >= ? AND created_at < ?',
+    [monthStart, nextMonth]
+  );
+  const [[agentsTotal]] = await pool.query('SELECT COUNT(*) AS cnt FROM agents');
+  const [[dealsPublished]] = await pool.query(
+    'SELECT COUNT(*) AS cnt FROM agent_deals WHERE approved_at >= ? AND approved_at < ?',
+    [monthStart, nextMonth]
+  );
+  const [[dealsActive]] = await pool.query(
+    "SELECT COUNT(*) AS cnt FROM agent_deals WHERE status='approved'"
+  );
+  const [[purchases]] = await pool.query(
+    'SELECT COUNT(*) AS cnt, COALESCE(SUM(purchase_count), 0) AS total FROM agent_deals WHERE purchased_at >= ? AND purchased_at < ?',
+    [monthStart, nextMonth]
+  );
+  const [[clicks]] = await pool.query(
+    "SELECT COALESCE(SUM(click_count), 0) AS total FROM agent_deals WHERE status='approved'"
+  );
+  const [[usersTotal]] = await pool.query('SELECT COUNT(*) AS cnt FROM users').catch(() => [[{ cnt: 0 }]]);
+  const [[usersNew]] = await pool.query(
+    'SELECT COUNT(*) AS cnt FROM users WHERE created_at >= ? AND created_at < ?',
+    [monthStart, nextMonth]
+  ).catch(() => [[{ cnt: 0 }]]);
+
+  return {
+    agents_new: agentsNew.cnt,
+    agents_total: agentsTotal.cnt,
+    deals_published: dealsPublished.cnt,
+    deals_active: dealsActive.cnt,
+    purchases_count: purchases.cnt,
+    purchases_total: Number(purchases.total),
+    clicks_total: Number(clicks.total),
+    users_total: usersTotal.cnt,
+    users_new: usersNew.cnt,
+  };
 }
 
 export async function computeValueScore(deal) {

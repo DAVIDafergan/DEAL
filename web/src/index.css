@@ -2611,42 +2611,20 @@ body {
   font-family: var(--font-hebrew);
 }
 
-/* ── 2. LOGO — Signature Radar Sweep Animation ───────────────────────────── */
+/* ── 2. LOGO — Dealim mark (animated via Framer Motion in Logo.jsx) ──────── */
 .logo__mark { overflow: visible; }
 
-.logo-sweep {
-  stroke-dasharray: 36;
-  stroke-dashoffset: 36;
-  animation: logo-draw 0.7s cubic-bezier(0.6, 0, 0.4, 1) 0.2s forwards;
-}
-@keyframes logo-draw {
-  to { stroke-dashoffset: 0; }
-}
-
-.logo-dot {
-  transform-origin: 20px 20px;
-  animation: logo-pulse 3.5s ease-in-out 1.1s infinite;
-}
-@keyframes logo-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); filter: drop-shadow(0 0 2px var(--ds-teal)); }
-  50%       { opacity: 0.75; transform: scale(1.35); filter: drop-shadow(0 0 7px var(--ds-teal)); }
-}
-
-/* Logo wordmark — updated to DEAL·RADAR style */
+/* Wordmark: Outfit 800, gradient blue→teal, tight tracking */
 .logo__wordmark {
-  font-family: var(--font-display);
+  font-family: 'Outfit', var(--font-display), sans-serif;
   font-weight: 800;
-  font-size: 1.05rem;
-  letter-spacing: 0.03em;
-  background: linear-gradient(135deg, var(--ds-teal), var(--color-accent-from));
+  font-size: 1.1rem;
+  letter-spacing: -0.01em;
+  background: linear-gradient(120deg, #2563EB 0%, #17c3b2 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   line-height: 1;
-}
-.logo__wordmark-dot {
-  opacity: 0.45;
-  margin: 0 1px;
 }
 
 /* ── 3. Language Switcher — compact flag-only trigger ───────────────────── */
@@ -4174,6 +4152,97 @@ body {
   .adm-page .adm-kpi-row { grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 16px; }
   .adm-header__nav-item { padding: 8px 10px; }
   .adm-page .adm-list { padding: 0 12px; }
+}
+
+/* ── Admin: search bar ───────────────────────────────────────────────────── */
+.adm-search-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin: 0 20px 16px;
+  background: #F8FAFC;
+  border: 1.5px solid #E2E8F0;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.adm-search-bar__icon {
+  position: absolute;
+  inset-inline-start: 12px;
+  color: #94A3B8;
+  pointer-events: none;
+}
+.adm-search-bar__input {
+  flex: 1;
+  padding: 10px 14px 10px 36px;
+  border: none;
+  background: transparent;
+  font-size: 0.9rem;
+  color: #1E293B;
+  outline: none;
+  direction: rtl;
+}
+.adm-search-bar__clear {
+  padding: 0 12px;
+  background: transparent;
+  border: none;
+  color: #94A3B8;
+  font-size: 1.1rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+/* ── Admin: analytics tab ────────────────────────────────────────────────── */
+.adm-analytics { padding: 20px; }
+.adm-analytics__filters {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.adm-analytics__select {
+  padding: 8px 12px;
+  border: 1.5px solid #E2E8F0;
+  border-radius: var(--radius-sm);
+  background: #F8FAFC;
+  color: #1E293B;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.adm-analytics__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+.adm-analytics-kpi {
+  background: #fff;
+  border: 1.5px solid #E8EEF5;
+  border-radius: var(--radius-md);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.adm-analytics-kpi__icon {
+  width: 48px; height: 48px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 4px;
+}
+.adm-analytics-kpi__value {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #0F172A;
+  line-height: 1;
+}
+.adm-analytics-kpi__label {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #1E293B;
+}
+.adm-analytics-kpi__sub {
+  font-size: 0.75rem;
+  color: #94A3B8;
 }
 
 /* ── Header drawer additions ─────────────────────────────────────────────── */

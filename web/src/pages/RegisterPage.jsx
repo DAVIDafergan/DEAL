@@ -29,7 +29,7 @@ export function RegisterPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <h1 className="register-choice__title">{t.registerChoiceTitle || 'הצטרף ל-Deal Radar'}</h1>
+        <h1 className="register-choice__title">{t.registerChoiceTitle || 'הצטרף ל-Dealim'}</h1>
         <p className="register-choice__subtitle">{t.registerChoiceSubtitle || 'אתה מחפש דילים, או מוכר אותם?'}</p>
 
         <div className="register-choice__google">

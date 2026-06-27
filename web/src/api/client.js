@@ -128,6 +128,8 @@ export const agentApi = {
   getMyRating: (agentId, sessionId) => getJson(`/agents/${agentId}/my-rating?session_id=${encodeURIComponent(sessionId)}`),
   rateAgent: (agentId, sessionId, rating) => postJson(`/agents/${agentId}/rate`, { session_id: sessionId, rating }),
   getMyRatings: (sessionId) => getJson(`/agents/my-ratings?session_id=${encodeURIComponent(sessionId)}`),
+  markPurchased: (token, id) => postJson(`/agents/me/deals/${id}/purchased`, {}, token),
+  getMyStats: (token) => getJson('/agents/me/stats', token),
 };
 
 export const billingApi = {
@@ -152,4 +154,5 @@ export const adminApi = {
   approveDeal: (tok, id) => postJson(`/admin/deals/${id}/approve`, {}, tok),
   rejectDeal: (tok, id, reason) => postJson(`/admin/deals/${id}/reject`, { reason }, tok),
   deleteDeal: (tok, id) => deleteReq(`/admin/deals/${id}`, tok),
+  getAnalytics: (tok, year, month) => getJson(`/admin/analytics?year=${year}&month=${month}`, tok),
 };

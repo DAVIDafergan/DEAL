@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   PlusCircle, Settings, LogOut, CheckCircle, XCircle, TrendingUp,
-  MessageCircle, LayoutDashboard, Trash2, Zap, Pencil,
+  MessageCircle, LayoutDashboard, Trash2, Zap, Pencil, ShoppingBag, MousePointerClick,
 } from 'lucide-react';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { agentApi } from '../api/client.js';
@@ -44,6 +44,7 @@ export function AgentDashboardPage() {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const [deals, setDeals] = useState([]);
+  const [stats, setStats] = useState(null);
   const [dealsLoading, setDealsLoading] = useState(true);
   const [notification, setNotification] = useState(null);
   const [showWizard, setShowWizard] = useState(false);
@@ -59,6 +60,9 @@ export function AgentDashboardPage() {
       .then(({ deals: d }) => setDeals(d || []))
       .catch(() => setDeals([]))
       .finally(() => setDealsLoading(false));
+    agentApi.getMyStats(token)
+      .then(s => setStats(s))
+      .catch(() => {});
   }
 
   useEffect(() => {
@@ -73,13 +77,13 @@ export function AgentDashboardPage() {
 
   function handleDealAdded() {
     setShowWizard(false);
-    notify(t.dealSubmittedMessage || 'הדיל הוגש לאישור!');
+    notify(t.dealSubmittedMessage || 'הדיל פורסם!');
     refreshDeals();
   }
 
   function handleDealEdited() {
     setEditingDeal(null);
-    notify('הדיל עודכן ונשלח לאישור מחדש');
+    notify('הדיל עודכן בהצלחה');
     refreshDeals();
   }
 
@@ -91,6 +95,16 @@ export function AgentDashboardPage() {
       notify(t.dealDeletedMessage || 'הדיל נמחק');
     } catch (err) {
       notify(err.message, 'error');
+    }
+  }
+
+  async function handleMarkPurchased(id) {
+    try {
+      const { purchase_count } = await agentApi.markPurchased(token, id);
+      setDeals(prev => prev.map(d => d.id === id ? { ...d, purchase_count } : d));
+      notify(`סומן כנרכש ✓ (${purchase_count})`);
+    } catch (err) {
+      notify(err.message || 'שגיאה', 'error');
     }
   }
 
@@ -189,12 +203,28 @@ export function AgentDashboardPage() {
           index={0}
         />
         <KpiCard
-          icon={TrendingUp}
-          label={t.leadsCountLabel || 'לידים החודש'}
-          value={agent?.lead_count ?? 0}
+          icon={ShoppingBag}
+          label="נרכשו"
+          value={stats?.total_purchases ?? 0}
           iconColor="#059669"
           iconBg="rgba(5,150,105,0.12)"
           index={1}
+        />
+        <KpiCard
+          icon={MousePointerClick}
+          label="קליקים"
+          value={stats?.total_clicks ?? 0}
+          iconColor="#f59e0b"
+          iconBg="rgba(245,158,11,0.12)"
+          index={2}
+        />
+        <KpiCard
+          icon={TrendingUp}
+          label={t.leadsCountLabel || 'לידים החודש'}
+          value={agent?.lead_count ?? 0}
+          iconColor="#8b5cf6"
+          iconBg="rgba(139,92,246,0.12)"
+          index={3}
         />
       </div>
 
@@ -271,6 +301,11 @@ export function AgentDashboardPage() {
                   {deal.hotel_name && <span>🏨 {deal.hotel_name}</span>}
                 </div>
                 <div className="dash-deal-card__price">{deal.price} {deal.currency}</div>
+                {(deal.purchase_count > 0) && (
+                  <div className="dash-deal-purchased-badge">
+                    <CheckCircle size={11} /> נרכש {deal.purchase_count > 1 ? `×${deal.purchase_count}` : ''}
+                  </div>
+                )}
                 {deal.rejection_reason && (
                   <div className="dash-deal-card__rejection">{t.rejectedReasonLabel || 'סיבה'}: {deal.rejection_reason}</div>
                 )}
@@ -282,6 +317,14 @@ export function AgentDashboardPage() {
                 </span>
                 <span className="dash-deal-clicks"><TrendingUp size={12} /> {deal.click_count}</span>
                 {deal.whatsapp_override && <span className="dash-deal-wa"><MessageCircle size={12} /></span>}
+                <motion.button
+                  className="dash-deal-purchased-btn"
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => handleMarkPurchased(deal.id)}
+                  title="סמן כנרכש"
+                >
+                  <ShoppingBag size={13} />
+                </motion.button>
                 <motion.button
                   className="dash-deal-edit"
                   whileTap={{ scale: 0.9 }}

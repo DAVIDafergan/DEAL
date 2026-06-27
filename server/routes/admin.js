@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { requireAdminAuth, signAdminToken } from '../middleware/adminAuth.js';
 import { listAgentsPending, listAgentsAll, updateAgentStatus } from '../store/agentStore.js';
-import { listPendingDeals, updateAgentDealStatus, listAllApprovedDealsAdmin, adminDeleteAgentDeal } from '../store/agentDealStore.js';
+import { listPendingDeals, updateAgentDealStatus, listAllApprovedDealsAdmin, adminDeleteAgentDeal, getAdminAnalytics } from '../store/agentDealStore.js';
 
 const router = Router();
 
@@ -64,6 +64,19 @@ router.post('/deals/:id/reject', async (req, res) => {
 router.delete('/deals/:id', async (req, res) => {
   try { await adminDeleteAgentDeal(req.params.id); res.json({ ok: true }); }
   catch { res.status(500).json({ error: 'Internal error' }); }
+});
+
+router.get('/analytics', async (req, res) => {
+  try {
+    const now = new Date();
+    const year = Number(req.query.year) || now.getFullYear();
+    const month = Number(req.query.month) || now.getMonth() + 1;
+    const data = await getAdminAnalytics(year, month);
+    res.json(data);
+  } catch (err) {
+    console.error('[admin] analytics error:', err.message);
+    res.status(500).json({ error: 'Internal error' });
+  }
 });
 
 export default router;

@@ -8,7 +8,7 @@ import {
 import {
   createAgentDeal, listAgentDeals, updateAgentDeal, deleteAgentDeal,
   getAgentDeal, listApprovedDealsByAgent, listApprovedDeals, incrementDealClickCount,
-  computeValueScore, listTopValueDeals,
+  computeValueScore, listTopValueDeals, markDealPurchased, getAgentStats,
 } from '../store/agentDealStore.js';
 import { requireAgentAuth, signAgentToken } from '../middleware/agentAuth.js';
 import { fetchDestinationMediaForAgent } from '../services/agentMediaService.js';
@@ -169,6 +169,26 @@ router.delete('/me/deals/:id', requireAgentAuth, async (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: 'Delete failed' });
+  }
+});
+
+router.post('/me/deals/:id/purchased', requireAgentAuth, async (req, res) => {
+  try {
+    await markDealPurchased(req.params.id, req.agentId);
+    const deal = await getAgentDeal(req.params.id);
+    res.json({ ok: true, purchase_count: deal?.purchase_count ?? 0 });
+  } catch (err) {
+    console.error('[agents] mark purchased error:', err.message);
+    res.status(500).json({ error: 'Failed to mark as purchased' });
+  }
+});
+
+router.get('/me/stats', requireAgentAuth, async (req, res) => {
+  try {
+    const stats = await getAgentStats(req.agentId);
+    res.json(stats);
+  } catch (err) {
+    res.status(500).json({ error: 'Internal error' });
   }
 });
 

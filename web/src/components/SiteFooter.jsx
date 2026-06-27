@@ -6,7 +6,7 @@ export function SiteFooter() {
   return (
     <footer className="site-footer">
       <div className="site-footer__inner container">
-        <span className="site-footer__copy">© {new Date().getFullYear()} Deal Radar Pro</span>
+        <span className="site-footer__copy">© {new Date().getFullYear()} Dealim</span>
         <div className="site-footer__links">
           <Link to="/my/favorites" className="site-footer__link">❤️ {t.favoritesLink || 'המועדפים שלי'}</Link>
           <Link to="/terms" className="site-footer__link">{t.termsLink || 'תנאי שימוש'}</Link>
