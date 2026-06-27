@@ -11,7 +11,9 @@ function buildWhatsAppUrl(number, template, destName, dates) {
   const text = (template || `שלום, ראיתי את הדיל שלכם ל-{destination} ({dates}) ב-Dealim ואני מתעניין`)
     .replace('{destination}', destName || '')
     .replace('{dates}', dates || '');
-  return `https://wa.me/${number.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(text)}`;
+  let clean = number.replace(/[^0-9]/g, '');
+  if (clean.startsWith('0') && clean.length === 10) clean = '972' + clean.slice(1);
+  return `https://wa.me/${clean}?text=${encodeURIComponent(text)}`;
 }
 
 function addUtmParams(url, dealId) {

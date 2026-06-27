@@ -1075,8 +1075,20 @@
 .site-footer__inner {
   display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
 }
-.site-footer__copy { font-size: 0.8rem; color: var(--color-text-muted); }
-.site-footer__links { display: flex; align-items: center; gap: 16px; }
+.site-footer__brand {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.site-footer__logo-link {
+  display: flex; align-items: center; text-decoration: none;
+}
+.site-footer__credit {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: color 0.18s;
+}
+.site-footer__credit:hover { color: var(--color-text-secondary); }
+.site-footer__links { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 .site-footer__link {
   font-size: 0.8rem; color: var(--color-text-secondary); text-decoration: none;
 }

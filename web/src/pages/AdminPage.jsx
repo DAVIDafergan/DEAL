@@ -71,7 +71,7 @@ function LoginScreen({ onLogin }) {
         transition={{ duration: 0.35 }}
       >
         <div className="adm-login-card__logo">
-          <Logo size={40} />
+          <Link to="/"><Logo size={40} /></Link>
         </div>
         <h1 className="adm-login-card__title">כניסת מנהל</h1>
         <p className="adm-login-card__sub">Dealim — Admin</p>
@@ -342,7 +342,7 @@ export function AdminPage() {
       {/* Header */}
       <header className="adm-header">
         <div className="adm-header__brand">
-          <Logo size={28} />
+          <Link to="/"><Logo size={28} /></Link>
         </div>
 
         <nav className="adm-header__nav">

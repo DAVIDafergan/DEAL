@@ -3529,6 +3529,33 @@ body {
   text-decoration: none;
 }
 .traveler-register-card__link:hover { text-decoration: underline; }
+.traveler-register-card__google {
+  margin: 12px 0 4px;
+  display: flex; justify-content: center;
+}
+.traveler-register-card__divider {
+  display: flex; align-items: center; gap: 10px;
+  margin: 14px 0 8px;
+  color: var(--ds-ash);
+  font-size: 0.78rem;
+}
+.traveler-register-card__divider::before,
+.traveler-register-card__divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--color-border, rgba(255,255,255,0.12));
+}
+.traveler-register-card__terms {
+  margin: 10px 0 14px;
+}
+.traveler-register-card__terms-label {
+  display: flex; align-items: flex-start; gap: 8px;
+  font-size: 0.8rem; color: var(--ds-ash); cursor: pointer; line-height: 1.45;
+}
+.traveler-register-card__checkbox {
+  margin-top: 2px; flex-shrink: 0; accent-color: var(--ds-teal);
+}
+.traveler-register-card__btn:disabled {
+  opacity: 0.45; cursor: not-allowed;
+}
 
 /* ── 9. REGISTER CHOICE PAGE — upgrade copy & style ────────────────────── */
 .register-choice {
