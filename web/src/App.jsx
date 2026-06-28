@@ -17,6 +17,7 @@ export function App() {
   const { t } = useLanguage();
   const [agentDeals, setAgentDeals] = useState([]);
   const dealsRef = useRef(null);
+  const searchSectionRef = useRef(null);
 
   const [filterDest, setFilterDest] = useState('');
   const [filterDate, setFilterDate] = useState('');
@@ -27,6 +28,32 @@ export function App() {
     agentApi.getApprovedDeals()
       .then(({ deals }) => setAgentDeals(deals || []))
       .catch(() => setAgentDeals([]));
+  }, []);
+
+  // Listen for header search submissions
+  useEffect(() => {
+    function onHeaderSearch(e) {
+      if (e.detail) setFilterDest(e.detail);
+      setTimeout(() => {
+        dealsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 80);
+    }
+    window.addEventListener('header-search-submit', onHeaderSearch);
+    return () => window.removeEventListener('header-search-submit', onHeaderSearch);
+  }, []);
+
+  // Notify Header when search section leaves viewport
+  useEffect(() => {
+    const el = searchSectionRef.current;
+    if (!el || !('IntersectionObserver' in window)) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        window.dispatchEvent(new CustomEvent('search-section-visible', { detail: entry.isIntersecting }));
+      },
+      { threshold: 0.1, rootMargin: '-60px 0px 0px 0px' }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
   }, []);
 
   const filteredDeals = useMemo(() => {
@@ -71,6 +98,7 @@ export function App() {
       {/* ── Floating pill search — no outer box, fields float on page bg ── */}
       <motion.section
         className="dsh container"
+        ref={searchSectionRef}
         dir="rtl"
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}

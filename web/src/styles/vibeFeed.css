@@ -539,3 +539,8 @@
 .reels-mute-btn:hover {
   background: rgba(0, 0, 0, 0.72);
 }
+
+/* ── Hide vibe filter bar on mobile ─────────────────────────────────────── */
+@media (max-width: 768px) {
+  .vibe-feed-page__filter-bar { display: none; }
+}

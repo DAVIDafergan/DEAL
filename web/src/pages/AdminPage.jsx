@@ -217,6 +217,7 @@ export function AdminPage() {
   const [selectedAgent, setSelectedAgent] = useState(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [allUsers, setAllUsers] = useState([]);
+  const [contactSubmissions, setContactSubmissions] = useState([]);
   const [search, setSearch] = useState('');
   const searchDebounceRef = useRef(null);
   const [searchQ, setSearchQ] = useState('');
@@ -230,16 +231,18 @@ export function AdminPage() {
     if (!token) return;
     setLoading(true);
     try {
-      const [{ agents: pending }, { agents: all }, { deals: aDeals }, usersRes] = await Promise.all([
+      const [{ agents: pending }, { agents: all }, { deals: aDeals }, usersRes, contactRes] = await Promise.all([
         adminApi.getPendingAgents(token),
         adminApi.getAllAgents(token),
         adminApi.getApprovedDeals(token),
         adminApi.getUsers(token).catch(() => ({ users: [] })),
+        fetch('/api/contact', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).catch(() => ({ submissions: [] })),
       ]);
       setPendingAgents(pending || []);
       setAllAgents(all || []);
       setApprovedDeals(aDeals || []);
       setAllUsers(usersRes?.users || []);
+      setContactSubmissions(contactRes?.submissions || []);
     } catch (err) {
       const isAuthError = err.message?.includes('401')
         || err.message?.includes('Unauthorized')
@@ -418,6 +421,11 @@ export function AdminPage() {
         <button className={`adm-tabs__btn${tab === 'analytics' ? ' is-active' : ''}`} onClick={() => setTab('analytics')}>
           <BarChart3 size={14} /> נתונים
         </button>
+        <button className={`adm-tabs__btn${tab === 'contact' ? ' is-active' : ''}`} onClick={() => setTab('contact')}>
+          📬 פניות הציבור {contactSubmissions.filter(s => !s.is_read).length > 0 && (
+            <span className="adm-tabs__badge">{contactSubmissions.filter(s => !s.is_read).length}</span>
+          )}
+        </button>
       </div>
 
       {/* Search bar — visible on agents / deals tabs */}
@@ -468,6 +476,36 @@ export function AdminPage() {
 
       {/* Analytics */}
       {tab === 'analytics' && <AnalyticsTab token={token} />}
+
+      {/* Contact Submissions */}
+      {tab === 'contact' && (
+        <div className="adm-list" dir="rtl">
+          {contactSubmissions.length === 0 && <p className="adm-list__empty">אין פניות עדיין</p>}
+          {contactSubmissions.map(sub => (
+            <div key={sub.id} className={`adm-row${sub.is_read ? ' adm-row--read' : ''}`}>
+              <div className="adm-row__info">
+                <strong>{sub.name}</strong>
+                <span>{sub.email}{sub.phone ? ` · ${sub.phone}` : ''}</span>
+                <span className="adm-row__meta" style={{ whiteSpace: 'pre-wrap', fontSize: '0.85rem', color: '#1e293b', marginTop: 4 }}>{sub.message}</span>
+                <span className="adm-row__date">{new Date(sub.created_at).toLocaleString('he-IL')}</span>
+              </div>
+              <div className="adm-row__actions">
+                {!sub.is_read && (
+                  <button className="adm-row__approve" style={{ fontSize: '0.8rem', padding: '6px 12px' }} onClick={async () => {
+                    await fetch(`/api/contact/${sub.id}/read`, { method: 'PATCH', headers: { Authorization: `Bearer ${token}` } });
+                    setContactSubmissions(prev => prev.map(s => s.id === sub.id ? { ...s, is_read: 1 } : s));
+                  }}>
+                    סמן כנקרא
+                  </button>
+                )}
+                <a className="adm-row__approve" style={{ fontSize: '0.8rem', padding: '6px 12px', textDecoration: 'none' }} href={`mailto:${sub.email}`}>
+                  השב במייל
+                </a>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Pending agents */}
       {!loading && tab === 'pending-agents' && (

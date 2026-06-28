@@ -220,7 +220,8 @@ export function DealWizard({ onSuccess, onCancel, initialData = null, dealId = n
       if (!selectedDest) { setDestError(t.requiredField || 'בחר יעד מהרשימה'); return; }
       go(2);
     } else if (step === 2) {
-      if (!departure) { setDatesError(t.requiredField || 'שדה חובה'); return; }
+      if (!departure) { setDatesError('תאריך יציאה הוא שדה חובה'); return; }
+      if (returnDate && returnDate <= departure) { setDatesError('תאריך חזרה חייב להיות אחרי תאריך היציאה'); return; }
       setDatesError('');
       go(3);
     } else if (step === 3) {
@@ -528,9 +529,39 @@ export function DealWizard({ onSuccess, onCancel, initialData = null, dealId = n
           {step === 6 && (
             <motion.div key="s6" custom={dir} variants={slideVariants} initial="enter" animate="center" exit="exit">
               <WizardStep title={t.dealStepPrice || 'מחיר ופרטים'} iconName="infinity">
+                {/* Passenger count recap + selection */}
+                <div className="wizard-field">
+                  <label className="wizard-label">המחיר הוא עבור:</label>
+                  <div className="wizard-passenger-choices">
+                    {[
+                      { val: 1, label: 'יחיד', icon: '👤' },
+                      { val: 2, label: 'זוג', icon: '👫' },
+                      { val: 3, label: '3 נוסעים', icon: '👨‍👩‍👧' },
+                      { val: 4, label: '4+ נוסעים', icon: '👨‍👩‍👧‍👦' },
+                    ].map(({ val, label, icon }) => (
+                      <motion.button
+                        key={val}
+                        type="button"
+                        className={`wizard-pax-btn${passengerCount === val ? ' wizard-pax-btn--active' : ''}`}
+                        onClick={() => setPassengerCount(val)}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <span className="wizard-pax-btn__icon">{icon}</span>
+                        <span className="wizard-pax-btn__label">{label}</span>
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="wizard-grid-2">
                   <div className="wizard-field">
-                    <label className="wizard-label">{t.priceLabel || 'מחיר'} *</label>
+                    <label className="wizard-label">
+                      {t.priceLabel || 'מחיר'}{' '}
+                      <span className="wizard-pax-inline">
+                        {{ 1: 'ליחיד', 2: 'לזוג', 3: 'ל-3', 4: 'ל-4+' }[passengerCount]}
+                      </span>
+                      {' '}*
+                    </label>
                     <input
                       className={`wizard-input${priceError ? ' wizard-input--error' : ''}`}
                       type="number" min="1" inputMode="numeric"

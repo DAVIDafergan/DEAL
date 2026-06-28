@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { LanguageSwitcher } from './LanguageSwitcher.jsx';
 import { Logo } from './Logo.jsx';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { useTravelerAuth } from '../context/TravelerAuthContext.jsx';
-import { useNavigate, Link } from 'react-router-dom';
-import { LayoutDashboard, LogOut, Heart, Menu, X, User, FileText, Compass, Home, Play } from 'lucide-react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { LayoutDashboard, LogOut, Heart, Menu, X, User, FileText, Compass, Home, Play, Search, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function Header({ reels = false, activeTab = 'home' }) {
@@ -13,14 +13,44 @@ export function Header({ reels = false, activeTab = 'home' }) {
   const { agent, token, loading } = useAgentAuth();
   const { traveler } = useTravelerAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [showHeaderSearch, setShowHeaderSearch] = useState(false);
+  const [headerSearchExpanded, setHeaderSearchExpanded] = useState(false);
+  const [headerSearchVal, setHeaderSearchVal] = useState('');
+  const headerSearchInputRef = useRef(null);
+
+  const isHome = location.pathname === '/';
 
   useEffect(() => {
     function onScroll() { setScrolled(window.scrollY > 12); }
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  useEffect(() => {
+    function onSearchVisible(e) {
+      setShowHeaderSearch(!e.detail);
+      if (e.detail) { setHeaderSearchExpanded(false); }
+    }
+    window.addEventListener('search-section-visible', onSearchVisible);
+    return () => window.removeEventListener('search-section-visible', onSearchVisible);
+  }, []);
+
+  useEffect(() => {
+    if (headerSearchExpanded) {
+      setTimeout(() => headerSearchInputRef.current?.focus(), 80);
+    }
+  }, [headerSearchExpanded]);
+
+  function handleHeaderSearchSubmit(e) {
+    e.preventDefault();
+    setHeaderSearchExpanded(false);
+    // Dispatch search event and scroll to deals section
+    window.dispatchEvent(new CustomEvent('header-search-submit', { detail: headerSearchVal }));
+    setHeaderSearchVal('');
+  }
 
   function closeMenu() { setMenuOpen(false); }
 
@@ -70,6 +100,63 @@ export function Header({ reels = false, activeTab = 'home' }) {
             <Logo />
             <span className="brand-sub">{t.brandSub}</span>
           </Link>
+
+          {/* ── Animated compact search (visible when scrolled past search section on home) ── */}
+          <AnimatePresence>
+            {isHome && showHeaderSearch && !menuOpen && (
+              <motion.div
+                className={`header-search-pill${headerSearchExpanded ? ' header-search-pill--expanded' : ''}`}
+                initial={{ opacity: 0, scaleX: 0.7, y: -4 }}
+                animate={{ opacity: 1, scaleX: 1, y: 0 }}
+                exit={{ opacity: 0, scaleX: 0.7, y: -4 }}
+                transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+              >
+                <AnimatePresence mode="wait">
+                  {headerSearchExpanded ? (
+                    <motion.form
+                      key="expanded"
+                      className="header-search-pill__form"
+                      onSubmit={handleHeaderSearchSubmit}
+                      initial={{ opacity: 0, width: 120 }}
+                      animate={{ opacity: 1, width: '100%' }}
+                      exit={{ opacity: 0, width: 120 }}
+                      transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+                      dir="rtl"
+                    >
+                      <MapPin size={14} className="header-search-pill__icon" />
+                      <input
+                        ref={headerSearchInputRef}
+                        className="header-search-pill__input"
+                        value={headerSearchVal}
+                        onChange={e => setHeaderSearchVal(e.target.value)}
+                        placeholder="לאן בא לך לטוס?"
+                        aria-label="חיפוש יעד"
+                      />
+                      <button type="submit" className="header-search-pill__go" aria-label="חפש">
+                        <Search size={14} />
+                      </button>
+                      <button type="button" className="header-search-pill__close" onClick={() => setHeaderSearchExpanded(false)} aria-label="סגור">
+                        <X size={13} />
+                      </button>
+                    </motion.form>
+                  ) : (
+                    <motion.button
+                      key="collapsed"
+                      className="header-search-pill__collapsed"
+                      onClick={() => setHeaderSearchExpanded(true)}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      aria-label="פתח חיפוש"
+                    >
+                      <Search size={14} />
+                      <span>חפש דיל…</span>
+                    </motion.button>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* ── Desktop right: user | vacation builder | language ───────── */}
           <div className="top-bar__desktop-right">
@@ -134,6 +221,9 @@ export function Header({ reels = false, activeTab = 'home' }) {
                 <LanguageSwitcher />
               </div>
               <div className="header-drawer__divider" />
+              <Link to="/contact" className="header-drawer__item header-drawer__item--muted" onClick={closeMenu}>
+                <FileText size={15} /> צור קשר
+              </Link>
               <Link to="/terms" className="header-drawer__item header-drawer__item--muted" onClick={closeMenu}>
                 <FileText size={15} /> {t.termsLink || 'תנאי שימוש'}
               </Link>

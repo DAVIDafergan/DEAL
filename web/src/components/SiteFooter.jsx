@@ -25,6 +25,7 @@ export function SiteFooter() {
           <Link to="/terms" className="site-footer__link">{t.termsLink || 'תנאי שימוש'}</Link>
           <Link to="/privacy" className="site-footer__link">{t.privacyLink || 'פרטיות'}</Link>
           <Link to="/accessibility" className="site-footer__link">הצהרת נגישות</Link>
+          <Link to="/contact" className="site-footer__link">צור קשר</Link>
           <Link to="/register" className="site-footer__link">{t.headerRegisterButton || 'Register as Agent'}</Link>
         </div>
       </div>

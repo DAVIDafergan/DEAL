@@ -19,7 +19,9 @@ import { PrivacyPage } from './pages/PrivacyPage.jsx';
 import { TravelerRegisterPage } from './pages/TravelerRegisterPage.jsx';
 import { TravelerLoginPage } from './pages/TravelerLoginPage.jsx';
 import { AccessibilityPage } from './pages/AccessibilityPage.jsx';
+import { ContactPage } from './pages/ContactPage.jsx';
 import { TravelerAuthProvider } from './context/TravelerAuthContext.jsx';
+import { AccessibilityWidget } from './components/AccessibilityWidget.jsx';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
@@ -28,6 +30,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <TravelerAuthProvider>
       <AgentAuthProvider>
         <BrowserRouter>
+          <AccessibilityWidget />
           <Routes>
             {/* Routes with shared public header */}
             <Route element={<PublicLayout />}>
@@ -44,6 +47,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/accessibility" element={<AccessibilityPage />} />
+              <Route path="/contact" element={<ContactPage />} />
             </Route>
 
             {/* Admin — its own full-screen layout */}

@@ -1957,8 +1957,12 @@ select.wizard-input { cursor: pointer; }
 /* ── Mobile responsive ────────────────────────────────────────────────────── */
 @media (max-width: 480px) {
   .dash-topbar__nav-item { padding: 8px 10px; }
-  .dash-kpis { grid-template-columns: repeat(2, 1fr); }
-  .dash-page-title { font-size: 1.25rem; }
+  .dash-kpis { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .dash-kpi { padding: 12px 10px; }
+  .dash-kpi__value { font-size: 1.4rem; }
+  .dash-kpi__label { font-size: 0.65rem; }
+  .dash-kpi__icon-box { width: 30px; height: 30px; }
+  .dash-page-title { font-size: 1.2rem; }
 }
 
 /* ── Light theme for AgentSettingsPage (.agent-page) ─────────────────────── */
@@ -2310,9 +2314,7 @@ img, svg { max-width: 100%; }
   font-family: inherit;
 }
 .dsh__pill-input:focus-visible {
-  outline: 2px solid #2563EB;
-  outline-offset: -2px;
-  border-radius: 12px;
+  outline: none;
 }
 .dsh__pill-input::placeholder {
   color: var(--color-text-muted);
@@ -2535,9 +2537,10 @@ img, svg { max-width: 100%; }
 
 /* ── Dashboard: greeting ─────────────────────────────────────────────────── */
 .dash-greeting {
-  font-size: 0.95rem;
+  font-size: 1.05rem;
   color: var(--color-muted, #64748b);
-  margin: 0 0 2px 0;
+  margin: 0 0 4px 0;
+  padding-top: 4px;
   font-weight: 500;
   letter-spacing: -0.01em;
 }
@@ -2566,7 +2569,7 @@ img, svg { max-width: 100%; }
   border: 1px solid rgba(245,158,11,0.22);
   border-radius: 14px;
   padding: 14px 16px;
-  margin-bottom: 20px;
+  margin: 16px 0 20px;
 }
 .dash-daily-tip__icon {
   font-size: 1.4rem;
@@ -2586,7 +2589,7 @@ img, svg { max-width: 100%; }
 .dash-daily-tip__text {
   margin: 0;
   font-size: 0.85rem;
-  color: var(--color-body, #1e293b);
+  color: #1e293b !important;
   line-height: 1.5;
 }
 
@@ -2746,5 +2749,5 @@ img, svg { max-width: 100%; }
   }
   .onb-tooltip__title { color: #f1f5f9; }
   .onb-tooltip__text  { color: #94a3b8; }
-  .dash-daily-tip__text { color: var(--color-body, #f1f5f9); }
+  .dash-daily-tip__text { color: #1e293b !important; }
 }

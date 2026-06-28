@@ -31,14 +31,22 @@ function AutosaveField({ label, fieldKey, value, onSave, type = 'text', inputMod
       await onSave(fieldKey, v);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
-    }, 800);
+    }, 900);
+  }
+
+  function handleBlur(e) {
+    clearTimeout(timer.current);
+    const v = e.target.value;
+    if (v !== (value || '')) {
+      onSave(fieldKey, v).then(() => { setSaved(true); setTimeout(() => setSaved(false), 2000); }).catch(() => {});
+    }
   }
 
   return (
     <div className="settings-field">
       <label className="settings-field__label">{label}</label>
       <div className="settings-field__input-wrap">
-        <input className="settings-field__input" type={type} inputMode={inputMode} value={local} onChange={handleChange} placeholder={placeholder} />
+        <input className="settings-field__input" type={type} inputMode={inputMode} value={local} onChange={handleChange} onBlur={handleBlur} placeholder={placeholder} />
         {saved && <Check size={14} className="settings-field__saved-icon" />}
       </div>
     </div>
@@ -69,6 +77,41 @@ function AutosaveTextarea({ label, fieldKey, value, onSave, rows = 3, placeholde
       <label className="settings-field__label">{label}</label>
       <div className="settings-field__input-wrap">
         <textarea className="settings-field__input settings-field__input--textarea" rows={rows} value={local} onChange={handleChange} placeholder={placeholder} />
+        {saved && <Check size={14} className="settings-field__saved-icon" />}
+      </div>
+    </div>
+  );
+}
+
+const CURRENCIES = [
+  { value: 'ILS', label: '₪ שקל (ILS)' },
+  { value: 'USD', label: '$ דולר אמריקאי (USD)' },
+  { value: 'EUR', label: '€ יורו (EUR)' },
+  { value: 'GBP', label: '£ פאונד בריטי (GBP)' },
+];
+
+function CurrencySelect({ value, onSave }) {
+  const [local, setLocal] = useState(value || 'USD');
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => { setLocal(value || 'USD'); }, [value]);
+
+  async function handleChange(e) {
+    const v = e.target.value;
+    setLocal(v);
+    setSaved(false);
+    await onSave('preferred_currency', v);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  }
+
+  return (
+    <div className="settings-field">
+      <label className="settings-field__label">מטבע מועדף</label>
+      <div className="settings-field__input-wrap">
+        <select className="settings-field__input settings-field__select" value={local} onChange={handleChange}>
+          {CURRENCIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+        </select>
         {saved && <Check size={14} className="settings-field__saved-icon" />}
       </div>
     </div>
@@ -118,10 +161,6 @@ export function AgentSettingsPage() {
             fieldKey="contact_name" value={agent.contact_name} onSave={saveField}
           />
           <AutosaveField
-            label={t.licenseNumberLabel || 'מספר רישיון'}
-            fieldKey="license_number" value={agent.license_number} onSave={saveField} placeholder="אופציונלי"
-          />
-          <AutosaveField
             label={t.logoUrlLabel || 'URL לוגו'}
             fieldKey="logo_url" value={agent.logo_url} onSave={saveField} placeholder="https://…"
           />
@@ -167,10 +206,7 @@ export function AgentSettingsPage() {
               />
             </div>
           </div>
-          <AutosaveField
-            label={t.preferredCurrencyLabel || 'מטבע מועדף'}
-            fieldKey="preferred_currency" value={agent.preferred_currency || 'USD'} onSave={saveField}
-          />
+          <CurrencySelect value={agent.preferred_currency || 'USD'} onSave={saveField} />
         </section>
 
         {/* WhatsApp template */}
