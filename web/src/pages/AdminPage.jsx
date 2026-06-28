@@ -218,6 +218,8 @@ export function AdminPage() {
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [allUsers, setAllUsers] = useState([]);
   const [contactSubmissions, setContactSubmissions] = useState([]);
+  const [deleteAgentConfirmId, setDeleteAgentConfirmId] = useState(null);
+  const [deleteUserConfirmId, setDeleteUserConfirmId] = useState(null);
   const [search, setSearch] = useState('');
   const searchDebounceRef = useRef(null);
   const [searchQ, setSearchQ] = useState('');
@@ -296,6 +298,26 @@ export function AdminPage() {
       notify('הדיל נמחק');
       setApprovedDeals(prev => prev.filter(d => d.id !== id));
       setDeleteConfirmId(null);
+    } catch (err) { notify(err.message, 'error'); }
+  }
+
+  async function deleteAgent(id) {
+    try {
+      await adminApi.deleteAgent(token, id);
+      notify('הסוכן נמחק ✓');
+      setAllAgents(prev => prev.filter(a => a.id !== id));
+      setPendingAgents(prev => prev.filter(a => a.id !== id));
+      setDeleteAgentConfirmId(null);
+      setSelectedAgent(null);
+    } catch (err) { notify(err.message, 'error'); }
+  }
+
+  async function deleteUser(id) {
+    try {
+      await adminApi.deleteUser(token, id);
+      notify('הלקוח נמחק ✓');
+      setAllUsers(prev => prev.filter(u => u.id !== id));
+      setDeleteUserConfirmId(null);
     } catch (err) { notify(err.message, 'error'); }
   }
 
@@ -468,6 +490,19 @@ export function AdminPage() {
                     {u.created_at ? new Date(u.created_at).toLocaleDateString('he-IL') : ''}
                   </span>
                 </div>
+                <div className="adm-row__actions">
+                  {deleteUserConfirmId === u.id ? (
+                    <>
+                      <span style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>למחוק?</span>
+                      <button className="adm-row__reject" onClick={() => deleteUser(u.id)}>כן, מחק</button>
+                      <button onClick={() => setDeleteUserConfirmId(null)}>ביטול</button>
+                    </>
+                  ) : (
+                    <motion.button className="adm-row__delete" whileTap={{ scale: 0.97 }} onClick={() => setDeleteUserConfirmId(u.id)}>
+                      <Trash2 size={14} /> מחק
+                    </motion.button>
+                  )}
+                </div>
               </div>
             ));
           })()}
@@ -572,6 +607,23 @@ export function AdminPage() {
                         <a href={`/agent/${agent.slug}`} target="_blank" rel="noopener noreferrer" className="adm-agent-detail__link">
                           <Eye size={12} /> פרופיל ציבורי
                         </a>
+                      </div>
+                      <div className="adm-agent-detail__row" style={{ marginTop: 8, borderTop: '1px solid rgba(185,28,28,0.15)', paddingTop: 8 }}>
+                        {deleteAgentConfirmId === agent.id ? (
+                          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.82rem', color: '#b91c1c' }}>למחוק את כל הנתונים של הסוכן?</span>
+                            <button className="adm-row__reject" onClick={() => deleteAgent(agent.id)}>כן, מחק</button>
+                            <button onClick={() => setDeleteAgentConfirmId(null)}>ביטול</button>
+                          </div>
+                        ) : (
+                          <button
+                            className="adm-row__delete"
+                            style={{ color: '#b91c1c', borderColor: 'rgba(185,28,28,0.3)' }}
+                            onClick={() => setDeleteAgentConfirmId(agent.id)}
+                          >
+                            <Trash2 size={13} /> מחק סוכן
+                          </button>
+                        )}
                       </div>
                     </motion.div>
                   )}

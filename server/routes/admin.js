@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { requireAdminAuth, signAdminToken } from '../middleware/adminAuth.js';
-import { listAgentsPending, listAgentsAll, updateAgentStatus } from '../store/agentStore.js';
+import { listAgentsPending, listAgentsAll, updateAgentStatus, deleteAgentById } from '../store/agentStore.js';
 import { listPendingDeals, updateAgentDealStatus, listAllApprovedDealsAdmin, adminDeleteAgentDeal, getAdminAnalytics } from '../store/agentDealStore.js';
-import { getAllUsers } from '../store/userStore.js';
+import { getAllUsers, deleteUserById } from '../store/userStore.js';
 import { authRateLimiter } from '../middleware/rateLimiter.js';
 
 const router = Router();
@@ -68,9 +68,25 @@ router.delete('/deals/:id', async (req, res) => {
   catch { res.status(500).json({ error: 'Internal error' }); }
 });
 
+router.delete('/agents/:id', async (req, res) => {
+  try { await deleteAgentById(req.params.id); res.json({ ok: true }); }
+  catch (err) {
+    console.error('[admin] delete agent error:', err.message);
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
 router.get('/users', async (_req, res) => {
   try { res.json({ users: await getAllUsers() }); }
   catch { res.status(500).json({ error: 'Internal error' }); }
+});
+
+router.delete('/users/:id', async (req, res) => {
+  try { await deleteUserById(req.params.id); res.json({ ok: true }); }
+  catch (err) {
+    console.error('[admin] delete user error:', err.message);
+    res.status(500).json({ error: 'Internal error' });
+  }
 });
 
 router.get('/analytics', async (req, res) => {

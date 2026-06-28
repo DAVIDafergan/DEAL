@@ -164,4 +164,6 @@ export const adminApi = {
   deleteDeal: (tok, id) => deleteReq(`/admin/deals/${id}`, tok),
   getAnalytics: (tok, year, month) => getJson(`/admin/analytics?year=${year}&month=${month}`, tok),
   getUsers: (tok) => getJson('/admin/users', tok),
+  deleteAgent: (tok, id) => deleteReq(`/admin/agents/${id}`, tok),
+  deleteUser: (tok, id) => deleteReq(`/admin/users/${id}`, tok),
 };

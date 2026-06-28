@@ -4,51 +4,39 @@
       <stop offset="0%" stop-color="#0f172a"/>
       <stop offset="100%" stop-color="#1e3a5f"/>
     </linearGradient>
-    <linearGradient id="logo-main" x1="0" y1="0" x2="88" y2="88" gradientUnits="userSpaceOnUse">
+    <linearGradient id="og-main" x1="0" y1="0" x2="44" y2="44" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#2563EB"/>
       <stop offset="100%" stop-color="#17c3b2"/>
     </linearGradient>
+    <linearGradient id="og-slash" x1="30" y1="6" x2="16" y2="38" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#17c3b2" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#2563EB" stop-opacity="0.5"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="42%" r="38%">
+      <stop offset="0%" stop-color="#2563EB" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#2563EB" stop-opacity="0"/>
+    </radialGradient>
   </defs>
 
-  <!-- Background -->
   <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#glow)"/>
 
-  <!-- Subtle grid lines -->
-  <g opacity="0.06" stroke="#2563EB" stroke-width="1">
-    <line x1="0" y1="105" x2="1200" y2="105"/>
-    <line x1="0" y1="210" x2="1200" y2="210"/>
-    <line x1="0" y1="315" x2="1200" y2="315"/>
-    <line x1="0" y1="420" x2="1200" y2="420"/>
-    <line x1="0" y1="525" x2="1200" y2="525"/>
-    <line x1="200" y1="0" x2="200" y2="630"/>
-    <line x1="400" y1="0" x2="400" y2="630"/>
-    <line x1="600" y1="0" x2="600" y2="630"/>
-    <line x1="800" y1="0" x2="800" y2="630"/>
-    <line x1="1000" y1="0" x2="1000" y2="630"/>
-  </g>
-
-  <!-- Glow orb -->
-  <circle cx="600" cy="315" r="280" fill="#2563EB" opacity="0.06"/>
-
-  <!-- Logo mark (scaled up D letter) -->
-  <g transform="translate(376, 171) scale(2.045)">
-    <!-- D spine -->
-    <path d="M11 7 L11 37" stroke="url(#logo-main)" stroke-width="4" stroke-linecap="round" fill="none"/>
-    <!-- D arc -->
-    <path d="M11 7 C11 7 35 7 35 22 C35 37 11 37 11 37" stroke="url(#logo-main)" stroke-width="3.5" stroke-linecap="round" fill="none"/>
-    <!-- Slash -->
-    <path d="M30 9 L19 35" stroke="#17c3b2" stroke-width="2.2" stroke-linecap="round" fill="none" opacity="0.85"/>
-    <!-- Glow dot -->
-    <circle cx="11" cy="22" r="2.2" fill="url(#logo-main)"/>
+  <!-- Logo mark — 44x44 viewBox scaled 6x (264x264 px), mark center at (600, 258) -->
+  <g transform="translate(468, 126) scale(6)">
+    <path d="M11 7 L11 37" stroke="url(#og-main)" stroke-width="4" stroke-linecap="round" fill="none"/>
+    <path d="M11 7 C11 7 35 7 35 22 C35 37 11 37 11 37" stroke="url(#og-main)" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+    <path d="M30 9 L19 35" stroke="url(#og-slash)" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+    <circle cx="11" cy="22" r="2.2" fill="url(#og-main)"/>
   </g>
 
   <!-- Wordmark -->
-  <text x="510" y="290" font-family="system-ui, -apple-system, sans-serif" font-size="72" font-weight="800" fill="white" letter-spacing="-1">Dealim</text>
-
-  <!-- Tagline -->
-  <text x="600" y="370" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="400" fill="#94a3b8" text-anchor="middle">דילי נסיעות בלעדיים מסוכנים מאומתים בישראל</text>
-
-  <!-- Badge strip -->
-  <rect x="370" y="420" width="460" height="52" rx="26" fill="#2563EB" opacity="0.18"/>
-  <text x="600" y="453" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="600" fill="#60a5fa" text-anchor="middle">✈️ dealim.org</text>
+  <text
+    x="600" y="476"
+    text-anchor="middle"
+    font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif"
+    font-size="90"
+    font-weight="800"
+    fill="#ffffff"
+    letter-spacing="3"
+  >Dealim</text>
 </svg>
