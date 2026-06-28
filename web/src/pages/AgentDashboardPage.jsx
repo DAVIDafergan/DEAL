@@ -387,7 +387,7 @@ export function AgentDashboardPage() {
                   {STATUS_ICON[deal.status]}
                   {deal.status === 'approved' ? 'מאושר' : deal.status === 'pending' ? 'ממתין' : 'נדחה'}
                 </span>
-                <span className="dash-deal-clicks"><TrendingUp size={12} /> {deal.click_count}</span>
+                <span className="dash-deal-clicks"><MousePointerClick size={12} /> {deal.click_count}</span>
                 {deal.whatsapp_override && <span className="dash-deal-wa"><MessageCircle size={12} /></span>}
                 <motion.button
                   className="dash-deal-purchased-btn"
