@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { OAuth2Client } from 'google-auth-library';
 import { createUser, findUserByEmail } from '../store/userStore.js';
 import { signUserToken } from '../middleware/userAuth.js';
+import { authRateLimiter } from '../middleware/rateLimiter.js';
 
 const router = Router();
 
@@ -25,7 +26,7 @@ router.post('/register', async (req, res) => {
   }
 });
 
-router.post('/login', async (req, res) => {
+router.post('/login', authRateLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'email and password are required' });
@@ -44,7 +45,7 @@ router.post('/login', async (req, res) => {
   }
 });
 
-router.post('/google', async (req, res) => {
+router.post('/google', authRateLimiter, async (req, res) => {
   try {
     const { credential } = req.body || {};
     if (!credential) return res.status(400).json({ error: 'Missing credential' });

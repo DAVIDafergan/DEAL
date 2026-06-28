@@ -56,7 +56,7 @@ router.post('/checkout', requireAgentAuth, async (req, res) => {
     res.json({ url: session.url });
   } catch (err) {
     console.error('[billing] checkout error:', err.message);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Checkout failed' });
   }
 });
 
@@ -72,7 +72,8 @@ router.post('/portal', requireAgentAuth, async (req, res) => {
     });
     res.json({ url: session.url });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('[billing] portal error:', err.message);
+    res.status(500).json({ error: 'Portal session failed' });
   }
 });
 
