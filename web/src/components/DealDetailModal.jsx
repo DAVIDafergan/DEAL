@@ -121,9 +121,11 @@ export function DealDetailModal({ deal, onClose }) {
   const dates = dep && ret ? `${dep} – ${ret}` : dep || '';
   const fav = isFavorite(deal);
 
-  async function handleAction(url) {
-    try { await agentApi.trackClick(deal.id); } catch {}
+  function handleAction(url) {
+    // window.open MUST be called synchronously in the user-gesture handler —
+    // any await before it causes iOS Safari to block the popup as untrusted.
     window.open(url, '_blank', 'noopener,noreferrer');
+    agentApi.trackClick(deal.id).catch(() => {});
   }
 
   async function handleShare() {

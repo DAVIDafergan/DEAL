@@ -24,20 +24,19 @@ function applyPrefs(prefs) {
 
 export function AccessibilityWidget() {
   const { pathname } = useLocation();
+  const hidden = pathname.startsWith('/reels');
+
   const [open, setOpen] = useState(false);
   const [prefs, setPrefs] = useState(loadPrefs);
   const panelRef = useRef(null);
   const btnRef = useRef(null);
 
-  // Apply prefs on every change
+  // ALL hooks must run unconditionally — no early returns between them
   useEffect(() => { applyPrefs(prefs); }, [prefs]);
-
-  // Hide completely on the reels/vibe feed page
-  if (pathname.startsWith('/reels')) return null;
 
   // Focus management + keyboard trap
   useEffect(() => {
-    if (!open) return;
+    if (!open || hidden) return;
     const prevFocus = document.activeElement;
     const t = setTimeout(() => {
       const first = panelRef.current?.querySelector('button');
@@ -59,7 +58,10 @@ export function AccessibilityWidget() {
       document.removeEventListener('keydown', onKey);
       prevFocus?.focus();
     };
-  }, [open]);
+  }, [open, hidden]);
+
+  // Hide on reels — AFTER all hooks to satisfy Rules of Hooks
+  if (hidden) return null;
 
   function update(key, val) { setPrefs(p => ({ ...p, [key]: val })); }
   function reset() { setPrefs({ ...DEFAULT }); }

@@ -20,7 +20,9 @@ html {
 
 html,
 body {
-  overflow-x: hidden;
+  /* clip instead of hidden — prevents horizontal scroll without creating a scroll
+     container, which is what breaks position:sticky on the header */
+  overflow-x: clip;
   max-width: 100%;
 }
 
@@ -2836,6 +2838,8 @@ body {
   flex-direction: column;
   gap: 7px;
   flex: 1;
+  position: relative;
+  z-index: 1; /* sit above the ::before accent strip (z-index: 3 in own context) */
 }
 
 /* Info rows */
@@ -2902,6 +2906,8 @@ body {
   display: flex;
   gap: 6px;
   flex-shrink: 0;
+  position: relative;
+  z-index: 2;
 }
 .adc__btn {
   display: flex;
@@ -2916,6 +2922,9 @@ body {
   padding: 8px 10px;
   min-height: 38px;
   transition: opacity 0.15s, transform 0.15s;
+  touch-action: manipulation; /* remove 300ms iOS tap delay */
+  -webkit-tap-highlight-color: transparent;
+  text-decoration: none;
 }
 .adc__btn:hover { opacity: 0.85; }
 .adc__btn--fav {

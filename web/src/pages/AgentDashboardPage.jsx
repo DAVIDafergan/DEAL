@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 import {
-  PlusCircle, Settings, LogOut, CheckCircle, XCircle, TrendingUp,
+  PlusCircle, Settings, LogOut, CheckCircle, XCircle,
   MessageCircle, LayoutDashboard, Trash2, Zap, Pencil, ShoppingBag, MousePointerClick,
 } from 'lucide-react';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
@@ -291,14 +291,6 @@ export function AgentDashboardPage() {
           iconColor="#f59e0b"
           iconBg="rgba(245,158,11,0.12)"
           index={2}
-        />
-        <KpiCard
-          icon={TrendingUp}
-          label={t.leadsCountLabel || 'לידים'}
-          value={agent?.lead_count ?? 0}
-          iconColor="#8b5cf6"
-          iconBg="rgba(139,92,246,0.12)"
-          index={3}
         />
       </div>
 
