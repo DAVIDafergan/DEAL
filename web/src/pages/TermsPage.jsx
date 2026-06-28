@@ -8,10 +8,6 @@ export function TermsPage() {
         <Link to="/" className="legal-page__back"><ArrowLeft size={16} /> חזרה לדף הבית</Link>
         <h1 className="legal-page__title">תנאי שימוש</h1>
         <p className="legal-page__updated">גרסה 2.0 | עודכן לאחרונה: יוני 2026</p>
-        <p className="legal-page__notice">
-          <strong>הערה:</strong> מסמך זה אינו ייעוץ משפטי. לצרכים משפטיים מחייבים, פנה לעורך דין מוסמך.
-        </p>
-
         <section className="legal-section">
           <h2>1. כללי</h2>
           <p>ברוכים הבאים ל-Dealim. השימוש באתר ובשירותיו כפוף לתנאים המפורטים להלן. שימוש באתר מהווה הסכמה מלאה לתנאים אלו.</p>

@@ -36,7 +36,6 @@ export function SiteFooter() {
             <FooterLink to="/register" icon={UserPlus} label={t.headerRegisterButton || 'הרשמת סוכן'} highlight />
           </div>
           <div className="site-footer__col">
-            <span className="site-footer__col-title">מידע משפטי</span>
             <FooterLink to="/terms" icon={FileText} label={t.termsLink || 'תנאי שימוש'} />
             <FooterLink to="/privacy" icon={Shield} label={t.privacyLink || 'מדיניות פרטיות'} />
             <FooterLink to="/accessibility" icon={Accessibility} label="הצהרת נגישות" />
