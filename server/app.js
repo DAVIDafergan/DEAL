@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -20,6 +21,20 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WEB_DIST_DIR = path.join(__dirname, '..', 'web', 'dist');
 const WEB_INDEX_HTML = path.join(WEB_DIST_DIR, 'index.html');
 const SITE_URL = process.env.SITE_URL || 'https://dealim.org';
+
+// ── CORS origin list ──────────────────────────────────────────────────────────
+// Set ALLOWED_ORIGINS as a comma-separated list in production (e.g. "https://dealim.org,https://www.dealim.org").
+// Falls back to SITE_URL + localhost in development.
+function buildCorsOrigins() {
+  if (process.env.ALLOWED_ORIGINS) {
+    return process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean);
+  }
+  const origins = [SITE_URL];
+  if (process.env.NODE_ENV !== 'production') {
+    origins.push('http://localhost:3001', 'http://localhost:5173', 'http://127.0.0.1:5173');
+  }
+  return origins;
+}
 
 // ── OG meta-tag helpers ───────────────────────────────────────────────────────
 
@@ -147,18 +162,36 @@ function agentToOgMeta(agent) {
 export function createApp() {
   const app = express();
 
-  // ── Security headers ───────────────────────────────────────────────────────
+  // ── Security headers (Helmet) ──────────────────────────────────────────────
+  app.use(helmet({
+    // Keep HSTS from the original manual config
+    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+    // Content Security Policy is left to defaults — enabling it for the SPA
+    // would require careful nonce/hash configuration and is out of scope here.
+    contentSecurityPolicy: false,
+  }));
+  // Additional header not covered by Helmet
   app.use((_req, res, next) => {
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'DENY');
-    res.setHeader('X-XSS-Protection', '1; mode=block');
-    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
     next();
   });
 
-  app.use(cors());
+  // ── CORS ───────────────────────────────────────────────────────────────────
+  const allowedOrigins = buildCorsOrigins();
+  app.use(cors({
+    origin: (origin, cb) => {
+      // Allow same-origin requests (e.g. SSR, health checks) and listed origins
+      if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+      cb(new Error(`CORS: origin ${origin} not allowed`));
+    },
+    credentials: true,
+  }));
+
+  // ── Request logging ────────────────────────────────────────────────────────
+  app.use((req, _res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+    next();
+  });
   app.use('/api/billing/webhook', express.raw({ type: 'application/json' }));
   app.use(express.json());
 

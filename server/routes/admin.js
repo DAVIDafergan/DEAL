@@ -3,11 +3,12 @@ import { requireAdminAuth, signAdminToken } from '../middleware/adminAuth.js';
 import { listAgentsPending, listAgentsAll, updateAgentStatus } from '../store/agentStore.js';
 import { listPendingDeals, updateAgentDealStatus, listAllApprovedDealsAdmin, adminDeleteAgentDeal, getAdminAnalytics } from '../store/agentDealStore.js';
 import { getAllUsers } from '../store/userStore.js';
+import { authRateLimiter } from '../middleware/rateLimiter.js';
 
 const router = Router();
 
 // Public: login (no auth required)
-router.post('/auth/login', (req, res) => {
+router.post('/auth/login', authRateLimiter, (req, res) => {
   const { username, password } = req.body || {};
   const submitted_user = (username || '').trim();
   const submitted_pass = (password || '').trim();
