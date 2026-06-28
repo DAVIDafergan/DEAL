@@ -165,11 +165,22 @@ export function createApp() {
 
   // ── Security headers (Helmet) ──────────────────────────────────────────────
   app.use(helmet({
-    // Keep HSTS from the original manual config
     hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
-    // Content Security Policy is left to defaults — enabling it for the SPA
-    // would require careful nonce/hash configuration and is out of scope here.
+    // CSP managed separately — would need per-request nonces for this SPA.
     contentSecurityPolicy: false,
+
+    // Google Sign-In (GIS) embeds an iframe from accounts.google.com/gsi/transform.
+    // Helmet 7+ enables COEP: require-corp by default, which causes the browser to
+    // block that iframe because Google does not send Cross-Origin-Resource-Policy.
+    // Result: blank white iframe. Disable COEP so the iframe loads.
+    crossOriginEmbedderPolicy: false,
+
+    // Helmet 7+ also sets COOP: same-origin by default, which severs the link
+    // between the opener window and the Google OAuth popup, breaking the auth flow.
+    // same-origin-allow-popups is the OAuth-safe policy: it still isolates us from
+    // unexpected openers while allowing popups we open (the Google consent screen)
+    // to communicate back via window.opener.
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
   }));
   // Additional header not covered by Helmet
   app.use((_req, res, next) => {
