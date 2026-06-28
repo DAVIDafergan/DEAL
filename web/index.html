@@ -3,47 +3,95 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dealim — דילי הטיסות הטובים ביותר בישראל</title>
-    <meta name="description" content="אלפי דילי טיסות ומלונות מסוכני נסיעות מאומתים בישראל. דיל אחד אמיתי, לא חיפוש אינסופי." />
 
-    <!-- Open Graph -->
+    <!-- Primary SEO -->
+    <title>Dealim — דילי טיסות ומלונות מסוכנים מאומתים | הדיל הטוב ביותר</title>
+    <meta name="description" content="גלה אלפי דילי טיסות ומלונות בלעדיים מסוכני נסיעות מאומתים בישראל. דיל אחד אמיתי, לא חיפוש אינסופי. חסוך אלפי שקלים על החופשה הבאה שלך." />
+    <meta name="keywords" content="דילי טיסות, דילי מלונות, דילים בישראל, חבילות נופש, סוכן נסיעות, טיסות זולות, חופשה זולה, דילים לחו''ל" />
+    <meta name="author" content="Dealim" />
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow" />
+
+    <!-- Open Graph (Facebook / WhatsApp) -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Dealim" />
-    <meta property="og:title" content="Dealim — הפלטפורמה שמוצאת לך את הדיל הטוב ביותר" />
-    <meta property="og:description" content="אלפי דילי טיסות ומלונות מסוכני נסיעות מאומתים בישראל — דיל אחד אמיתי, לא חיפוש אינסופי." />
+    <meta property="og:title" content="Dealim — דילי הטיסות והמלונות הטובים ביותר בישראל" />
+    <meta property="og:description" content="גלה דילי טיסות ומלונות בלעדיים מסוכני נסיעות מאומתים בישראל. חסוך אלפי שקלים על החופשה הבאה שלך." />
     <meta property="og:url" content="https://dealim.org/" />
     <meta property="og:image" content="https://dealim.org/og-image.svg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Dealim — פלטפורמת דילי נסיעות" />
     <meta property="og:locale" content="he_IL" />
 
     <!-- Twitter / X Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Dealim — הפלטפורמה שמוצאת לך את הדיל הטוב ביותר" />
-    <meta name="twitter:description" content="דילי טיסות ומלונות מסוכני נסיעות מאומתים בישראל." />
+    <meta name="twitter:site" content="@dealim_il" />
+    <meta name="twitter:title" content="Dealim — דילי הטיסות הטובים ביותר בישראל" />
+    <meta name="twitter:description" content="דילי טיסות ומלונות בלעדיים מסוכני נסיעות מאומתים בישראל. דיל אחד אמיתי." />
     <meta name="twitter:image" content="https://dealim.org/og-image.svg" />
 
     <!-- Canonical -->
     <link rel="canonical" href="https://dealim.org/" />
 
-    <!-- JSON-LD: Organization + WebSite -->
+    <!-- Alternate language -->
+    <link rel="alternate" hreflang="he" href="https://dealim.org/" />
+    <link rel="alternate" hreflang="x-default" href="https://dealim.org/" />
+
+    <!-- JSON-LD: Organization + WebSite + SearchAction -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@graph": [
         {
           "@type": "Organization",
+          "@id": "https://dealim.org/#organization",
           "name": "Dealim",
           "url": "https://dealim.org",
-          "logo": "https://dealim.org/og-image.svg",
-          "description": "פלטפורמת דילי נסיעות מסוכנים מאומתים בישראל",
-          "contactPoint": { "@type": "ContactPoint", "email": "support@dealim.org", "contactType": "customer support" }
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://dealim.org/favicon.svg",
+            "width": 44,
+            "height": 44
+          },
+          "description": "פלטפורמת דילי נסיעות מסוכנים מאומתים בישראל — טיסות ומלונות במחירים בלעדיים",
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "email": "DA@101.ORG.IL",
+            "contactType": "customer support",
+            "availableLanguage": ["Hebrew", "English"]
+          },
+          "sameAs": ["https://dealim.org"]
         },
         {
           "@type": "WebSite",
+          "@id": "https://dealim.org/#website",
           "name": "Dealim",
           "url": "https://dealim.org",
-          "description": "אלפי דילי טיסות ומלונות מסוכני נסיעות מאומתים בישראל"
+          "description": "אלפי דילי טיסות ומלונות מסוכני נסיעות מאומתים בישראל",
+          "publisher": { "@id": "https://dealim.org/#organization" },
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+              "@type": "EntryPoint",
+              "urlTemplate": "https://dealim.org/?q={search_term_string}"
+            },
+            "query-input": "required name=search_term_string"
+          },
+          "inLanguage": "he"
+        },
+        {
+          "@type": "WebPage",
+          "@id": "https://dealim.org/#webpage",
+          "url": "https://dealim.org",
+          "name": "Dealim — דילי טיסות ומלונות מסוכנים מאומתים",
+          "description": "גלה דילי טיסות ומלונות בלעדיים מסוכני נסיעות מאומתים בישראל",
+          "isPartOf": { "@id": "https://dealim.org/#website" },
+          "about": { "@id": "https://dealim.org/#organization" },
+          "breadcrumb": {
+            "@type": "BreadcrumbList",
+            "itemListElement": [{ "@type": "ListItem", "position": 1, "name": "ראשי", "item": "https://dealim.org" }]
+          }
         }
       ]
     }
@@ -53,16 +101,23 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon.svg" />
     <link rel="apple-touch-icon" sizes="180x180" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#2563EB" />
+    <meta name="msapplication-TileColor" content="#2563EB" />
 
+    <!-- Performance hints -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="dns-prefetch" href="https://accounts.google.com" />
+
     <link
       href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=Noto+Sans+Hebrew:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
+
     <!-- Google Identity Services -->
     <script src="https://accounts.google.com/gsi/client" async onload="window.__googleSignInCallback && window.__googleSignInCallback()"></script>
+
     <!-- Travelpayouts Drive tracking -->
     <script nowprocket data-noptimize="1" data-cfasync="false" data-wpfc-render="false" seraph-accel-crit="1" data-no-defer="1">
       (function () {

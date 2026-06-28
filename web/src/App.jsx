@@ -93,6 +93,7 @@ export function App() {
 
   return (
     <NowProvider>
+      <main id="main-content" aria-label="תוכן ראשי">
       <HowItWorks />
 
       {/* ── Floating pill search — no outer box, fields float on page bg ── */}
@@ -233,6 +234,7 @@ export function App() {
       )}
 
       <SiteFooter />
+      </main>
     </NowProvider>
   );
 }

@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { LanguageSwitcher } from './LanguageSwitcher.jsx';
 import { Logo } from './Logo.jsx';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { useTravelerAuth } from '../context/TravelerAuthContext.jsx';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, LogOut, Heart, Menu, X, User, FileText, Compass, Home, Play, Search, MapPin } from 'lucide-react';
+import { Heart, Menu, X, User, FileText, Compass, Home, Play, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function Header({ reels = false, activeTab = 'home' }) {
@@ -17,9 +17,6 @@ export function Header({ reels = false, activeTab = 'home' }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [showHeaderSearch, setShowHeaderSearch] = useState(false);
-  const [headerSearchExpanded, setHeaderSearchExpanded] = useState(false);
-  const [headerSearchVal, setHeaderSearchVal] = useState('');
-  const headerSearchInputRef = useRef(null);
 
   const isHome = location.pathname === '/';
 
@@ -30,26 +27,14 @@ export function Header({ reels = false, activeTab = 'home' }) {
   }, []);
 
   useEffect(() => {
-    function onSearchVisible(e) {
-      setShowHeaderSearch(!e.detail);
-      if (e.detail) { setHeaderSearchExpanded(false); }
-    }
+    function onSearchVisible(e) { setShowHeaderSearch(!e.detail); }
     window.addEventListener('search-section-visible', onSearchVisible);
     return () => window.removeEventListener('search-section-visible', onSearchVisible);
   }, []);
 
-  useEffect(() => {
-    if (headerSearchExpanded) {
-      setTimeout(() => headerSearchInputRef.current?.focus(), 80);
-    }
-  }, [headerSearchExpanded]);
-
-  function handleHeaderSearchSubmit(e) {
-    e.preventDefault();
-    setHeaderSearchExpanded(false);
-    // Dispatch search event and scroll to deals section
-    window.dispatchEvent(new CustomEvent('header-search-submit', { detail: headerSearchVal }));
-    setHeaderSearchVal('');
+  function handleHeaderSearchPillClick() {
+    const searchEl = document.querySelector('.dsh');
+    if (searchEl) searchEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   function closeMenu() { setMenuOpen(false); }
@@ -101,60 +86,24 @@ export function Header({ reels = false, activeTab = 'home' }) {
             <span className="brand-sub">{t.brandSub}</span>
           </Link>
 
-          {/* ── Animated compact search (visible when scrolled past search section on home) ── */}
+          {/* ── Animated compact search — glides in from search section when scrolled past ── */}
           <AnimatePresence>
             {isHome && showHeaderSearch && !menuOpen && (
-              <motion.div
-                className={`header-search-pill${headerSearchExpanded ? ' header-search-pill--expanded' : ''}`}
-                initial={{ opacity: 0, scaleX: 0.7, y: -4 }}
-                animate={{ opacity: 1, scaleX: 1, y: 0 }}
-                exit={{ opacity: 0, scaleX: 0.7, y: -4 }}
-                transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+              <motion.button
+                className="header-search-pill"
+                onClick={handleHeaderSearchPillClick}
+                aria-label="חזור לחיפוש"
+                initial={{ opacity: 0, y: -10, scale: 0.88 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -10, scale: 0.88 }}
+                transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+                whileHover={{ scale: 1.02, boxShadow: '0 6px 28px rgba(37,99,235,0.22)' }}
+                whileTap={{ scale: 0.97 }}
               >
-                <AnimatePresence mode="wait">
-                  {headerSearchExpanded ? (
-                    <motion.form
-                      key="expanded"
-                      className="header-search-pill__form"
-                      onSubmit={handleHeaderSearchSubmit}
-                      initial={{ opacity: 0, width: 120 }}
-                      animate={{ opacity: 1, width: '100%' }}
-                      exit={{ opacity: 0, width: 120 }}
-                      transition={{ type: 'spring', stiffness: 320, damping: 28 }}
-                      dir="rtl"
-                    >
-                      <MapPin size={14} className="header-search-pill__icon" />
-                      <input
-                        ref={headerSearchInputRef}
-                        className="header-search-pill__input"
-                        value={headerSearchVal}
-                        onChange={e => setHeaderSearchVal(e.target.value)}
-                        placeholder="לאן בא לך לטוס?"
-                        aria-label="חיפוש יעד"
-                      />
-                      <button type="submit" className="header-search-pill__go" aria-label="חפש">
-                        <Search size={14} />
-                      </button>
-                      <button type="button" className="header-search-pill__close" onClick={() => setHeaderSearchExpanded(false)} aria-label="סגור">
-                        <X size={13} />
-                      </button>
-                    </motion.form>
-                  ) : (
-                    <motion.button
-                      key="collapsed"
-                      className="header-search-pill__collapsed"
-                      onClick={() => setHeaderSearchExpanded(true)}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      aria-label="פתח חיפוש"
-                    >
-                      <Search size={14} />
-                      <span>חפש דיל…</span>
-                    </motion.button>
-                  )}
-                </AnimatePresence>
-              </motion.div>
+                <Search size={14} className="header-search-pill__search-icon" />
+                <span className="header-search-pill__text">חפש לי חופשה…</span>
+                <span className="header-search-pill__arrow">↓</span>
+              </motion.button>
             )}
           </AnimatePresence>
 

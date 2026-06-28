@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { getPool } from '../../core/db/index.js';
 import { requireAdminAuth } from '../middleware/adminAuth.js';
+import { contactRateLimiter } from '../middleware/rateLimiter.js';
 
 const router = Router();
 
-router.post('/', async (req, res) => {
+router.post('/', contactRateLimiter, async (req, res) => {
   try {
     const { name, email, phone, message } = req.body || {};
     if (!name || !email || !message) {

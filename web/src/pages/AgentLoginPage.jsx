@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Plane } from 'lucide-react';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { adminApi, agentApi } from '../api/client.js';
 import { GoogleLoginButton } from '../components/GoogleLoginButton.jsx';
+import { Logo } from '../components/Logo.jsx';
 
 export function AgentLoginPage() {
   const navigate = useNavigate();
@@ -25,14 +26,12 @@ export function AgentLoginPage() {
     setSubmitting(true);
     setError(null);
     try {
-      // Try admin login first (works with non-email usernames like "admin")
       try {
         const { token: adminTok } = await adminApi.login(username, password);
         adminApi.setToken(adminTok);
         navigate('/admin', { replace: true });
         return;
       } catch {}
-      // Fall through to agent login
       await login(username, password);
       navigate('/agent/dashboard', { replace: true });
     } catch (err) {
@@ -47,14 +46,11 @@ export function AgentLoginPage() {
     try {
       const res = await agentApi.googleAuth(credential);
       if (res.isNew) {
-        // New Google user — go to agent registration with pre-filled values
         navigate(`/agent/register?googleEmail=${encodeURIComponent(res.email)}&googleName=${encodeURIComponent(res.name || '')}`);
         return;
       }
-      // Existing agent — store token via context
-      const { token: agentTok, agent } = res;
+      const { token: agentTok } = res;
       localStorage.setItem('agent_token', agentTok);
-      // Trigger context re-hydration via page reload (simplest reliable approach)
       window.location.replace('/agent/dashboard');
     } catch (err) {
       setError(err.message || 'שגיאה בכניסה עם Google');
@@ -65,68 +61,104 @@ export function AgentLoginPage() {
   if (loading) return null;
 
   return (
-    <div className="agent-register-page">
-      <Link to="/" className="agent-form__back-home">
-        <ArrowLeft size={16} /> {t.backToFeedButton || '← חזרה'}
+    <div className="auth-page" dir="rtl">
+      <Link to="/" className="auth-page__back">
+        <ArrowLeft size={16} /> חזרה לדף הבית
       </Link>
+
       <motion.div
-        className="agent-form"
-        initial={{ opacity: 0, y: 24 }}
+        className="auth-card"
+        initial={{ opacity: 0, y: 28 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35 }}
+        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
       >
-        <h2 className="agent-form__step-title">{t.agentLoginTitle || 'כניסה לסוכנים'}</h2>
-
-        <GoogleLoginButton onSuccess={handleGoogleSuccess} />
-
-        <div className="agent-form__divider">
-          <span>או</span>
+        {/* Header */}
+        <div className="auth-card__hero">
+          <div className="auth-card__logo">
+            <Logo size={42} />
+          </div>
+          <h1 className="auth-card__welcome">ברוכים הבאים</h1>
+          <p className="auth-card__sub">
+            פלטפורמת הדילים הבלעדית לסוכני נסיעות מובילים
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="agent-form__step">
-          <div className="agent-form__field">
-            <label className="agent-form__label" htmlFor="al-username">{t.emailLabel || 'Email / שם משתמש'}</label>
-            <input
-              id="al-username"
-              className="agent-form__input"
-              type="text"
-              value={username}
-              onChange={e => setUsername(e.target.value)}
-              autoFocus
-              required
-              autoComplete="username"
-              aria-describedby={error ? 'al-error' : undefined}
-            />
+        <div className="auth-card__body">
+          <GoogleLoginButton onSuccess={handleGoogleSuccess} />
+
+          <div className="auth-card__divider">
+            <span>או התחבר עם אימייל</span>
           </div>
-          <div className="agent-form__field">
-            <label className="agent-form__label" htmlFor="al-password">{t.passwordLabel || 'סיסמה'}</label>
-            <input
-              id="al-password"
-              className="agent-form__input"
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-            />
-          </div>
-          {error && <p id="al-error" className="agent-form__api-error" role="alert">{error}</p>}
-          <motion.button
-            className="agent-form__btn agent-form__btn--primary"
-            type="submit"
-            disabled={submitting || !username || !password}
-            whileTap={{ scale: 0.97 }}
-          >
-            {submitting ? (t.submittingLabel || 'מתחבר…') : (t.loginButton || 'כניסה')}
-          </motion.button>
-        </form>
-        <p className="agent-form__footer-note">
-          {t.noAccountPrompt || 'אין לך חשבון?'}{' '}
-          <Link to="/register" className="agent-form__footer-link">
-            {t.registerLink || 'הרשמה'}
-          </Link>
-        </p>
+
+          <form onSubmit={handleSubmit} className="auth-form">
+            <div className="auth-form__field">
+              <label className="auth-form__label" htmlFor="al-username">
+                {t.emailLabel || 'אימייל / שם משתמש'}
+              </label>
+              <input
+                id="al-username"
+                className="auth-form__input"
+                type="text"
+                value={username}
+                onChange={e => setUsername(e.target.value)}
+                autoFocus
+                required
+                autoComplete="username"
+                placeholder="agent@example.com"
+                aria-describedby={error ? 'al-error' : undefined}
+              />
+            </div>
+            <div className="auth-form__field">
+              <label className="auth-form__label" htmlFor="al-password">
+                {t.passwordLabel || 'סיסמה'}
+              </label>
+              <input
+                id="al-password"
+                className="auth-form__input"
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+                placeholder="••••••••"
+              />
+            </div>
+
+            {error && (
+              <motion.p
+                id="al-error"
+                className="auth-form__error"
+                role="alert"
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                {error}
+              </motion.p>
+            )}
+
+            <motion.button
+              className="auth-form__btn"
+              type="submit"
+              disabled={submitting || !username || !password}
+              whileTap={{ scale: 0.97 }}
+            >
+              {submitting ? 'מתחבר…' : t.loginButton || 'כניסה'}
+            </motion.button>
+          </form>
+
+          <p className="auth-card__footer-note">
+            אין לך חשבון?{' '}
+            <Link to="/register" className="auth-card__footer-link">
+              הרשמה כסוכן →
+            </Link>
+          </p>
+        </div>
       </motion.div>
+
+      {/* Decorative background */}
+      <div className="auth-page__bg" aria-hidden="true">
+        <Plane size={280} className="auth-page__bg-icon" />
+      </div>
     </div>
   );
 }

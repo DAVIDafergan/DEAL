@@ -1,34 +1,61 @@
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { Logo } from './Logo.jsx';
+import { Heart, FileText, Shield, Phone, UserPlus, Accessibility } from 'lucide-react';
 
 export function SiteFooter() {
   const { t } = useLanguage();
   return (
-    <footer className="site-footer">
+    <footer className="site-footer" dir="rtl">
       <div className="site-footer__inner container">
+
+        {/* Brand column */}
         <div className="site-footer__brand">
-          <Link to="/" className="site-footer__logo-link">
-            <Logo size={28} />
+          <Link to="/" className="site-footer__logo-link" aria-label="Dealim – דף הבית">
+            <Logo size={32} />
           </Link>
+          <p className="site-footer__tagline">
+            דילי נסיעות בלעדיים<br />מסוכנים מאומתים בישראל
+          </p>
           <a
             href="https://wa.me/972556674329"
             target="_blank"
             rel="noopener noreferrer"
             className="site-footer__credit"
           >
-            האתר פותח ע״י DA ניהול פרויקטים ויזמות
+            פותח ע"י DA ניהול פרויקטים ויזמות ↗
           </a>
         </div>
-        <div className="site-footer__links">
-          <Link to="/my/favorites" className="site-footer__link">❤️ {t.favoritesLink || 'המועדפים שלי'}</Link>
-          <Link to="/terms" className="site-footer__link">{t.termsLink || 'תנאי שימוש'}</Link>
-          <Link to="/privacy" className="site-footer__link">{t.privacyLink || 'פרטיות'}</Link>
-          <Link to="/accessibility" className="site-footer__link">הצהרת נגישות</Link>
-          <Link to="/contact" className="site-footer__link">צור קשר</Link>
-          <Link to="/register" className="site-footer__link">{t.headerRegisterButton || 'Register as Agent'}</Link>
+
+        {/* Navigation columns */}
+        <div className="site-footer__cols">
+          <div className="site-footer__col">
+            <span className="site-footer__col-title">ניווט</span>
+            <FooterLink to="/my/favorites" icon={Heart} label={t.favoritesLink || 'המועדפים שלי'} />
+            <FooterLink to="/contact" icon={Phone} label="צור קשר" />
+            <FooterLink to="/register" icon={UserPlus} label={t.headerRegisterButton || 'הרשמת סוכן'} highlight />
+          </div>
+          <div className="site-footer__col">
+            <span className="site-footer__col-title">מידע משפטי</span>
+            <FooterLink to="/terms" icon={FileText} label={t.termsLink || 'תנאי שימוש'} />
+            <FooterLink to="/privacy" icon={Shield} label={t.privacyLink || 'מדיניות פרטיות'} />
+            <FooterLink to="/accessibility" icon={Accessibility} label="הצהרת נגישות" />
+          </div>
         </div>
       </div>
+
+      <div className="site-footer__bottom">
+        <span>© {new Date().getFullYear()} Dealim. כל הזכויות שמורות.</span>
+      </div>
     </footer>
+  );
+}
+
+function FooterLink({ to, icon: Icon, label, highlight }) {
+  return (
+    <Link to={to} className={`site-footer__nav-link${highlight ? ' site-footer__nav-link--highlight' : ''}`}>
+      <Icon size={13} />
+      {label}
+    </Link>
   );
 }

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, RotateCcw } from 'lucide-react';
 
@@ -22,6 +23,7 @@ function applyPrefs(prefs) {
 }
 
 export function AccessibilityWidget() {
+  const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
   const [prefs, setPrefs] = useState(loadPrefs);
   const panelRef = useRef(null);
@@ -29,6 +31,9 @@ export function AccessibilityWidget() {
 
   // Apply prefs on every change
   useEffect(() => { applyPrefs(prefs); }, [prefs]);
+
+  // Hide completely on the reels/vibe feed page
+  if (pathname.startsWith('/reels')) return null;
 
   // Focus management + keyboard trap
   useEffect(() => {
