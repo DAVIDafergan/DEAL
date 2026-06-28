@@ -82,7 +82,7 @@ export async function updateAgentStatus(id, status, rejection_reason = null) {
 
 export async function updateAgentProfile(id, fields) {
   const pool = getPool();
-  const allowed = ['business_name','contact_name','phone','whatsapp_number','whatsapp_template','license_number','logo_url','description','response_hours','preferred_currency'];
+  const allowed = ['business_name','contact_name','phone','whatsapp_number','whatsapp_template','license_number','logo_url','description','about','cover_url','response_hours','preferred_currency','has_seen_onboarding'];
   const sets = [];
   const vals = [];
   for (const k of allowed) {

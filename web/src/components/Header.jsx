@@ -3,6 +3,7 @@ import { useLanguage } from '../context/LanguageContext.jsx';
 import { LanguageSwitcher } from './LanguageSwitcher.jsx';
 import { Logo } from './Logo.jsx';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
+import { useTravelerAuth } from '../context/TravelerAuthContext.jsx';
 import { useNavigate, Link } from 'react-router-dom';
 import { LayoutDashboard, LogOut, Heart, Menu, X, User, FileText, Compass, Home, Play } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,6 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 export function Header({ reels = false, activeTab = 'home' }) {
   const { t } = useLanguage();
   const { agent, token, loading } = useAgentAuth();
+  const { traveler } = useTravelerAuth();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -48,7 +50,7 @@ export function Header({ reels = false, activeTab = 'home' }) {
             </button>
 
             {!loading && (
-              token && agent ? (
+              (token && agent) || traveler ? (
                 <Link to="/account" className="header-avatar-btn" aria-label="אזור אישי">
                   <User size={20} />
                 </Link>
@@ -76,6 +78,11 @@ export function Header({ reels = false, activeTab = 'home' }) {
                 <Link to="/account" className="header-auth-btn header-auth-btn--ghost">
                   <User size={15} />
                   <span>{agent.business_name}</span>
+                </Link>
+              ) : traveler ? (
+                <Link to="/account" className="header-auth-btn header-auth-btn--ghost">
+                  <User size={15} />
+                  <span>{traveler.name}</span>
                 </Link>
               ) : (
                 <button

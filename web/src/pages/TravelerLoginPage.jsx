@@ -4,12 +4,11 @@ import { useNavigate, Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { GoogleLoginButton } from '../components/GoogleLoginButton.jsx';
 import { userApi } from '../api/client.js';
-
-const TRAVELER_KEY = 'deal_radar_traveler';
-const TRAVELER_TOKEN_KEY = 'traveler_token';
+import { useTravelerAuth } from '../context/TravelerAuthContext.jsx';
 
 export function TravelerLoginPage() {
   const navigate = useNavigate();
+  const { travelerLogin } = useTravelerAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({});
@@ -24,11 +23,10 @@ export function TravelerLoginPage() {
     setSubmitting(true);
     try {
       const { token, user } = await userApi.login(email.trim(), password);
-      localStorage.setItem(TRAVELER_TOKEN_KEY, token);
-      localStorage.setItem(TRAVELER_KEY, JSON.stringify({ id: user.id, name: user.name, email: user.email }));
+      travelerLogin(token, user);
       navigate('/');
     } catch (err) {
-      setErrors({ form: err.message || 'שגיאה בהתחברות' });
+      setErrors({ form: err.message || 'שגיאה בהתחברות — בדוק אימייל וסיסמה' });
     } finally {
       setSubmitting(false);
     }
@@ -37,8 +35,7 @@ export function TravelerLoginPage() {
   async function handleGoogleSuccess(credential) {
     try {
       const { token, user } = await userApi.googleAuth(credential);
-      localStorage.setItem(TRAVELER_TOKEN_KEY, token);
-      localStorage.setItem(TRAVELER_KEY, JSON.stringify({ id: user.id, name: user.name, email: user.email }));
+      travelerLogin(token, user);
       navigate('/');
     } catch (err) {
       setErrors({ form: err.message || 'שגיאת Google' });
@@ -66,7 +63,7 @@ export function TravelerLoginPage() {
 
         <div className="traveler-register-card__divider"><span>או עם אימייל</span></div>
 
-        {errors.form && <p className="traveler-register-card__err" style={{ textAlign: 'center' }}>{errors.form}</p>}
+        {errors.form && <p className="traveler-register-card__err" style={{ textAlign: 'center' }} role="alert">{errors.form}</p>}
 
         <form onSubmit={handleSubmit} noValidate>
           <div className="traveler-register-card__field">

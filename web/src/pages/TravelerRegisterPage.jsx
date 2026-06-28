@@ -1,21 +1,19 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
-import { CheckCircle, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { GoogleLoginButton } from '../components/GoogleLoginButton.jsx';
 import { userApi } from '../api/client.js';
-
-const TRAVELER_KEY = 'deal_radar_traveler';
-const TRAVELER_TOKEN_KEY = 'traveler_token';
+import { useTravelerAuth } from '../context/TravelerAuthContext.jsx';
 
 export function TravelerRegisterPage() {
   const navigate = useNavigate();
+  const { travelerLogin } = useTravelerAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [errors, setErrors] = useState({});
-  const [done, setDone] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   function validate() {
@@ -35,9 +33,8 @@ export function TravelerRegisterPage() {
     setSubmitting(true);
     try {
       const { token, user } = await userApi.register({ name: name.trim(), email: email.trim(), password });
-      localStorage.setItem(TRAVELER_TOKEN_KEY, token);
-      localStorage.setItem(TRAVELER_KEY, JSON.stringify({ id: user.id, name: user.name, email: user.email, joinedAt: Date.now() }));
-      setDone(true);
+      travelerLogin(token, user);
+      navigate('/');
     } catch (err) {
       setErrors({ form: err.message || 'שגיאה ברישום, נסה שנית' });
     } finally {
@@ -48,39 +45,11 @@ export function TravelerRegisterPage() {
   async function handleGoogleSuccess(credential) {
     try {
       const { token, user } = await userApi.googleAuth(credential);
-      localStorage.setItem(TRAVELER_TOKEN_KEY, token);
-      localStorage.setItem(TRAVELER_KEY, JSON.stringify({ id: user.id, name: user.name, email: user.email, joinedAt: Date.now() }));
-      setName(user.name);
-      setDone(true);
+      travelerLogin(token, user);
+      navigate('/');
     } catch (err) {
       setErrors({ form: err.message || 'שגיאת Google, נסה שנית' });
     }
-  }
-
-  if (done) {
-    return (
-      <div className="traveler-register-page">
-        <motion.div
-          className="traveler-register-card"
-          initial={{ opacity: 0, scale: 0.94 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.35 }}
-        >
-          <CheckCircle size={52} strokeWidth={1.4} color="var(--ds-teal, #17c3b2)" />
-          <h2 className="traveler-register-card__title">ברוך/ה הבא/ה, {name}!</h2>
-          <p className="traveler-register-card__note">
-            החשבון שלך נוצר. לחץ ❤️ על כל דיל כדי לשמור אותו למועדפים.
-          </p>
-          <motion.button
-            className="traveler-register-card__btn"
-            whileTap={{ scale: 0.97 }}
-            onClick={() => navigate('/')}
-          >
-            בוא נמצא דיל →
-          </motion.button>
-        </motion.div>
-      </div>
-    );
   }
 
   return (
@@ -104,7 +73,7 @@ export function TravelerRegisterPage() {
 
         <div className="traveler-register-card__divider"><span>או עם אימייל</span></div>
 
-        {errors.form && <p className="traveler-register-card__err" style={{ textAlign: 'center' }}>{errors.form}</p>}
+        {errors.form && <p className="traveler-register-card__err" style={{ textAlign: 'center' }} role="alert">{errors.form}</p>}
 
         <form onSubmit={handleSubmit} noValidate>
           <div className="traveler-register-card__field">
@@ -167,7 +136,7 @@ export function TravelerRegisterPage() {
               {' '}ו
               <Link to="/privacy" className="traveler-register-card__link" target="_blank">מדיניות הפרטיות</Link>
             </label>
-            {errors.terms && <p className="traveler-register-card__err">{errors.terms}</p>}
+            {errors.terms && <p className="traveler-register-card__err" role="alert">{errors.terms}</p>}
           </div>
 
           <motion.button

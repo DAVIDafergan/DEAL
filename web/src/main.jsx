@@ -19,11 +19,13 @@ import { PrivacyPage } from './pages/PrivacyPage.jsx';
 import { TravelerRegisterPage } from './pages/TravelerRegisterPage.jsx';
 import { TravelerLoginPage } from './pages/TravelerLoginPage.jsx';
 import { AccessibilityPage } from './pages/AccessibilityPage.jsx';
+import { TravelerAuthProvider } from './context/TravelerAuthContext.jsx';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <LanguageProvider>
+      <TravelerAuthProvider>
       <AgentAuthProvider>
         <BrowserRouter>
           <Routes>
@@ -52,6 +54,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           </Routes>
         </BrowserRouter>
       </AgentAuthProvider>
+      </TravelerAuthProvider>
     </LanguageProvider>
   </React.StrictMode>
 );

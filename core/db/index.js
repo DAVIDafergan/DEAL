@@ -120,6 +120,9 @@ const MIGRATIONS = [
       console.log('[deal-radar-pro] Migrated: users.password_hash → NULL allowed');
     }
   },
+  (connection) => ensureColumn(connection, 'agents', 'has_seen_onboarding', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'agents', 'cover_url', 'TEXT NULL'),
+  (connection) => ensureColumn(connection, 'agents', 'about', 'TEXT NULL'),
 ];
 
 const SCHEMA_STATEMENTS = [

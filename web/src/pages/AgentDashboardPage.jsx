@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 import {
@@ -8,7 +8,9 @@ import {
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { agentApi } from '../api/client.js';
 import { DealWizard } from '../components/agent/DealWizard.jsx';
+import { OnboardingTour } from '../components/agent/OnboardingTour.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
+import { getGreeting } from '../utils/greeting.js';
 
 const STATUS_ICON = {
   pending: <CheckCircle size={13} />,
@@ -20,6 +22,28 @@ const cardAnim = {
   hidden: { opacity: 0, y: 16 },
   visible: (i) => ({ opacity: 1, y: 0, transition: { delay: i * 0.07, duration: 0.35 } }),
 };
+
+// ── Daily tips ────────────────────────────────────────────────────────────────
+
+const DAILY_TIPS = [
+  'דילים עם תמונה איכותית מקבלים פי 2 קליקים — ודא שהווידאו שנבחר אוטומטית מתאים ליעד.',
+  'ענה ב-WhatsApp תוך כמה דקות — לקוחות שמקבלים תגובה מהירה יותר נוטים להזמין.',
+  'הוסף קישור לצפייה במלון — זה מעלה אמון ושיעור ההמרה של הדיל שלך.',
+  'הגדר תבנית WhatsApp מותאמת אישית — כולל שם היעד ותאריכים — כך ההודעה הראשונה כבר מבינה.',
+  'דילים עם תאריך חזרה ספציפי נמכרים טוב יותר מ"גמיש" — לקוחות מחפשים מסגרת ברורה.',
+  'סמן דילים שנרכשו ("נרכש") — זה בונה אמינות ומראה לקוחות שהדיל עבד.',
+  'דיל בלעדי (Exclusive) מוצג עם תג מיוחד — השתמש בו רק כשיש לך מחיר שלא ניתן למצוא אחרת.',
+  'עדכן את מלאי הדילים שלך לפחות פעם בשבוע — דילים פגי תוקף פוגעים באמינות.',
+  'הוסף תיאור קצר לדיל — משפט אחד שמסביר "מה מיוחד כאן" מייצר יותר קליקים.',
+  'פרופיל עם לוגו ותיאור עסקי מלא מקבל פי 3 יצירות קשר מפרופיל ריק.',
+];
+
+function getDailyTip() {
+  const dayOfYear = Math.floor(Date.now() / 86400000);
+  return DAILY_TIPS[dayOfYear % DAILY_TIPS.length];
+}
+
+// ── KPI card ──────────────────────────────────────────────────────────────────
 
 function KpiCard({ icon: Icon, label, value, iconColor, iconBg, index }) {
   return (
@@ -39,8 +63,29 @@ function KpiCard({ icon: Icon, label, value, iconColor, iconBg, index }) {
   );
 }
 
+// ── Daily tip widget ──────────────────────────────────────────────────────────
+
+function DailyTip() {
+  return (
+    <motion.div
+      className="dash-daily-tip"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.4, duration: 0.35 }}
+    >
+      <span className="dash-daily-tip__icon" aria-hidden="true">💡</span>
+      <div>
+        <span className="dash-daily-tip__label">טיפ היום</span>
+        <p className="dash-daily-tip__text">{getDailyTip()}</p>
+      </div>
+    </motion.div>
+  );
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
+
 export function AgentDashboardPage() {
-  const { token, agent, loading, logout } = useAgentAuth();
+  const { token, agent, loading, logout, refreshAgent } = useAgentAuth();
   const navigate = useNavigate();
   const { t } = useLanguage();
   const [deals, setDeals] = useState([]);
@@ -49,10 +94,18 @@ export function AgentDashboardPage() {
   const [notification, setNotification] = useState(null);
   const [showWizard, setShowWizard] = useState(false);
   const [editingDeal, setEditingDeal] = useState(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     if (!loading && !token) navigate('/agent/login', { replace: true });
   }, [loading, token, navigate]);
+
+  // Show onboarding tour on first visit (once agent data is loaded)
+  useEffect(() => {
+    if (agent && !agent.has_seen_onboarding) {
+      setShowOnboarding(true);
+    }
+  }, [agent]);
 
   function refreshDeals() {
     if (!token) return;
@@ -108,7 +161,16 @@ export function AgentDashboardPage() {
     }
   }
 
+  const handleOnboardingComplete = useCallback(async () => {
+    setShowOnboarding(false);
+    try {
+      await agentApi.updateMe(token, { has_seen_onboarding: 1 });
+      if (refreshAgent) refreshAgent();
+    } catch {}
+  }, [token, refreshAgent]);
+
   const activeDeals = deals.filter(d => d.status !== 'rejected');
+  const greeting = getGreeting(agent?.business_name || agent?.contact_name || '');
 
   if (loading) return (
     <div className="dash-loading">
@@ -118,6 +180,9 @@ export function AgentDashboardPage() {
 
   return (
     <div className="dash-page" dir="rtl">
+      {/* Onboarding tour */}
+      {showOnboarding && <OnboardingTour onComplete={handleOnboardingComplete} />}
+
       {/* Wizard overlay — new deal */}
       <AnimatePresence>
         {showWizard && (
@@ -173,27 +238,36 @@ export function AgentDashboardPage() {
         </div>
       )}
 
-      {/* Page title */}
+      {/* Page header */}
       <div className="dash-page-header container">
         <div className="dash-page-header__top">
           <div>
+            <p className="dash-greeting">{greeting}</p>
             <h1 className="dash-page-title">
               {t.dashboardTitle || 'דשבורד סוכן'}
             </h1>
-            {agent?.business_name && (
-              <p className="dash-page-sub">ברוך הבא, {agent.business_name}</p>
-            )}
           </div>
           {agent?.status && (
-            <span className={`dash-topbar__status dash-topbar__status--${agent.status}`}>
-              {agent.status === 'approved' ? 'פעיל' : agent.status === 'pending' ? 'ממתין' : 'נדחה'}
-            </span>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+              <span className={`dash-topbar__status dash-topbar__status--${agent.status}`}>
+                {agent.status === 'approved' ? 'פעיל' : agent.status === 'pending' ? 'ממתין' : 'נדחה'}
+              </span>
+              {agent.has_seen_onboarding ? (
+                <button
+                  className="dash-replay-tour"
+                  onClick={() => setShowOnboarding(true)}
+                  title="הצג שוב את ההסבר"
+                >
+                  ▶ הסבר
+                </button>
+              ) : null}
+            </div>
           )}
         </div>
       </div>
 
       {/* KPI cards */}
-      <div className="dash-kpis container">
+      <div id="onb-kpis" className="dash-kpis container">
         <KpiCard
           icon={Zap}
           label={t.dealsUsedLabel || 'דילים פעילים'}
@@ -220,7 +294,7 @@ export function AgentDashboardPage() {
         />
         <KpiCard
           icon={TrendingUp}
-          label={t.leadsCountLabel || 'לידים החודש'}
+          label={t.leadsCountLabel || 'לידים'}
           value={agent?.lead_count ?? 0}
           iconColor="#8b5cf6"
           iconBg="rgba(139,92,246,0.12)"
@@ -228,11 +302,17 @@ export function AgentDashboardPage() {
         />
       </div>
 
+      {/* Daily tip */}
+      <div className="container">
+        <DailyTip />
+      </div>
+
       {/* Quick actions */}
       <div className="dash-quick-actions container">
         <h3 className="dash-section-title">{t.quickActionsTitle || 'פעולות מהירות'}</h3>
         <div className="dash-quick-row">
           <motion.button
+            id="onb-add-deal"
             className="dash-quick-pill dash-quick-pill--primary"
             whileTap={{ scale: 0.97 }}
             onClick={() => setShowWizard(true)}
@@ -246,7 +326,7 @@ export function AgentDashboardPage() {
               {t.viewPublicProfileButton || 'פרופיל ציבורי'}
             </Link>
           )}
-          <Link to="/agent/dashboard/settings" className="dash-quick-pill">
+          <Link id="onb-settings" to="/agent/dashboard/settings" className="dash-quick-pill">
             <span className="dash-quick-pill__dot"><Settings size={15} /></span>
             {t.settingsLink || 'הגדרות'}
           </Link>
@@ -262,7 +342,7 @@ export function AgentDashboardPage() {
       </div>
 
       {/* Deals section */}
-      <div className="dash-deals-panel container">
+      <div id="onb-deals-list" className="dash-deals-panel container">
         <div className="dash-deals-header">
           <h3 className="dash-section-title" style={{ margin: 0 }}>
             {t.myDealsTitle || 'הדילים שלי'}
