@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { OAuth2Client } from 'google-auth-library';
-import { createUser, findUserByEmail } from '../store/userStore.js';
-import { signUserToken } from '../middleware/userAuth.js';
+import { createUser, findUserByEmail, deleteUserById } from '../store/userStore.js';
+import { signUserToken, requireUserAuth } from '../middleware/userAuth.js';
 import { authRateLimiter } from '../middleware/rateLimiter.js';
 
 const router = Router();
@@ -65,6 +65,16 @@ router.post('/google', authRateLimiter, async (req, res) => {
   } catch (err) {
     console.error('[users] google error:', err.message);
     res.status(401).json({ error: 'Google authentication failed' });
+  }
+});
+
+router.delete('/me', requireUserAuth, async (req, res) => {
+  try {
+    await deleteUserById(req.user.userId);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[users] delete account error:', err.message);
+    res.status(500).json({ error: 'שגיאה במחיקת החשבון' });
   }
 });
 

@@ -130,12 +130,14 @@ export const agentApi = {
   getMyRatings: (sessionId) => getJson(`/agents/my-ratings?session_id=${encodeURIComponent(sessionId)}`),
   markPurchased: (token, id) => postJson(`/agents/me/deals/${id}/purchased`, {}, token),
   getMyStats: (token) => getJson('/agents/me/stats', token),
+  deleteMe: (token) => deleteReq('/agents/me', token),
 };
 
 export const userApi = {
   register: (data) => postJson('/users/register', data),
   login: (email, password) => postJson('/users/login', { email, password }),
   googleAuth: (credential) => postJson('/users/google', { credential }),
+  deleteMe: (token) => deleteReq('/users/me', token),
 };
 
 export const billingApi = {

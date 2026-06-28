@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { OAuth2Client } from 'google-auth-library';
 import {
   createAgent, findAgentByEmail, findAgentById, findAgentBySlug,
-  updateAgentProfile, incrementAgentLeadCount,
+  updateAgentProfile, incrementAgentLeadCount, deleteAgentById,
 } from '../store/agentStore.js';
 import {
   createAgentDeal, listAgentDeals, updateAgentDeal, deleteAgentDeal,
@@ -108,6 +108,16 @@ router.patch('/me', requireAgentAuth, async (req, res) => {
   } catch (err) {
     console.error('[agents] patch /me error:', err);
     res.status(500).json({ error: 'Update failed' });
+  }
+});
+
+router.delete('/me', requireAgentAuth, async (req, res) => {
+  try {
+    await deleteAgentById(req.agentId);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[agents] delete account error:', err.message);
+    res.status(500).json({ error: 'שגיאה במחיקת החשבון' });
   }
 });
 

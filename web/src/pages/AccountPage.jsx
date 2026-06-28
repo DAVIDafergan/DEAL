@@ -1,11 +1,13 @@
 import { Link, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Heart, LayoutDashboard, LogOut, ArrowLeft, User, Settings } from 'lucide-react';
+import { Heart, LayoutDashboard, LogOut, ArrowLeft, User, Settings, Trash2 } from 'lucide-react';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { useTravelerAuth } from '../context/TravelerAuthContext.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { useFavorites } from '../hooks/useFavorites.js';
 import { getGreeting } from '../utils/greeting.js';
+import { agentApi, userApi } from '../api/client.js';
 
 const cardIn = {
   hidden: { opacity: 0, y: 16 },
@@ -19,10 +21,12 @@ const container = {
 
 export function AccountPage() {
   const { agent, token, loading, logout: agentLogout } = useAgentAuth();
-  const { traveler, travelerLogout } = useTravelerAuth();
+  const { traveler, travelerToken, travelerLogout } = useTravelerAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
   const { favorites } = useFavorites();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const isAgent = !loading && token && agent;
   const isTraveler = !isAgent && !!traveler;
@@ -40,6 +44,24 @@ export function AccountPage() {
     if (isAgent) agentLogout();
     else travelerLogout();
     navigate('/');
+  }
+
+  async function handleDeleteAccount() {
+    setDeleting(true);
+    try {
+      if (isAgent) {
+        await agentApi.deleteMe(token);
+        agentLogout();
+      } else {
+        await userApi.deleteMe(travelerToken);
+        travelerLogout();
+      }
+      navigate('/', { replace: true });
+    } catch (err) {
+      alert(err.message || 'שגיאה במחיקת החשבון');
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
   }
 
   return (
@@ -140,6 +162,46 @@ export function AccountPage() {
               <span className="account-card__label">{t.logoutButton || 'התנתקות'}</span>
             </div>
           </button>
+        </motion.div>
+
+        {/* Delete account */}
+        <motion.div variants={cardIn}>
+          {!confirmDelete ? (
+            <button
+              className="account-card account-card--action account-card--delete"
+              onClick={() => setConfirmDelete(true)}
+            >
+              <div className="account-card__icon account-card__icon--delete">
+                <Trash2 size={22} />
+              </div>
+              <div className="account-card__text">
+                <span className="account-card__label">מחיקת חשבון</span>
+                <span className="account-card__sub">פעולה בלתי הפיכה</span>
+              </div>
+            </button>
+          ) : (
+            <div className="account-delete-confirm">
+              <p className="account-delete-confirm__msg">
+                בטוח? כל הנתונים ימחקו לצמיתות ולא ניתן לשחזר.
+              </p>
+              <div className="account-delete-confirm__btns">
+                <button
+                  className="account-delete-confirm__btn account-delete-confirm__btn--cancel"
+                  onClick={() => setConfirmDelete(false)}
+                  disabled={deleting}
+                >
+                  ביטול
+                </button>
+                <button
+                  className="account-delete-confirm__btn account-delete-confirm__btn--confirm"
+                  onClick={handleDeleteAccount}
+                  disabled={deleting}
+                >
+                  {deleting ? 'מוחק…' : 'מחק לצמיתות'}
+                </button>
+              </div>
+            </div>
+          )}
         </motion.div>
       </motion.div>
     </div>

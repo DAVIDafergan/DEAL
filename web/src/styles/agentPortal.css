@@ -1901,6 +1901,26 @@ select.wizard-input { cursor: pointer; }
 .dash-quick-pill--ghost .dash-quick-pill__dot { background: rgba(100,116,139,0.1); color: #64748B; }
 .dash-quick-pill--ghost:hover .dash-quick-pill__dot { background: rgba(220,38,38,0.1); color: #dc2626; }
 
+.dash-quick-pill--danger { color: #b91c1c; border-color: rgba(185,28,28,0.25); background: rgba(185,28,28,0.05); }
+.dash-quick-pill--danger:hover { background: rgba(185,28,28,0.1); }
+.dash-quick-pill--danger .dash-quick-pill__dot { background: rgba(185,28,28,0.1); color: #b91c1c; }
+
+.dash-delete-confirm {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+  background: #fff5f5; border: 1.5px solid #fca5a5; border-radius: 12px;
+  padding: 12px 16px; margin-top: 8px;
+}
+.dash-delete-confirm__icon { color: #b91c1c; flex-shrink: 0; }
+.dash-delete-confirm__msg { font-size: 0.85rem; color: #7f1d1d; flex: 1; min-width: 180px; }
+.dash-delete-confirm__btns { display: flex; gap: 8px; }
+.dash-delete-confirm__btn {
+  padding: 7px 16px; border-radius: 8px; font-size: 0.82rem; font-weight: 700;
+  border: none; cursor: pointer; touch-action: manipulation;
+}
+.dash-delete-confirm__btn--cancel { background: #f1f5f9; color: #334155; }
+.dash-delete-confirm__btn--confirm { background: #b91c1c; color: #fff; }
+.dash-delete-confirm__btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
 /* ── Profile link ─────────────────────────────────────────────────────────── */
 .dash-page .dash-profile-link__btn { color: #2563EB; }
 

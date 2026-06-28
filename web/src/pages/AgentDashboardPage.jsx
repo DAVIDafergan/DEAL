@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 import {
-  PlusCircle, Settings, LogOut, CheckCircle, XCircle,
+  PlusCircle, Settings, LogOut, CheckCircle, XCircle, AlertTriangle,
   MessageCircle, LayoutDashboard, Trash2, Zap, Pencil, ShoppingBag, MousePointerClick,
 } from 'lucide-react';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
@@ -95,6 +95,8 @@ export function AgentDashboardPage() {
   const [showWizard, setShowWizard] = useState(false);
   const [editingDeal, setEditingDeal] = useState(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!loading && !token) navigate('/agent/login', { replace: true });
@@ -148,6 +150,19 @@ export function AgentDashboardPage() {
       notify(t.dealDeletedMessage || 'הדיל נמחק');
     } catch (err) {
       notify(err.message, 'error');
+    }
+  }
+
+  async function handleDeleteAccount() {
+    setDeleting(true);
+    try {
+      await agentApi.deleteMe(token);
+      logout();
+      navigate('/', { replace: true });
+    } catch (err) {
+      notify(err.message || 'שגיאה במחיקת החשבון', 'error');
+      setDeleting(false);
+      setConfirmDelete(false);
     }
   }
 
@@ -330,7 +345,50 @@ export function AgentDashboardPage() {
             <span className="dash-quick-pill__dot"><LogOut size={15} /></span>
             {t.logoutButton || 'התנתקות'}
           </motion.button>
+
+          <motion.button
+            className="dash-quick-pill dash-quick-pill--danger"
+            whileTap={{ scale: 0.97 }}
+            onClick={() => setConfirmDelete(true)}
+          >
+            <span className="dash-quick-pill__dot"><Trash2 size={15} /></span>
+            מחיקת חשבון
+          </motion.button>
         </div>
+
+        {/* Inline delete confirmation */}
+        <AnimatePresence>
+          {confirmDelete && (
+            <motion.div
+              className="dash-delete-confirm"
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18 }}
+            >
+              <AlertTriangle size={18} className="dash-delete-confirm__icon" />
+              <span className="dash-delete-confirm__msg">
+                כל הדילים והנתונים יימחקו לצמיתות. אי אפשר לשחזר.
+              </span>
+              <div className="dash-delete-confirm__btns">
+                <button
+                  className="dash-delete-confirm__btn dash-delete-confirm__btn--cancel"
+                  onClick={() => setConfirmDelete(false)}
+                  disabled={deleting}
+                >
+                  ביטול
+                </button>
+                <button
+                  className="dash-delete-confirm__btn dash-delete-confirm__btn--confirm"
+                  onClick={handleDeleteAccount}
+                  disabled={deleting}
+                >
+                  {deleting ? 'מוחק…' : 'מחק לצמיתות'}
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Deals section */}

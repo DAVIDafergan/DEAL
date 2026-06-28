@@ -26,3 +26,7 @@ export async function getAllUsers() {
   );
   return rows;
 }
+
+export async function deleteUserById(id) {
+  await getPool().query('DELETE FROM users WHERE id = ?', [id]);
+}

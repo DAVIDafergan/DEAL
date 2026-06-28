@@ -111,3 +111,8 @@ export async function incrementAgentLeadCount(agentId) {
   const pool = getPool();
   await pool.query('UPDATE agents SET lead_count = lead_count + 1 WHERE id=?', [agentId]);
 }
+
+export async function deleteAgentById(id) {
+  // agent_deals and agent_ratings cascade automatically via FK ON DELETE CASCADE
+  await getPool().query('DELETE FROM agents WHERE id = ?', [id]);
+}
