@@ -86,10 +86,11 @@ export async function listApprovedDeals({ limit = 100 } = {}) {
        AND a.status='approved'
        AND (a.subscription_status='active' OR a.subscription_status='trial')
        AND (a.subscription_expires_at IS NULL OR a.subscription_expires_at >= ?)
+       AND ad.departure_date >= ?
        AND (ad.expires_at IS NULL OR ad.expires_at >= ?)
      ORDER BY ad.click_count DESC, ad.approved_at DESC
      LIMIT ?`,
-    [now, now, limit]
+    [now, now, now, limit]
   );
   return rows;
 }
@@ -110,9 +111,14 @@ export async function listAllApprovedDealsAdmin({ limit = 500 } = {}) {
 
 export async function listApprovedDealsByAgent(agentId) {
   const pool = getPool();
+  const now = new Date().toISOString().slice(0, 10);
   const [rows] = await pool.query(
-    "SELECT * FROM agent_deals WHERE agent_id=? AND status='approved' ORDER BY approved_at DESC",
-    [agentId]
+    `SELECT * FROM agent_deals
+     WHERE agent_id=? AND status='approved'
+       AND departure_date >= ?
+       AND (expires_at IS NULL OR expires_at >= ?)
+     ORDER BY approved_at DESC`,
+    [agentId, now, now]
   );
   return rows;
 }
@@ -264,10 +270,11 @@ export async function listTopValueDeals(limit = 5) {
             ad.car_type, ad.car_company
      FROM agent_deals ad JOIN agents a ON a.id=ad.agent_id
      WHERE ad.status='approved' AND a.status='approved'
+       AND ad.departure_date >= ?
        AND (ad.expires_at IS NULL OR ad.expires_at >= ?)
      ORDER BY ad.value_score DESC, ad.click_count DESC, ad.approved_at DESC
      LIMIT ?`,
-    [now, limit]
+    [now, now, limit]
   );
   return agentDeals;
 }

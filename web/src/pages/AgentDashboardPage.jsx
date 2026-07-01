@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 import {
-  PlusCircle, Settings, LogOut, CheckCircle, XCircle, AlertTriangle,
+  PlusCircle, Settings, LogOut, CheckCircle, XCircle, AlertTriangle, Clock,
   MessageCircle, LayoutDashboard, Trash2, Zap, Pencil, ShoppingBag, MousePointerClick,
 } from 'lucide-react';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
@@ -17,6 +17,13 @@ const STATUS_ICON = {
   approved: <CheckCircle size={13} />,
   rejected: <XCircle size={13} />,
 };
+
+function isDealExpired(deal) {
+  const today = new Date().toISOString().slice(0, 10);
+  if (deal.expires_at && deal.expires_at < today) return true;
+  if (deal.departure_date && deal.departure_date < today) return true;
+  return false;
+}
 
 const cardAnim = {
   hidden: { opacity: 0, y: 16 },
@@ -184,7 +191,11 @@ export function AgentDashboardPage() {
     } catch {}
   }, [token, refreshAgent]);
 
-  const activeDeals = deals.filter(d => d.status !== 'rejected');
+  const activeDeals = deals.filter(d => d.status !== 'rejected' && !isDealExpired(d));
+  const sortedDeals = [
+    ...deals.filter(d => !isDealExpired(d)),
+    ...deals.filter(d => isDealExpired(d)),
+  ];
   const greeting = getGreeting(agent?.business_name || agent?.contact_name || '');
 
   if (loading) return (
@@ -411,10 +422,12 @@ export function AgentDashboardPage() {
         )}
 
         <div className="dash-deals-list">
-          {deals.map((deal, i) => (
+          {sortedDeals.map((deal, i) => {
+            const expired = isDealExpired(deal);
+            return (
             <motion.div
               key={deal.id}
-              className={`dash-deal-card dash-deal-card--${deal.status}`}
+              className={`dash-deal-card dash-deal-card--${deal.status}${expired ? ' dash-deal-card--expired' : ''}`}
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
@@ -441,9 +454,9 @@ export function AgentDashboardPage() {
                 )}
               </div>
               <div className="dash-deal-card__right">
-                <span className={`dash-deal-status dash-deal-status--${deal.status}`}>
-                  {STATUS_ICON[deal.status]}
-                  {deal.status === 'approved' ? 'מאושר' : deal.status === 'pending' ? 'ממתין' : 'נדחה'}
+                <span className={`dash-deal-status${expired ? ' dash-deal-status--expired' : ` dash-deal-status--${deal.status}`}`}>
+                  {expired ? <Clock size={13} /> : STATUS_ICON[deal.status]}
+                  {expired ? 'פג תוקף' : deal.status === 'approved' ? 'מאושר' : deal.status === 'pending' ? 'ממתין' : 'נדחה'}
                 </span>
                 <span className="dash-deal-clicks"><MousePointerClick size={12} /> {deal.click_count}</span>
                 {deal.whatsapp_override && <span className="dash-deal-wa"><MessageCircle size={12} /></span>}
@@ -476,7 +489,8 @@ export function AgentDashboardPage() {
                 </motion.button>
               </div>
             </motion.div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
