@@ -1,0 +1,29 @@
+{
+  "name": "Dealim — דילי טיסות ומלונות",
+  "short_name": "Dealim",
+  "description": "דילי טיסות ומלונות בלעדיים מסוכני נסיעות מאומתים בישראל",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#2563EB",
+  "lang": "he",
+  "dir": "rtl",
+  "categories": ["travel", "shopping"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/og-image.svg",
+      "sizes": "1200x630",
+      "type": "image/svg+xml",
+      "form_factor": "wide",
+      "label": "Dealim — דף הבית"
+    }
+  ]
+}

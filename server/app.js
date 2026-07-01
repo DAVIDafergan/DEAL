@@ -113,30 +113,47 @@ async function fetchAgentForOg(slug) {
 function dealToOgMeta(deal) {
   const dest = deal.destination_name || deal.destination || '';
   const price = deal.price ? `${Math.round(deal.price)} ${deal.currency || ''}`.trim() : '';
-  const title = `${dest}${price ? ` — ${price}` : ''} | Dealim`;
+  const isHotelDeal = !deal.airline && deal.hotel_name;
+  const dealType = isHotelDeal ? 'דיל מלון' : 'דיל טיסה';
+  const title = `${dealType} ל${dest}${price ? ` — ${price}` : ''} | Dealim`;
   const parts = [];
   if (deal.airline) parts.push(`✈️ ${deal.airline}`);
   if (deal.hotel_name) parts.push(`🏨 ${deal.hotel_name}`);
   if (deal.business_name) parts.push(`דרך ${deal.business_name}`);
   if (deal.description) parts.push(deal.description.slice(0, 80));
-  const description = parts.join(' · ') || `דיל נסיעות ל${dest}`;
+  const description = parts.join(' · ') || `${dealType} ל${dest}${price ? ` במחיר ${price}` : ''} מסוכן נסיעות מאומת — Dealim`;
   const pageUrl = `${SITE_URL}/deal/${deal.id}`;
   const imageUrl = deal.photo_url || null;
   const jsonLd = {
     '@context': 'https://schema.org',
-    '@type': 'Product',
-    name: title,
-    image: imageUrl || `${SITE_URL}/og-image.svg`,
-    description,
-    url: pageUrl,
-    offers: {
-      '@type': 'Offer',
-      price: deal.price ? String(Math.round(deal.price)) : undefined,
-      priceCurrency: deal.currency || 'USD',
-      url: pageUrl,
-      availability: 'https://schema.org/InStock',
-      seller: deal.business_name ? { '@type': 'Organization', name: deal.business_name } : undefined,
-    },
+    '@graph': [
+      {
+        '@type': 'Product',
+        '@id': `${pageUrl}#product`,
+        name: title,
+        image: imageUrl || `${SITE_URL}/og-image.svg`,
+        description,
+        url: pageUrl,
+        offers: {
+          '@type': 'Offer',
+          price: deal.price ? String(Math.round(deal.price)) : undefined,
+          priceCurrency: deal.currency || 'USD',
+          url: pageUrl,
+          availability: 'https://schema.org/InStock',
+          seller: deal.business_name ? { '@type': 'TravelAgency', name: deal.business_name } : undefined,
+          ...(deal.departure_date ? { validFrom: deal.departure_date } : {}),
+        },
+        ...(deal.airline ? { brand: { '@type': 'Brand', name: deal.airline } } : {}),
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Dealim', item: SITE_URL },
+          { '@type': 'ListItem', position: 2, name: 'דילים', item: `${SITE_URL}/` },
+          { '@type': 'ListItem', position: 3, name: dest, item: pageUrl },
+        ],
+      },
+    ],
   };
   return { title, description, imageUrl, pageUrl, jsonLd };
 }
@@ -144,16 +161,30 @@ function dealToOgMeta(deal) {
 function agentToOgMeta(agent) {
   const name = agent.business_name || '';
   const title = `${name} — סוכן נסיעות | Dealim`;
-  const description = agent.about ? agent.about.slice(0, 160) : `דילי נסיעות בלעדיים מ${name} — דרך Dealim`;
+  const description = agent.about ? agent.about.slice(0, 160) : `דילי טיסות ומלונות בלעדיים מ${name} — סוכן נסיעות מאומת ב-Dealim`;
   const pageUrl = `${SITE_URL}/agent/${agent.slug}`;
   const imageUrl = agent.cover_url || agent.logo_url || null;
   const jsonLd = {
     '@context': 'https://schema.org',
-    '@type': 'TravelAgency',
-    name,
-    url: pageUrl,
-    image: imageUrl || `${SITE_URL}/og-image.svg`,
-    description,
+    '@graph': [
+      {
+        '@type': 'TravelAgency',
+        '@id': `${pageUrl}#agency`,
+        name,
+        url: pageUrl,
+        image: imageUrl || `${SITE_URL}/og-image.svg`,
+        description,
+        parentOrganization: { '@type': 'Organization', name: 'Dealim', url: SITE_URL },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Dealim', item: SITE_URL },
+          { '@type': 'ListItem', position: 2, name: 'סוכנים', item: `${SITE_URL}/` },
+          { '@type': 'ListItem', position: 3, name, item: pageUrl },
+        ],
+      },
+    ],
   };
   return { title, description, imageUrl, pageUrl, jsonLd };
 }
@@ -293,6 +324,95 @@ export function createApp() {
   // ── Dynamic OG meta-tag pages (before static file serving) ────────────────
   if (fs.existsSync(WEB_INDEX_HTML)) {
     const indexHtml = fs.readFileSync(WEB_INDEX_HTML, 'utf8');
+
+    // Homepage: inject ItemList + FAQ schema + crawlable deal links for Googlebot
+    app.get('/', async (req, res) => {
+      try {
+        const [deals] = await getPool().query(
+          `SELECT ad.id, ad.destination_name, ad.destination, ad.price, ad.currency, ad.photo_url
+           FROM agent_deals ad JOIN agents a ON a.id = ad.agent_id
+           WHERE ad.status = 'approved' AND a.status = 'approved'
+           ORDER BY ad.created_at DESC LIMIT 40`
+        );
+
+        const itemList = {
+          '@context': 'https://schema.org',
+          '@type': 'ItemList',
+          name: 'דילי טיסות ומלונות — Dealim',
+          description: 'דילי הטיסות והמלונות הטובים ביותר מסוכני נסיעות מאומתים בישראל',
+          numberOfItems: deals.length,
+          itemListElement: deals.map((d, i) => ({
+            '@type': 'ListItem',
+            position: i + 1,
+            item: {
+              '@type': 'Product',
+              '@id': `${SITE_URL}/deal/${d.id}`,
+              name: `דיל ל${esc(d.destination_name || d.destination || '')}`,
+              url: `${SITE_URL}/deal/${d.id}`,
+              image: d.photo_url || `${SITE_URL}/og-image.svg`,
+              ...(d.price ? {
+                offers: {
+                  '@type': 'Offer',
+                  price: String(Math.round(d.price)),
+                  priceCurrency: d.currency || 'USD',
+                  availability: 'https://schema.org/InStock',
+                  url: `${SITE_URL}/deal/${d.id}`,
+                }
+              } : {}),
+            },
+          })),
+        };
+
+        const faqSchema = {
+          '@context': 'https://schema.org',
+          '@type': 'FAQPage',
+          mainEntity: [
+            {
+              '@type': 'Question',
+              name: 'איך מוצאים דילי טיסות זולים בישראל?',
+              acceptedAnswer: { '@type': 'Answer', text: 'ב-Dealim תמצאו דילי טיסות ומלונות בלעדיים ישירות מסוכני נסיעות מאומתים בישראל. הדילים מתעדכנים בזמן אמת ומציעים מחירים שלא תמצאו בשום מקום אחר.' },
+            },
+            {
+              '@type': 'Question',
+              name: 'האם הדילים ב-Dealim אמינים?',
+              acceptedAnswer: { '@type': 'Answer', text: 'כן. כל סוכן נסיעות עובר תהליך אימות ואישור לפני שמורשה לפרסם דילים. Dealim מוודאת את אמינות כל הצעה ואת רישיון הסוכן.' },
+            },
+            {
+              '@type': 'Question',
+              name: 'אילו יעדים קיימים ב-Dealim?',
+              acceptedAnswer: { '@type': 'Answer', text: 'Dealim מציג דילי טיסות ומלונות ליעדים בכל העולם — אירופה, ארצות הברית, אמריקה הלטינית, אסיה, המזרח הרחוק, אפריקה, הים התיכון ועוד.' },
+            },
+            {
+              '@type': 'Question',
+              name: 'איך קונים דיל טיסה דרך Dealim?',
+              acceptedAnswer: { '@type': 'Answer', text: 'לוחצים על הדיל המעניין, קוראים את הפרטים, ויוצרים קשר ישיר עם סוכן הנסיעות. הסוכן מטפל בהזמנה מא׳ עד ת׳, כולל כרטיסי הטיסה, המלון, ועוד.' },
+            },
+            {
+              '@type': 'Question',
+              name: 'האם יש גם דילים לחבילות נופש?',
+              acceptedAnswer: { '@type': 'Answer', text: 'כן! סוכני הנסיעות ב-Dealim מציעים גם חבילות נופש הכוללות טיסה + מלון, טיולים מאורגנים, הרשמה לסיורים, וכרטיסי ביזנס במחירים מיוחדים.' },
+            },
+          ],
+        };
+
+        const injectedSchemas = [itemList, faqSchema]
+          .map(s => `<script type="application/ld+json">${JSON.stringify(s).replace(/<\//g, '<\\/')}</script>`)
+          .join('\n    ');
+
+        // Crawlable deal links for Googlebot (discovers deal pages even before JS renders)
+        const noscriptLinks = deals
+          .map(d => `<a href="/deal/${d.id}">${esc(d.destination_name || d.destination || 'דיל נסיעות')}</a>`)
+          .join(', ');
+
+        const html = indexHtml
+          .replace('</head>', `    ${injectedSchemas}\n  </head>`)
+          .replace('<div id="root"></div>', `<div id="root"></div><noscript style="display:none">${noscriptLinks}</noscript>`);
+
+        res.type('text/html').send(html);
+      } catch {
+        res.sendFile(WEB_INDEX_HTML);
+      }
+    });
 
     // /deal/:id — agent deal share page
     app.get('/deal/:id(\\d+)', async (req, res, next) => {
