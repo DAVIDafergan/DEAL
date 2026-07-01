@@ -8,7 +8,8 @@ import { AgentDealCard } from './components/agent/AgentDealCard.jsx';
 import { ReelsStrip } from './components/ReelsStrip.jsx';
 import { SiteFooter } from './components/SiteFooter.jsx';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Calendar, Banknote, ArrowUpDown, X, ChevronDown, Briefcase, MapPin } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Search, Calendar, Banknote, ArrowUpDown, X, ChevronDown, Briefcase, MapPin, UserPlus } from 'lucide-react';
 
 const gridVariants = { hidden: {}, visible: { transition: { staggerChildren: 0.08 } } };
 const cardIn = { hidden: { opacity: 0, y: 22 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
@@ -232,6 +233,21 @@ export function App() {
           </motion.div>
         </section>
       )}
+
+      {/* Agent join strip — visible to agents browsing the feed, unobtrusive for travelers */}
+      <section className="agent-cta-strip" dir="rtl">
+        <div className="agent-cta-strip__inner container">
+          <div className="agent-cta-strip__text">
+            <span className="agent-cta-strip__eyebrow">סוכן נסיעות?</span>
+            <strong className="agent-cta-strip__heading">הצג את הדילים שלך לאלפי מטיילים</strong>
+            <p className="agent-cta-strip__sub">ללא עמלות · ישירות ללקוח · תוך דקות</p>
+          </div>
+          <Link to="/register" className="agent-cta-strip__btn">
+            <UserPlus size={16} />
+            הצטרף בחינם
+          </Link>
+        </div>
+      </section>
 
       <SiteFooter />
       </main>

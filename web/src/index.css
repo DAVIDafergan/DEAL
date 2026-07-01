@@ -3774,6 +3774,70 @@ body {
   padding: 0 20px;
 }
 
+/* ── Agent CTA strip ───────────────────────────────────────────────────── */
+.agent-cta-strip {
+  margin-top: 2.5rem;
+  padding: 1.75rem 0;
+  background: linear-gradient(135deg, rgba(37,99,235,0.07) 0%, rgba(23,195,178,0.05) 100%);
+  border-top: 1px solid rgba(37,99,235,0.14);
+  border-bottom: 1px solid rgba(37,99,235,0.08);
+}
+.agent-cta-strip__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+.agent-cta-strip__text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+}
+.agent-cta-strip__eyebrow {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: var(--gradient-accent);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.agent-cta-strip__heading {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ds-bone);
+  line-height: 1.3;
+  margin: 0;
+}
+.agent-cta-strip__sub {
+  font-size: 0.8rem;
+  color: var(--ds-ash);
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+.agent-cta-strip__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.6rem;
+  background: var(--gradient-accent);
+  color: #fff;
+  border-radius: 2rem;
+  font-weight: 700;
+  font-size: 0.92rem;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: opacity 0.18s, transform 0.18s;
+}
+.agent-cta-strip__btn:hover { opacity: 0.88; transform: translateY(-1px); }
+@media (max-width: 640px) {
+  .agent-cta-strip__inner { flex-direction: column; align-items: flex-start; gap: 1rem; }
+  .agent-cta-strip__btn { align-self: stretch; justify-content: center; }
+}
+
 /* ── 12. ICON-DRAW animation update — teal stroke ──────────────────────── */
 .adc .icon-draw svg path,
 .adc .icon-draw--once svg path {
