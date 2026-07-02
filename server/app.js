@@ -101,13 +101,96 @@ async function fetchDealForOg(id) {
 
 async function fetchAgentForOg(slug) {
   try {
-    const [rows] = await getPool().query(
-      `SELECT slug, business_name, about, logo_url, cover_url
+    const pool = getPool();
+    const [rows] = await pool.query(
+      `SELECT id, slug, business_name, about, logo_url, cover_url
        FROM agents WHERE slug = ? AND status = 'approved'`,
       [slug]
     );
-    return rows[0] || null;
+    const agent = rows[0];
+    if (!agent) return null;
+    const now = new Date().toISOString().slice(0, 10);
+    const [dealRows] = await pool.query(
+      `SELECT id, destination_name, destination, price, currency
+       FROM agent_deals
+       WHERE agent_id = ? AND status = 'approved'
+         AND departure_date >= ? AND (expires_at IS NULL OR expires_at >= ?)
+       ORDER BY click_count DESC LIMIT 12`,
+      [agent.id, now, now]
+    );
+    return { ...agent, deals: dealRows };
   } catch { return null; }
+}
+
+function fmtDate(d) {
+  if (!d) return null;
+  try { return new Date(d + 'T00:00:00').toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' }); }
+  catch { return d; }
+}
+
+function buildDealSeoBody(deal) {
+  const dest = esc(deal.destination_name || deal.destination || '');
+  const isHotel = !deal.airline && deal.hotel_name;
+  const dealType = isHotel ? 'דיל מלון' : 'דיל טיסה';
+  const price = deal.price ? `${Math.round(deal.price).toLocaleString('he-IL')} ${deal.currency || ''}`.trim() : '';
+
+  const facts = [
+    deal.airline    && `<span>✈️ <strong>${esc(deal.airline)}</strong></span>`,
+    deal.hotel_name && `<span>🏨 <strong>${esc(deal.hotel_name)}</strong>${deal.hotel_stars ? ` ${'⭐'.repeat(Math.min(5,Number(deal.hotel_stars)))}` : ''}</span>`,
+    deal.departure_date && `<span>📅 יציאה: <strong>${fmtDate(deal.departure_date)}</strong></span>`,
+    deal.return_date    && `<span>🔁 חזרה: <strong>${fmtDate(deal.return_date)}</strong></span>`,
+    price               && `<span>💰 מחיר: <strong>${price}</strong></span>`,
+    deal.country        && `<span>🌍 ${esc(deal.country)}</span>`,
+    deal.business_name  && `<span>👤 ${esc(deal.business_name)}</span>`,
+  ].filter(Boolean).join('');
+
+  const desc = deal.description
+    ? esc(deal.description.slice(0, 160))
+    : `${dealType} בלעדי ל${dest}${deal.airline ? ` עם ${esc(deal.airline)}` : ''} דרך סוכן נסיעות מאומת.`;
+
+  return `<div id="ssr" style="font-family:system-ui,sans-serif;direction:rtl;padding:1.25rem 1.5rem;max-width:740px;margin:0 auto;color:#1e293b">
+<nav style="font-size:.82rem;color:#64748b;margin-bottom:.75rem">
+  <a href="${SITE_URL}" style="color:#2563eb">Dealim</a> ›
+  <a href="${SITE_URL}/" style="color:#2563eb">דילי טיסות ומלונות</a> ›
+  <span>${dest}</span>
+</nav>
+<h1 style="font-size:1.55rem;line-height:1.3;margin:0 0 .4rem">${dealType} ל${dest}${price ? ` — ${price}` : ''}</h1>
+<p style="font-size:.93rem;color:#475569;margin:0 0 .75rem">${desc}</p>
+<div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.75rem;font-size:.87rem">${facts.split('</span>').filter(Boolean).map(f => `${f}</span>`).join('')}</div>
+<p style="font-size:.78rem;color:#94a3b8">
+  מחפש עוד דילים? <a href="${SITE_URL}" style="color:#2563eb">דילי טיסות זולות</a> ·
+  <a href="${SITE_URL}" style="color:#2563eb">דילי מלונות בחו"ל</a> ·
+  <a href="${SITE_URL}" style="color:#2563eb">חבילות נופש</a> — Dealim
+</p>
+</div>`;
+}
+
+function buildAgentSeoBody(agent) {
+  const name = esc(agent.business_name || '');
+  const deals = agent.deals || [];
+  const dealList = deals.map(d => {
+    const dest = esc(d.destination_name || d.destination || '');
+    const price = d.price ? ` (${Math.round(d.price)} ${d.currency || ''})` : '';
+    return `<li><a href="${SITE_URL}/deal/${d.id}" style="color:#2563eb">${dest}${price}</a></li>`;
+  }).join('');
+
+  const about = agent.about ? esc(agent.about.slice(0, 220)) :
+    `דילי טיסות ומלונות בלעדיים מ${name} — סוכן נסיעות מאומת ב-Dealim. מחירים מיוחדים שלא תמצאו בשום מקום אחר.`;
+
+  return `<div id="ssr" style="font-family:system-ui,sans-serif;direction:rtl;padding:1.25rem 1.5rem;max-width:740px;margin:0 auto;color:#1e293b">
+<nav style="font-size:.82rem;color:#64748b;margin-bottom:.75rem">
+  <a href="${SITE_URL}" style="color:#2563eb">Dealim</a> ›
+  <a href="${SITE_URL}/" style="color:#2563eb">סוכני נסיעות</a> ›
+  <span>${name}</span>
+</nav>
+<h1 style="font-size:1.55rem;line-height:1.3;margin:0 0 .4rem">${name} — סוכן נסיעות</h1>
+<p style="font-size:.93rem;color:#475569;margin:0 0 .75rem">${about}</p>
+${dealList ? `<h2 style="font-size:1rem;margin:.5rem 0 .3rem">דילים פעילים</h2><ul style="padding-right:1.2rem;margin:.3rem 0 .75rem;font-size:.9rem">${dealList}</ul>` : ''}
+<p style="font-size:.78rem;color:#94a3b8">
+  <a href="${SITE_URL}" style="color:#2563eb">כל הדילים</a> ·
+  <a href="${SITE_URL}/register" style="color:#2563eb">הצטרף כסוכן</a>
+</p>
+</div>`;
 }
 
 function dealToOgMeta(deal) {
@@ -258,11 +341,15 @@ export function createApp() {
   app.get('/sitemap.xml', async (_req, res) => {
     try {
       const pool = getPool();
+      const now = new Date().toISOString().slice(0, 10);
+      // Only index non-expired deals; order by click_count so popular deals get crawled first
       const [deals] = await pool.query(
-        `SELECT ad.id, ad.updated_at FROM agent_deals ad
+        `SELECT ad.id, ad.updated_at, ad.click_count FROM agent_deals ad
          JOIN agents a ON a.id = ad.agent_id
          WHERE ad.status='approved' AND a.status='approved'
-         ORDER BY ad.updated_at DESC LIMIT 1000`
+           AND ad.departure_date >= ? AND (ad.expires_at IS NULL OR ad.expires_at >= ?)
+         ORDER BY ad.click_count DESC, ad.updated_at DESC LIMIT 1000`,
+        [now, now]
       );
       const [agents] = await pool.query(
         `SELECT slug, updated_at FROM agents WHERE status='approved' ORDER BY updated_at DESC LIMIT 500`
@@ -271,23 +358,26 @@ export function createApp() {
       const staticPages = [
         { loc: `${SITE_URL}/`, freq: 'hourly', priority: '1.0' },
         { loc: `${SITE_URL}/reels`, freq: 'hourly', priority: '0.9' },
-        { loc: `${SITE_URL}/terms`, freq: 'yearly', priority: '0.3' },
-        { loc: `${SITE_URL}/privacy`, freq: 'yearly', priority: '0.3' },
-        { loc: `${SITE_URL}/accessibility`, freq: 'yearly', priority: '0.3' },
-        { loc: `${SITE_URL}/register`, freq: 'monthly', priority: '0.4' },
+        { loc: `${SITE_URL}/register`, freq: 'monthly', priority: '0.5' },
+        { loc: `${SITE_URL}/terms`, freq: 'yearly', priority: '0.2' },
+        { loc: `${SITE_URL}/privacy`, freq: 'yearly', priority: '0.2' },
+        { loc: `${SITE_URL}/accessibility`, freq: 'yearly', priority: '0.2' },
       ];
 
+      const maxClicks = deals.reduce((m, d) => Math.max(m, d.click_count || 0), 1);
       const urls = [
         ...staticPages.map(p =>
           `  <url><loc>${p.loc}</loc><changefreq>${p.freq}</changefreq><priority>${p.priority}</priority></url>`
         ),
         ...deals.map(d => {
           const lastmod = d.updated_at ? new Date(d.updated_at).toISOString().slice(0, 10) : '';
-          return `  <url><loc>${SITE_URL}/deal/${d.id}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}<changefreq>daily</changefreq><priority>0.7</priority></url>`;
+          // Higher click count → higher priority (0.6 – 0.9)
+          const priority = (0.6 + 0.3 * Math.min(1, (d.click_count || 0) / Math.max(maxClicks, 1))).toFixed(1);
+          return `  <url><loc>${SITE_URL}/deal/${d.id}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}<changefreq>daily</changefreq><priority>${priority}</priority></url>`;
         }),
         ...agents.map(a => {
           const lastmod = a.updated_at ? new Date(a.updated_at).toISOString().slice(0, 10) : '';
-          return `  <url><loc>${SITE_URL}/agent/${a.slug}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}<changefreq>weekly</changefreq><priority>0.6</priority></url>`;
+          return `  <url><loc>${SITE_URL}/agent/${a.slug}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}<changefreq>weekly</changefreq><priority>0.65</priority></url>`;
         }),
       ];
 
@@ -399,14 +489,27 @@ export function createApp() {
           .map(s => `<script type="application/ld+json">${JSON.stringify(s).replace(/<\//g, '<\\/')}</script>`)
           .join('\n    ');
 
-        // Crawlable deal links for Googlebot (discovers deal pages even before JS renders)
-        const noscriptLinks = deals
-          .map(d => `<a href="/deal/${d.id}">${esc(d.destination_name || d.destination || 'דיל נסיעות')}</a>`)
-          .join(', ');
+        // Crawlable deal links — readable by Googlebot to discover deal pages immediately
+        const dealListHtml = deals.map(d => {
+          const dest = esc(d.destination_name || d.destination || 'דיל נסיעות');
+          const price = d.price ? ` — ${Math.round(d.price)} ${d.currency || ''}` : '';
+          return `<li><a href="/deal/${d.id}">${dest}${price}</a></li>`;
+        }).join('');
+
+        const homeSsrBody = `<div id="ssr" style="font-family:system-ui,sans-serif;direction:rtl;padding:1rem 1.5rem;max-width:900px;margin:0 auto">
+<h1 style="font-size:1.6rem;margin:0 0 .4rem">דילי טיסות ומלונות — Dealim</h1>
+<p style="color:#475569;margin:0 0 1rem">אלפי דילי טיסות ומלונות בלעדיים מסוכני נסיעות מאומתים בישראל. חסוך אלפי שקלים על הטיסה הבאה שלך.</p>
+<h2 style="font-size:1rem;margin:0 0 .4rem">דילים עדכניים</h2>
+<ul style="list-style:disc;padding-right:1.2rem;column-count:2;font-size:.9rem">${dealListHtml}</ul>
+<p style="font-size:.82rem;color:#94a3b8;margin-top:.75rem">
+  קטגוריות: דילי טיסות זולות · כרטיסי טיסה במחיר מיוחד · דילי מלונות בחו"ל ·
+  חבילות נופש · טיסות לאירופה · טיסות לניו יורק · טיסות לבנגקוק · טיסות ביזנס בזול
+</p>
+</div>`;
 
         const html = indexHtml
           .replace('</head>', `    ${injectedSchemas}\n  </head>`)
-          .replace('<div id="root"></div>', `<div id="root"></div><noscript style="display:none">${noscriptLinks}</noscript>`);
+          .replace('<div id="root"></div>', `<div id="root">${homeSsrBody}</div>`);
 
         res.type('text/html').send(html);
       } catch {
@@ -418,9 +521,12 @@ export function createApp() {
     app.get('/deal/:id(\\d+)', async (req, res, next) => {
       try {
         const deal = await fetchDealForOg(req.params.id);
-        if (!deal) return next(); // fall through to SPA
+        if (!deal) return next();
         const meta = dealToOgMeta(deal);
-        const html = buildOgHtml(indexHtml, meta);
+        // Inject rich SSR body so Googlebot reads deal content without waiting for JS
+        const html = buildOgHtml(indexHtml, meta)
+          .replace('<meta property="og:type" content="website" />', '<meta property="og:type" content="product" />')
+          .replace('<div id="root"></div>', `<div id="root">${buildDealSeoBody(deal)}</div>`);
         res.type('text/html').send(html);
       } catch { next(); }
     });
@@ -431,7 +537,8 @@ export function createApp() {
         const agent = await fetchAgentForOg(req.params.slug);
         if (!agent) return next();
         const meta = agentToOgMeta(agent);
-        const html = buildOgHtml(indexHtml, meta);
+        const html = buildOgHtml(indexHtml, meta)
+          .replace('<div id="root"></div>', `<div id="root">${buildAgentSeoBody(agent)}</div>`);
         res.type('text/html').send(html);
       } catch { next(); }
     });
