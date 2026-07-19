@@ -11,6 +11,9 @@ import statsRouter from './routes/stats.js';
 import imagesRouter from './routes/images.js';
 import configRouter from './routes/config.js';
 import packagesRouter from './routes/packages.js';
+import propertiesRouter from './routes/properties.js';
+import removeRouter from './routes/remove.js';
+import whatsappRouter from './routes/whatsapp.js';
 import agentsRouter from './routes/agents.js';
 import adminRouter from './routes/admin.js';
 import billingRouter from './routes/billing.js';
@@ -272,6 +275,179 @@ function agentToOgMeta(agent) {
   return { title, description, imageUrl, pageUrl, jsonLd };
 }
 
+async function fetchPropertyForOg(id) {
+  try {
+    const [rows] = await getPool().query(
+      `SELECT p.*, a.business_name AS owner_business_name, a.slug AS owner_slug
+       FROM properties p LEFT JOIN agents a ON a.id = p.owner_id
+       WHERE p.id = ? AND p.status != 'hidden' AND p.opted_out = 0`,
+      [id]
+    );
+    if (!rows[0]) return null;
+    const property = rows[0];
+    if (typeof property.owner_images === 'string') {
+      try { property.owner_images = JSON.parse(property.owner_images); } catch { property.owner_images = null; }
+    }
+    return property;
+  } catch { return null; }
+}
+
+async function fetchOwnerForOg(slug) {
+  try {
+    const pool = getPool();
+    const [rows] = await pool.query(
+      `SELECT id, slug, business_name, about, logo_url, cover_url FROM agents WHERE slug = ? AND status = 'approved'`,
+      [slug]
+    );
+    const owner = rows[0];
+    if (!owner) return null;
+    const [propertyRows] = await pool.query(
+      `SELECT id, name, region, city, base_price_night, currency FROM properties
+       WHERE owner_id = ? AND status IN ('claimed','active') AND opted_out = 0
+       ORDER BY updated_at DESC LIMIT 12`,
+      [owner.id]
+    );
+    return { ...owner, properties: propertyRows };
+  } catch { return null; }
+}
+
+function buildPropertySeoBody(property) {
+  const name = esc(property.name || '');
+  const price = property.base_price_night ? `${Math.round(property.base_price_night).toLocaleString('he-IL')} ${property.currency || 'ILS'}` : '';
+  const facts = [
+    property.region        && `<span>📍 ${esc(regionLabelHe(property.region))}${property.city ? `, ${esc(property.city)}` : ''}</span>`,
+    property.guest_capacity && `<span>👥 עד ${property.guest_capacity} אורחים</span>`,
+    property.bedrooms      && `<span>🛏️ ${property.bedrooms} חדרי שינה</span>`,
+    price                   && `<span>💰 ${price} ללילה</span>`,
+  ].filter(Boolean).join('');
+
+  const desc = property.description
+    ? esc(property.description.slice(0, 160))
+    : `${esc(propertyTypeLabelHe(property.property_type))} ב${esc(regionLabelHe(property.region))}, ישירות מבעל הנכס.`;
+
+  return `<div id="ssr" style="font-family:system-ui,sans-serif;direction:rtl;padding:1.25rem 1.5rem;max-width:740px;margin:0 auto;color:#1e293b">
+<nav style="font-size:.82rem;color:#64748b;margin-bottom:.75rem">
+  <a href="${SITE_URL}" style="color:#2563eb">Dealim</a> ›
+  <a href="${SITE_URL}/" style="color:#2563eb">צימרים ווילות</a> ›
+  <span>${name}</span>
+</nav>
+<h1 style="font-size:1.55rem;line-height:1.3;margin:0 0 .4rem">${name}${price ? ` — ${price} ללילה` : ''}</h1>
+<p style="font-size:.93rem;color:#475569;margin:0 0 .75rem">${desc}</p>
+<div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.75rem;font-size:.87rem">${facts.split('</span>').filter(Boolean).map(f => `${f}</span>`).join('')}</div>
+${property.status === 'unclaimed' ? `<p style="font-size:.78rem;color:#94a3b8">המידע בעמוד זה נאסף ממקורות פומביים ועשוי להיות לא מעודכן.${property.source_url ? ` <a href="${esc(property.source_url)}" style="color:#2563eb">לעמוד הרשמי</a>` : ''}</p>` : ''}
+</div>`;
+}
+
+function buildOwnerSeoBody(owner) {
+  const name = esc(owner.business_name || '');
+  const properties = owner.properties || [];
+  const propertyList = properties.map(p => {
+    const price = p.base_price_night ? ` (${Math.round(p.base_price_night)} ${p.currency || 'ILS'})` : '';
+    return `<li><a href="${SITE_URL}/property/${p.id}" style="color:#2563eb">${esc(p.name)}${price}</a></li>`;
+  }).join('');
+
+  const about = owner.about ? esc(owner.about.slice(0, 220)) : `נכסים ישירות מ${name} — בעל צימר/וילה מאומת ב-Dealim.`;
+
+  return `<div id="ssr" style="font-family:system-ui,sans-serif;direction:rtl;padding:1.25rem 1.5rem;max-width:740px;margin:0 auto;color:#1e293b">
+<nav style="font-size:.82rem;color:#64748b;margin-bottom:.75rem">
+  <a href="${SITE_URL}" style="color:#2563eb">Dealim</a> ›
+  <a href="${SITE_URL}/" style="color:#2563eb">בעלי נכסים</a> ›
+  <span>${name}</span>
+</nav>
+<h1 style="font-size:1.55rem;line-height:1.3;margin:0 0 .4rem">${name}</h1>
+<p style="font-size:.93rem;color:#475569;margin:0 0 .75rem">${about}</p>
+${propertyList ? `<h2 style="font-size:1rem;margin:.5rem 0 .3rem">נכסים</h2><ul style="padding-right:1.2rem;margin:.3rem 0 .75rem;font-size:.9rem">${propertyList}</ul>` : ''}
+</div>`;
+}
+
+function regionLabelHe(value) {
+  const labels = {
+    north: 'הצפון', galilee: 'הגליל', golan: 'הגולן', carmel: 'הכרמל', center: 'המרכז',
+    jerusalem: 'ירושלים', south: 'הדרום', dead_sea: 'ים המלח', eilat: 'אילת',
+  };
+  return labels[value] || value || '';
+}
+
+function propertyTypeLabelHe(value) {
+  const labels = { zimmer: 'צימר', villa: 'וילה', cottage: 'בקתה', suite: 'סוויטה' };
+  return labels[value] || value || 'נכס';
+}
+
+function propertyToOgMeta(property) {
+  const name = property.name || '';
+  const price = property.base_price_night ? `${Math.round(property.base_price_night)} ${property.currency || 'ILS'}` : '';
+  const title = `${name}${price ? ` — ${price}/לילה` : ''} | Dealim`;
+  const parts = [];
+  parts.push(`📍 ${regionLabelHe(property.region)}${property.city ? `, ${property.city}` : ''}`);
+  if (property.guest_capacity) parts.push(`עד ${property.guest_capacity} אורחים`);
+  if (property.description) parts.push(property.description.slice(0, 80));
+  const description = parts.join(' · ') || `${propertyTypeLabelHe(property.property_type)} ב${regionLabelHe(property.region)} — Dealim`;
+  const pageUrl = `${SITE_URL}/property/${property.id}`;
+  const imageUrl = (property.owner_images && property.owner_images[0]) || null;
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': property.status === 'unclaimed' ? 'LodgingBusiness' : 'Product',
+        '@id': `${pageUrl}#listing`,
+        name: title,
+        image: imageUrl || `${SITE_URL}/og-image.svg`,
+        description,
+        url: pageUrl,
+        ...(property.base_price_night ? {
+          offers: {
+            '@type': 'Offer',
+            price: String(Math.round(property.base_price_night)),
+            priceCurrency: property.currency || 'ILS',
+            url: pageUrl,
+            availability: 'https://schema.org/InStock',
+          },
+        } : {}),
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Dealim', item: SITE_URL },
+          { '@type': 'ListItem', position: 2, name: 'צימרים ווילות', item: `${SITE_URL}/` },
+          { '@type': 'ListItem', position: 3, name, item: pageUrl },
+        ],
+      },
+    ],
+  };
+  return { title, description, imageUrl, pageUrl, jsonLd };
+}
+
+function ownerToOgMeta(owner) {
+  const name = owner.business_name || '';
+  const title = `${name} — בעל נכס | Dealim`;
+  const description = owner.about ? owner.about.slice(0, 160) : `נכסים ישירות מ${name} — בעל צימר/וילה מאומת ב-Dealim`;
+  const pageUrl = `${SITE_URL}/owner/${owner.slug}`;
+  const imageUrl = owner.cover_url || owner.logo_url || null;
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Organization',
+        '@id': `${pageUrl}#owner`,
+        name,
+        url: pageUrl,
+        image: imageUrl || `${SITE_URL}/og-image.svg`,
+        description,
+        parentOrganization: { '@type': 'Organization', name: 'Dealim', url: SITE_URL },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Dealim', item: SITE_URL },
+          { '@type': 'ListItem', position: 2, name: 'בעלי נכסים', item: `${SITE_URL}/` },
+          { '@type': 'ListItem', position: 3, name, item: pageUrl },
+        ],
+      },
+    ],
+  };
+  return { title, description, imageUrl, pageUrl, jsonLd };
+}
+
 // ── App factory ───────────────────────────────────────────────────────────────
 
 export function createApp() {
@@ -329,7 +505,7 @@ export function createApp() {
       `User-agent: *\n` +
       `Allow: /\n` +
       `Disallow: /admin\n` +
-      `Disallow: /agent/dashboard\n` +
+      `Disallow: /owner/dashboard\n` +
       `Disallow: /account\n` +
       `Disallow: /api/\n` +
       `\n` +
@@ -341,43 +517,41 @@ export function createApp() {
   app.get('/sitemap.xml', async (_req, res) => {
     try {
       const pool = getPool();
-      const now = new Date().toISOString().slice(0, 10);
-      // Only index non-expired deals; order by click_count so popular deals get crawled first
-      const [deals] = await pool.query(
-        `SELECT ad.id, ad.updated_at, ad.click_count FROM agent_deals ad
-         JOIN agents a ON a.id = ad.agent_id
-         WHERE ad.status='approved' AND a.status='approved'
-           AND ad.departure_date >= ? AND (ad.expires_at IS NULL OR ad.expires_at >= ?)
-         ORDER BY ad.click_count DESC, ad.updated_at DESC LIMIT 1000`,
-        [now, now]
+      // Flight deals/agents are retired (see README) — no longer promoted for crawling.
+      // Properties: unclaimed listings are still real, useful content (factual info + source
+      // link), so they're included same as claimed/active — only hidden/opted-out are excluded.
+      const [properties] = await pool.query(
+        `SELECT id, updated_at, status FROM properties
+         WHERE status != 'hidden' AND opted_out = 0
+         ORDER BY updated_at DESC LIMIT 1000`
       );
-      const [agents] = await pool.query(
-        `SELECT slug, updated_at FROM agents WHERE status='approved' ORDER BY updated_at DESC LIMIT 500`
+      const [owners] = await pool.query(
+        `SELECT DISTINCT a.slug, a.updated_at FROM agents a
+         JOIN properties p ON p.owner_id = a.id
+         WHERE a.status='approved' AND a.account_type='property_owner'
+         ORDER BY a.updated_at DESC LIMIT 500`
       );
 
       const staticPages = [
         { loc: `${SITE_URL}/`, freq: 'hourly', priority: '1.0' },
-        { loc: `${SITE_URL}/reels`, freq: 'hourly', priority: '0.9' },
         { loc: `${SITE_URL}/register`, freq: 'monthly', priority: '0.5' },
         { loc: `${SITE_URL}/terms`, freq: 'yearly', priority: '0.2' },
         { loc: `${SITE_URL}/privacy`, freq: 'yearly', priority: '0.2' },
         { loc: `${SITE_URL}/accessibility`, freq: 'yearly', priority: '0.2' },
       ];
 
-      const maxClicks = deals.reduce((m, d) => Math.max(m, d.click_count || 0), 1);
       const urls = [
         ...staticPages.map(p =>
           `  <url><loc>${p.loc}</loc><changefreq>${p.freq}</changefreq><priority>${p.priority}</priority></url>`
         ),
-        ...deals.map(d => {
-          const lastmod = d.updated_at ? new Date(d.updated_at).toISOString().slice(0, 10) : '';
-          // Higher click count → higher priority (0.6 – 0.9)
-          const priority = (0.6 + 0.3 * Math.min(1, (d.click_count || 0) / Math.max(maxClicks, 1))).toFixed(1);
-          return `  <url><loc>${SITE_URL}/deal/${d.id}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}<changefreq>daily</changefreq><priority>${priority}</priority></url>`;
+        ...properties.map(p => {
+          const lastmod = p.updated_at ? new Date(p.updated_at).toISOString().slice(0, 10) : '';
+          const priority = p.status === 'active' || p.status === 'claimed' ? '0.8' : '0.5';
+          return `  <url><loc>${SITE_URL}/property/${p.id}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}<changefreq>daily</changefreq><priority>${priority}</priority></url>`;
         }),
-        ...agents.map(a => {
-          const lastmod = a.updated_at ? new Date(a.updated_at).toISOString().slice(0, 10) : '';
-          return `  <url><loc>${SITE_URL}/agent/${a.slug}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}<changefreq>weekly</changefreq><priority>0.65</priority></url>`;
+        ...owners.map(o => {
+          const lastmod = o.updated_at ? new Date(o.updated_at).toISOString().slice(0, 10) : '';
+          return `  <url><loc>${SITE_URL}/owner/${o.slug}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}<changefreq>weekly</changefreq><priority>0.65</priority></url>`;
         }),
       ];
 
@@ -400,6 +574,9 @@ export function createApp() {
   app.use('/api/images', imagesRouter);
   app.use('/api/config', configRouter);
   app.use('/api/packages', packagesRouter);
+  app.use('/api/properties', propertiesRouter);
+  app.use('/api/remove', removeRouter);
+  app.use('/api/whatsapp', whatsappRouter);
   app.use('/api/agents', agentsRouter);
   app.use('/api/admin', adminRouter);
   app.use('/api/billing', billingRouter);
@@ -418,35 +595,39 @@ export function createApp() {
     // Homepage: inject ItemList + FAQ schema + crawlable deal links for Googlebot
     app.get('/', async (req, res) => {
       try {
-        const [deals] = await getPool().query(
-          `SELECT ad.id, ad.destination_name, ad.destination, ad.price, ad.currency, ad.photo_url
-           FROM agent_deals ad JOIN agents a ON a.id = ad.agent_id
-           WHERE ad.status = 'approved' AND a.status = 'approved'
-           ORDER BY ad.created_at DESC LIMIT 40`
+        const [properties] = await getPool().query(
+          `SELECT id, name, region, city, base_price_night, currency, owner_images
+           FROM properties WHERE status != 'hidden' AND opted_out = 0
+           ORDER BY updated_at DESC LIMIT 40`
         );
+        for (const p of properties) {
+          if (typeof p.owner_images === 'string') {
+            try { p.owner_images = JSON.parse(p.owner_images); } catch { p.owner_images = null; }
+          }
+        }
 
         const itemList = {
           '@context': 'https://schema.org',
           '@type': 'ItemList',
-          name: 'דילי טיסות ומלונות — Dealim',
-          description: 'דילי הטיסות והמלונות הטובים ביותר מסוכני נסיעות מאומתים בישראל',
-          numberOfItems: deals.length,
-          itemListElement: deals.map((d, i) => ({
+          name: 'צימרים ווילות בישראל — Dealim',
+          description: 'צימרים ווילות ישירות מבעלי הנכס בישראל',
+          numberOfItems: properties.length,
+          itemListElement: properties.map((p, i) => ({
             '@type': 'ListItem',
             position: i + 1,
             item: {
               '@type': 'Product',
-              '@id': `${SITE_URL}/deal/${d.id}`,
-              name: `דיל ל${esc(d.destination_name || d.destination || '')}`,
-              url: `${SITE_URL}/deal/${d.id}`,
-              image: d.photo_url || `${SITE_URL}/og-image.svg`,
-              ...(d.price ? {
+              '@id': `${SITE_URL}/property/${p.id}`,
+              name: esc(p.name || ''),
+              url: `${SITE_URL}/property/${p.id}`,
+              image: p.owner_images?.[0] || `${SITE_URL}/og-image.svg`,
+              ...(p.base_price_night ? {
                 offers: {
                   '@type': 'Offer',
-                  price: String(Math.round(d.price)),
-                  priceCurrency: d.currency || 'USD',
+                  price: String(Math.round(p.base_price_night)),
+                  priceCurrency: p.currency || 'ILS',
                   availability: 'https://schema.org/InStock',
-                  url: `${SITE_URL}/deal/${d.id}`,
+                  url: `${SITE_URL}/property/${p.id}`,
                 }
               } : {}),
             },
@@ -459,28 +640,23 @@ export function createApp() {
           mainEntity: [
             {
               '@type': 'Question',
-              name: 'איך מוצאים דילי טיסות זולים בישראל?',
-              acceptedAnswer: { '@type': 'Answer', text: 'ב-Dealim תמצאו דילי טיסות ומלונות בלעדיים ישירות מסוכני נסיעות מאומתים בישראל. הדילים מתעדכנים בזמן אמת ומציעים מחירים שלא תמצאו בשום מקום אחר.' },
+              name: 'איך מוצאים צימר או וילה בישראל?',
+              acceptedAnswer: { '@type': 'Answer', text: 'ב-Dealim תמצאו צימרים ווילות ישירות מבעלי הנכס בישראל — ללא עמלות סוכנות, ללא מתווכים. חלק מהנכסים מאומתים ע"י הבעלים, וחלקם עדיין ממתינים לאימות.' },
             },
             {
               '@type': 'Question',
-              name: 'האם הדילים ב-Dealim אמינים?',
-              acceptedAnswer: { '@type': 'Answer', text: 'כן. כל סוכן נסיעות עובר תהליך אימות ואישור לפני שמורשה לפרסם דילים. Dealim מוודאת את אמינות כל הצעה ואת רישיון הסוכן.' },
+              name: 'מה ההבדל בין נכס מאומת ללא מאומת?',
+              acceptedAnswer: { '@type': 'Answer', text: 'נכס מאומת פירושו שבעל הנכס אישר את הפרטים ומנהל אותו בעצמו באתר. נכס שטרם אומת מוצג עם מידע עובדתי בלבד וקישור לאתר הרשמי של הצימר.' },
             },
             {
               '@type': 'Question',
-              name: 'אילו יעדים קיימים ב-Dealim?',
-              acceptedAnswer: { '@type': 'Answer', text: 'Dealim מציג דילי טיסות ומלונות ליעדים בכל העולם — אירופה, ארצות הברית, אמריקה הלטינית, אסיה, המזרח הרחוק, אפריקה, הים התיכון ועוד.' },
+              name: 'אילו אזורים קיימים ב-Dealim?',
+              acceptedAnswer: { '@type': 'Answer', text: 'Dealim מציג נכסים בכל אזורי ישראל — הצפון, הגליל, הגולן, הכרמל, המרכז, ירושלים, הדרום, ים המלח ואילת.' },
             },
             {
               '@type': 'Question',
-              name: 'איך קונים דיל טיסה דרך Dealim?',
-              acceptedAnswer: { '@type': 'Answer', text: 'לוחצים על הדיל המעניין, קוראים את הפרטים, ויוצרים קשר ישיר עם סוכן הנסיעות. הסוכן מטפל בהזמנה מא׳ עד ת׳, כולל כרטיסי הטיסה, המלון, ועוד.' },
-            },
-            {
-              '@type': 'Question',
-              name: 'האם יש גם דילים לחבילות נופש?',
-              acceptedAnswer: { '@type': 'Answer', text: 'כן! סוכני הנסיעות ב-Dealim מציעים גם חבילות נופש הכוללות טיסה + מלון, טיולים מאורגנים, הרשמה לסיורים, וכרטיסי ביזנס במחירים מיוחדים.' },
+              name: 'איך מזמינים צימר דרך Dealim?',
+              acceptedAnswer: { '@type': 'Answer', text: 'נכנסים לעמוד הנכס, ממלאים טופס בקשת הזמנה או פונים ישירות ב-WhatsApp לבעל הנכס.' },
             },
           ],
         };
@@ -489,21 +665,20 @@ export function createApp() {
           .map(s => `<script type="application/ld+json">${JSON.stringify(s).replace(/<\//g, '<\\/')}</script>`)
           .join('\n    ');
 
-        // Crawlable deal links — readable by Googlebot to discover deal pages immediately
-        const dealListHtml = deals.map(d => {
-          const dest = esc(d.destination_name || d.destination || 'דיל נסיעות');
-          const price = d.price ? ` — ${Math.round(d.price)} ${d.currency || ''}` : '';
-          return `<li><a href="/deal/${d.id}">${dest}${price}</a></li>`;
+        // Crawlable property links — readable by Googlebot to discover property pages immediately
+        const propertyListHtml = properties.map(p => {
+          const name = esc(p.name || 'נכס');
+          const price = p.base_price_night ? ` — ${Math.round(p.base_price_night)} ${p.currency || 'ILS'}` : '';
+          return `<li><a href="/property/${p.id}">${name}${price}</a></li>`;
         }).join('');
 
         const homeSsrBody = `<div id="ssr" style="font-family:system-ui,sans-serif;direction:rtl;padding:1rem 1.5rem;max-width:900px;margin:0 auto">
-<h1 style="font-size:1.6rem;margin:0 0 .4rem">דילי טיסות ומלונות — Dealim</h1>
-<p style="color:#475569;margin:0 0 1rem">אלפי דילי טיסות ומלונות בלעדיים מסוכני נסיעות מאומתים בישראל. חסוך אלפי שקלים על הטיסה הבאה שלך.</p>
-<h2 style="font-size:1rem;margin:0 0 .4rem">דילים עדכניים</h2>
-<ul style="list-style:disc;padding-right:1.2rem;column-count:2;font-size:.9rem">${dealListHtml}</ul>
+<h1 style="font-size:1.6rem;margin:0 0 .4rem">צימרים ווילות בישראל — Dealim</h1>
+<p style="color:#475569;margin:0 0 1rem">נכסים ישירות מבעלי הצימרים והווילות בישראל. ללא עמלות, ללא מתווכים.</p>
+<h2 style="font-size:1rem;margin:0 0 .4rem">נכסים עדכניים</h2>
+<ul style="list-style:disc;padding-right:1.2rem;column-count:2;font-size:.9rem">${propertyListHtml}</ul>
 <p style="font-size:.82rem;color:#94a3b8;margin-top:.75rem">
-  קטגוריות: דילי טיסות זולות · כרטיסי טיסה במחיר מיוחד · דילי מלונות בחו"ל ·
-  חבילות נופש · טיסות לאירופה · טיסות לניו יורק · טיסות לבנגקוק · טיסות ביזנס בזול
+  קטגוריות: צימרים בצפון · צימרים עם ג'קוזי · וילות עם בריכה · צימרים בגליל · נכסים כשרים · צימרים ידידותיים לילדים
 </p>
 </div>`;
 
@@ -539,6 +714,31 @@ export function createApp() {
         const meta = agentToOgMeta(agent);
         const html = buildOgHtml(indexHtml, meta)
           .replace('<div id="root"></div>', `<div id="root">${buildAgentSeoBody(agent)}</div>`);
+        res.type('text/html').send(html);
+      } catch { next(); }
+    });
+
+    // /property/:id — property share page (claimed + unclaimed both render; only hidden/opted-out 404)
+    app.get('/property/:id(\\d+)', async (req, res, next) => {
+      try {
+        const property = await fetchPropertyForOg(req.params.id);
+        if (!property) return next();
+        const meta = propertyToOgMeta(property);
+        const html = buildOgHtml(indexHtml, meta)
+          .replace('<meta property="og:type" content="website" />', '<meta property="og:type" content="product" />')
+          .replace('<div id="root"></div>', `<div id="root">${buildPropertySeoBody(property)}</div>`);
+        res.type('text/html').send(html);
+      } catch { next(); }
+    });
+
+    // /owner/:slug — owner profile share page
+    app.get('/owner/:slug([a-z0-9-]+)', async (req, res, next) => {
+      try {
+        const owner = await fetchOwnerForOg(req.params.slug);
+        if (!owner) return next();
+        const meta = ownerToOgMeta(owner);
+        const html = buildOgHtml(indexHtml, meta)
+          .replace('<div id="root"></div>', `<div id="root">${buildOwnerSeoBody(owner)}</div>`);
         res.type('text/html').send(html);
       } catch { next(); }
     });

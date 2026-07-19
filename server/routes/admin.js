@@ -3,6 +3,7 @@ import { requireAdminAuth, signAdminToken } from '../middleware/adminAuth.js';
 import { listAgentsPending, listAgentsAll, updateAgentStatus, deleteAgentById } from '../store/agentStore.js';
 import { listPendingDeals, updateAgentDealStatus, listAllApprovedDealsAdmin, adminDeleteAgentDeal, getAdminAnalytics } from '../store/agentDealStore.js';
 import { getAllUsers, deleteUserById } from '../store/userStore.js';
+import { listPendingClaims, approveClaim, rejectClaim } from '../store/propertyStore.js';
 import { authRateLimiter } from '../middleware/rateLimiter.js';
 
 const router = Router();
@@ -87,6 +88,23 @@ router.delete('/users/:id', async (req, res) => {
     console.error('[admin] delete user error:', err.message);
     res.status(500).json({ error: 'Internal error' });
   }
+});
+
+// ── Property ownership claims (Step 5) ────────────────────────────────────────
+
+router.get('/properties/pending', async (_req, res) => {
+  try { res.json({ properties: await listPendingClaims() }); }
+  catch { res.status(500).json({ error: 'Internal error' }); }
+});
+
+router.post('/properties/:id/approve', async (req, res) => {
+  try { await approveClaim(req.params.id); res.json({ ok: true }); }
+  catch { res.status(500).json({ error: 'Internal error' }); }
+});
+
+router.post('/properties/:id/reject', async (req, res) => {
+  try { await rejectClaim(req.params.id); res.json({ ok: true }); }
+  catch { res.status(500).json({ error: 'Internal error' }); }
 });
 
 router.get('/analytics', async (req, res) => {

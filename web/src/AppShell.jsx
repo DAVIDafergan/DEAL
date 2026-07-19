@@ -1,52 +1,26 @@
-import { useLocation, useNavigate } from 'react-router-dom';
 import { App } from './App.jsx';
-import { DealsTab } from './vibe/DealsTab.jsx';
-import { PlanTab } from './components/PlanTab.jsx';
 import { Header } from './components/Header.jsx';
-import { ALL_VIBES_KEY, VIBES } from './vibe/vibeConstants.js';
 
-function deriveActiveTab(pathname) {
-  if (pathname.startsWith('/reels')) return 'deals';
-  if (pathname === '/plan') return 'plan';
-  return 'home'; // '/' ו-'/flights' נופלים לדף הבית (מפה + דילים)
-}
-
-function deriveVibe(pathname) {
-  const segment = pathname.replace(/^\/reels\/?/, '').replace(/^\//, '');
-  return VIBES.includes(segment) ? segment : ALL_VIBES_KEY;
-}
+// The reel feed (vibe/DealsTab.jsx) and package-builder tab (components/PlanTab.jsx) are
+// retired along with the rest of the flight world (see README) — this shell no longer mounts
+// or routes to them. Both files are untouched in the repo, just no longer imported here.
+// Any /reels or /plan URL simply renders the property-search home below (no route match to
+// break bookmarks/links on).
 
 /**
- * AppShell — מעטפת האפליקציה: 3 הטאבים ("דילים"/"טיסות"/"חופשה מושלמת") **תמיד mounted**,
- * רק display:none על הלא-פעילים — לא מתבססים על unmount/remount של react-router בין
- * routes, כדי שגלילה/state בפיד (וגם בטאבים האחרים) לא יתאפסו במעבר בין טאבים וחזרה.
- * ה-URL עדיין מתעדכן (BottomNav משתמש ב-navigate), כך שניתן לסמן/לשתף/ללחוץ "אחורה" בדפדפן.
+ * AppShell — was a 3-tab shell (deals reel / flights / plan) with tabs kept mounted via
+ * display:none to preserve scroll state across switches. Now a single-tab shell: only the
+ * property-search home renders. Structure kept (not collapsed into App.jsx directly) so the
+ * two retired tabs can be restored here later without re-deriving the wrapper.
  */
 export function AppShell() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const activeTab = deriveActiveTab(location.pathname);
-  const vibe = deriveVibe(location.pathname);
-
-  function handleChangeVibe(nextVibe) {
-    navigate(nextVibe === ALL_VIBES_KEY ? '/reels' : `/reels/${nextVibe}`);
-  }
-
   return (
     <div className="app-shell-tabs">
       <a href="#main-content" className="skip-to-content">דלג לתוכן העיקרי</a>
-      <Header reels={activeTab === 'deals'} activeTab={activeTab} />
+      <Header reels={false} activeTab="home" />
 
-      <div id="main-content" tabIndex="-1" className="app-shell-tabs__panel" style={{ display: activeTab === 'home' ? 'block' : 'none' }}>
+      <div id="main-content" tabIndex="-1" className="app-shell-tabs__panel">
         <App />
-      </div>
-
-      <div className="app-shell-tabs__panel" style={{ display: activeTab === 'deals' ? 'block' : 'none' }}>
-        <DealsTab vibe={vibe} onChangeVibe={handleChangeVibe} isActive={activeTab === 'deals'} />
-      </div>
-
-      <div className="app-shell-tabs__panel" style={{ display: activeTab === 'plan' ? 'block' : 'none' }}>
-        <PlanTab onExit={() => navigate('/')} />
       </div>
     </div>
   );

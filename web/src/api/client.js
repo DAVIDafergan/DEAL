@@ -133,6 +133,38 @@ export const agentApi = {
   deleteMe: (token) => deleteReq('/agents/me', token),
 };
 
+// ── Property API (zimmer/villa platform) ───────────────────────────────────────
+
+function buildQuery(params) {
+  const q = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v === undefined || v === null || v === '') continue;
+    q.set(k, Array.isArray(v) ? v.join(',') : String(v));
+  }
+  const s = q.toString();
+  return s ? `?${s}` : '';
+}
+
+export const propertyApi = {
+  search: (filters = {}) => getJson(`/properties${buildQuery(filters)}`),
+  get: (id) => getJson(`/properties/${id}`),
+  getMine: (token) => getJson('/properties/mine', token),
+  create: (token, data) => postJson('/properties', data, token),
+  update: (token, id, data) => patchJson(`/properties/${id}`, data, token),
+  getAvailability: (id, range = {}) => getJson(`/properties/${id}/availability${buildQuery(range)}`),
+  setAvailability: (token, id, dates) => patchJson(`/properties/${id}/availability`, { dates }, token),
+  requestBooking: (id, data) => postJson(`/properties/${id}/booking-requests`, data),
+  getBookingRequests: (token, id) => getJson(`/properties/${id}/booking-requests`, token),
+  getByOwnerSlug: (slug) => getJson(`/properties/by-owner/${slug}`),
+  requestClaim: (token, id) => postJson(`/properties/${id}/claim/request`, {}, token),
+  verifyClaim: (token, id, code) => postJson(`/properties/${id}/claim/verify`, { code }, token),
+};
+
+export const removeApi = {
+  request: (data) => postJson('/remove/request', data),
+  verify: (data) => postJson('/remove/verify', data),
+};
+
 export const userApi = {
   register: (data) => postJson('/users/register', data),
   login: (email, password) => postJson('/users/login', { email, password }),
@@ -163,6 +195,9 @@ export const adminApi = {
   rejectDeal: (tok, id, reason) => postJson(`/admin/deals/${id}/reject`, { reason }, tok),
   deleteDeal: (tok, id) => deleteReq(`/admin/deals/${id}`, tok),
   getAnalytics: (tok, year, month) => getJson(`/admin/analytics?year=${year}&month=${month}`, tok),
+  getPendingPropertyClaims: (tok) => getJson('/admin/properties/pending', tok),
+  approvePropertyClaim: (tok, id) => postJson(`/admin/properties/${id}/approve`, {}, tok),
+  rejectPropertyClaim: (tok, id) => postJson(`/admin/properties/${id}/reject`, {}, tok),
   getUsers: (tok) => getJson('/admin/users', tok),
   deleteAgent: (tok, id) => deleteReq(`/admin/agents/${id}`, tok),
   deleteUser: (tok, id) => deleteReq(`/admin/users/${id}`, tok),
