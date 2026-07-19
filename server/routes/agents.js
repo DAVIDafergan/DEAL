@@ -2,19 +2,18 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { OAuth2Client } from 'google-auth-library';
 import {
-  createAgent, findAgentByEmail, findAgentById,
-  updateAgentProfile, deleteAgentById,
+  createAgent, findAgentByEmail, findAgentById, findAgentBySlug,
+  updateAgentProfile, incrementAgentLeadCount, deleteAgentById,
 } from '../store/agentStore.js';
+import {
+  createAgentDeal, listAgentDeals, updateAgentDeal, deleteAgentDeal,
+  getAgentDeal, listApprovedDealsByAgent, listApprovedDeals, incrementDealClickCount,
+  computeValueScore, listTopValueDeals, markDealPurchased, getAgentStats,
+} from '../store/agentDealStore.js';
 import { requireAgentAuth, signAgentToken } from '../middleware/agentAuth.js';
+import { fetchDestinationMediaForAgent } from '../services/agentMediaService.js';
 import { upsertRating, getAgentRatingSummary, getSessionRating, getSessionAllRatings } from '../store/ratingStore.js';
 import { authRateLimiter } from '../middleware/rateLimiter.js';
-
-// Flight-deal-specific endpoints below (deal CRUD, dashboard stats, destination media,
-// public deal feeds, agent profile) are retired along with the rest of the flight world — see
-// README. agentDealStore.js and agentMediaService.js are untouched in the repo, just no longer
-// imported here. Account management (register/login/me) and ratings stay live: they're generic
-// to the business entity, not flight-deal-specific, and are exactly what the zimmer-owner portal
-// reuses per the Step 0 mapping decision (agents table doubles as the owner table for now).
 
 const router = Router();
 
@@ -22,7 +21,7 @@ const router = Router();
 
 router.post('/register', async (req, res) => {
   try {
-    const { business_name, contact_name, email, password, phone, whatsapp_number, account_type } = req.body;
+    const { business_name, contact_name, email, password, phone, whatsapp_number } = req.body;
     if (!business_name || !email || !password) {
       return res.status(400).json({ error: 'business_name, email, and password are required' });
     }
@@ -30,7 +29,7 @@ router.post('/register', async (req, res) => {
     const existing = await findAgentByEmail(email);
     if (existing) return res.status(409).json({ error: 'Email already registered' });
     const password_hash = await bcrypt.hash(password, 12);
-    const { id, slug } = await createAgent({ business_name, contact_name: contact_name || business_name, email, password_hash, phone, whatsapp_number, account_type });
+    const { id, slug } = await createAgent({ business_name, contact_name: contact_name || business_name, email, password_hash, phone, whatsapp_number });
     const agent = await findAgentById(id);
     const token = signAgentToken(agent);
     res.status(201).json({ token, agent: safeAgent(agent) });
@@ -122,21 +121,149 @@ router.delete('/me', requireAgentAuth, async (req, res) => {
   }
 });
 
-// ── Retired: flight deal CRUD, dashboard stats, destination media, public deal feeds, profile ─
+// ── Dashboard: deals ──────────────────────────────────────────────────────────
 
-const dealsRetired = (_req, res) => res.status(410).json({ error: 'Flight deals are no longer available on this platform.' });
+router.get('/me/deals', requireAgentAuth, async (req, res) => {
+  try {
+    const deals = await listAgentDeals(req.agentId);
+    res.json({ deals });
+  } catch (err) {
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
 
-router.get('/me/deals', requireAgentAuth, dealsRetired);
-router.post('/me/deals', requireAgentAuth, dealsRetired);
-router.patch('/me/deals/:id', requireAgentAuth, dealsRetired);
-router.delete('/me/deals/:id', requireAgentAuth, dealsRetired);
-router.post('/me/deals/:id/purchased', requireAgentAuth, dealsRetired);
-router.get('/me/stats', requireAgentAuth, dealsRetired);
-router.get('/media/:iataCode', requireAgentAuth, dealsRetired);
-router.get('/deals/approved', dealsRetired);
-router.get('/deals/top-value', dealsRetired);
-router.post('/deals/:id/click', dealsRetired);
-router.get('/profile/:slug', dealsRetired);
+router.post('/me/deals', requireAgentAuth, async (req, res) => {
+  try {
+    const agent = await findAgentById(req.agentId);
+    if (!agent) return res.status(404).json({ error: 'Agent not found' });
+
+    // Check deal limit per tier (pending + approved count toward limit)
+    const allDeals = await listAgentDeals(req.agentId);
+    const activeCount = allDeals.filter(d => d.status !== 'rejected').length;
+    const limits = { basic: 5, pro: 20, unlimited: Infinity };
+    const limit = limits[agent.subscription_tier] ?? 5;
+    if (activeCount >= limit) {
+      return res.status(403).json({ error: `Deal limit reached for ${agent.subscription_tier} plan (${limit} deals)` });
+    }
+
+    const { destination, departure_date, price } = req.body;
+    if (!destination || !departure_date || !price) {
+      return res.status(400).json({ error: 'destination, departure_date, and price are required' });
+    }
+
+    // Compute value_score vs market average
+    const rawDeal = { destination, price: Number(price) };
+    const value_score = await computeValueScore(rawDeal);
+
+    const id = await createAgentDeal(req.agentId, { ...req.body, value_score });
+    const deal = await getAgentDeal(id);
+    res.status(201).json({ deal });
+  } catch (err) {
+    console.error('[agents] post deal error:', err);
+    res.status(500).json({ error: 'Failed to create deal' });
+  }
+});
+
+router.patch('/me/deals/:id', requireAgentAuth, async (req, res) => {
+  try {
+    await updateAgentDeal(req.params.id, req.agentId, req.body);
+    const deal = await getAgentDeal(req.params.id);
+    res.json({ deal });
+  } catch (err) {
+    res.status(500).json({ error: 'Update failed' });
+  }
+});
+
+router.delete('/me/deals/:id', requireAgentAuth, async (req, res) => {
+  try {
+    await deleteAgentDeal(req.params.id, req.agentId);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Delete failed' });
+  }
+});
+
+router.post('/me/deals/:id/purchased', requireAgentAuth, async (req, res) => {
+  try {
+    await markDealPurchased(req.params.id, req.agentId);
+    const deal = await getAgentDeal(req.params.id);
+    res.json({ ok: true, purchase_count: deal?.purchase_count ?? 0 });
+  } catch (err) {
+    console.error('[agents] mark purchased error:', err.message);
+    res.status(500).json({ error: 'Failed to mark as purchased' });
+  }
+});
+
+router.get('/me/stats', requireAgentAuth, async (req, res) => {
+  try {
+    const stats = await getAgentStats(req.agentId);
+    res.json(stats);
+  } catch (err) {
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
+// ── Media auto-fetch for a destination ───────────────────────────────────────
+
+router.get('/media/:iataCode', requireAgentAuth, async (req, res) => {
+  try {
+    const media = await fetchDestinationMediaForAgent(req.params.iataCode);
+    res.json(media);
+  } catch (err) {
+    res.status(500).json({ error: 'Media fetch failed' });
+  }
+});
+
+// ── Public: all approved deals (for feed mixing) ─────────────────────────────
+
+router.get('/deals/approved', async (_req, res) => {
+  try {
+    const deals = await listApprovedDeals({ limit: 200 });
+    res.json({ deals });
+  } catch (err) {
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
+// ── Public: top value deals ───────────────────────────────────────────────────
+
+router.get('/deals/top-value', async (req, res) => {
+  try {
+    const limit = Number(req.query.limit) || 5;
+    const deals = await listTopValueDeals(limit);
+    res.json({ deals });
+  } catch (err) {
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
+// ── Public: track click (attribution) ────────────────────────────────────────
+
+router.post('/deals/:id/click', async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const deal = await getAgentDeal(id);
+    if (!deal) return res.status(404).json({ error: 'Not found' });
+    await incrementDealClickCount(id);
+    await incrementAgentLeadCount(deal.agent_id);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
+// ── Public: agent profile ─────────────────────────────────────────────────────
+
+router.get('/profile/:slug', async (req, res) => {
+  try {
+    const agent = await findAgentBySlug(req.params.slug);
+    if (!agent || agent.status !== 'approved') return res.status(404).json({ error: 'Not found' });
+    const deals = await listApprovedDealsByAgent(agent.id);
+    res.json({ agent: publicAgent(agent), deals });
+  } catch (err) {
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
 
 // ── Ratings (specific routes MUST come before /:id wildcard) ─────────────────
 
@@ -180,6 +307,11 @@ router.post('/:id/rate', async (req, res) => {
 
 function safeAgent(a) {
   const { password_hash, ...rest } = a;
+  return rest;
+}
+
+function publicAgent(a) {
+  const { password_hash, email, phone, stripe_customer_id, stripe_subscription_id, rejection_reason, ...rest } = a;
   return rest;
 }
 

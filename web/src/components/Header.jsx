@@ -5,7 +5,7 @@ import { Logo } from './Logo.jsx';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { useTravelerAuth } from '../context/TravelerAuthContext.jsx';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { Heart, Menu, X, User, FileText, Home, Search } from 'lucide-react';
+import { Heart, Menu, X, User, FileText, Compass, Home, Play, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function Header({ reels = false, activeTab = 'home' }) {
@@ -72,7 +72,7 @@ export function Header({ reels = false, activeTab = 'home' }) {
               ) : (
                 <button
                   className="header-auth-btn header-auth-btn--primary header-login-pill"
-                  onClick={() => navigate('/owner/login')}
+                  onClick={() => navigate('/agent/login')}
                 >
                   {t.headerLoginButton || 'התחברות'}
                 </button>
@@ -123,12 +123,16 @@ export function Header({ reels = false, activeTab = 'home' }) {
               ) : (
                 <button
                   className="header-auth-btn header-auth-btn--ghost"
-                  onClick={() => navigate('/owner/login')}
+                  onClick={() => navigate('/agent/login')}
                 >
                   {t.headerLoginButton || 'התחברות'}
                 </button>
               )
             )}
+            <Link to="/plan" className="header-auth-btn header-auth-btn--ghost" title="בניית חופשה">
+              <Compass size={14} />
+              <span>{t.buildVacationLink || 'בניית חופשה'}</span>
+            </Link>
             <LanguageSwitcher />
           </div>
         </div>
@@ -148,6 +152,12 @@ export function Header({ reels = false, activeTab = 'home' }) {
             >
               <Link to="/" className={`header-drawer__item${activeTab === 'home' ? ' header-drawer__item--active' : ''}`} onClick={closeMenu}>
                 <Home size={16} /> {t.homeLink || 'דף הבית'}
+              </Link>
+              <Link to="/reels" className={`header-drawer__item${activeTab === 'deals' ? ' header-drawer__item--active' : ''}`} onClick={closeMenu}>
+                <Play size={16} /> {t.dealsLink || 'פיד דילים'}
+              </Link>
+              <Link to="/plan" className={`header-drawer__item${activeTab === 'plan' ? ' header-drawer__item--active' : ''}`} onClick={closeMenu}>
+                <Compass size={16} /> {t.buildVacationLink || 'בניית חופשה'}
               </Link>
               <div className="header-drawer__divider" />
               {token && agent && (
@@ -171,7 +181,7 @@ export function Header({ reels = false, activeTab = 'home' }) {
               </Link>
               {!loading && !token && (
                 <button className="header-drawer__item" onClick={() => { navigate('/register'); closeMenu(); }}>
-                  הרשמת בעל צימר
+                  {t.registerLink || 'הרשמת סוכן'}
                 </button>
               )}
             </motion.nav>

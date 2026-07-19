@@ -15,7 +15,7 @@ export function SiteFooter() {
             <Logo size={32} />
           </Link>
           <p className="site-footer__tagline">
-            צימרים ווילות בישראל<br />ישירות מבעלי הנכס
+            דילי נסיעות בלעדיים<br />מסוכנים מאומתים בישראל
           </p>
           <a
             href="https://wa.me/972556674329"
@@ -33,7 +33,7 @@ export function SiteFooter() {
             <span className="site-footer__col-title">ניווט</span>
             <FooterLink to="/my/favorites" icon={Heart} label={t.favoritesLink || 'המועדפים שלי'} />
             <FooterLink to="/contact" icon={Phone} label="צור קשר" />
-            <FooterLink to="/register" icon={UserPlus} label="הרשמת בעל צימר" highlight />
+            <FooterLink to="/register" icon={UserPlus} label={t.headerRegisterButton || 'הרשמת סוכן'} highlight />
           </div>
           <div className="site-footer__col">
             <FooterLink to="/terms" icon={FileText} label={t.termsLink || 'תנאי שימוש'} />

@@ -1,10 +1,12 @@
 import { Router } from 'express';
+import { getStats } from '../store/statsStore.js';
 
 const router = Router();
 
-/** "Deals sent" distribution stats were flight-scan-specific — retired with the rest of the flight world. */
-router.all('*', (_req, res) => {
-  res.status(410).json({ error: 'Flight stats are no longer available on this platform.' });
+/** GET /api/stats — כמה דילים נשלחו, וחיסכון ממוצע */
+router.get('/', async (_req, res) => {
+  const stats = await getStats();
+  res.json(stats);
 });
 
 export default router;
