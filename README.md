@@ -1,24 +1,56 @@
 # Deal Radar Pro
 
-מערכת לציד דילים אנומליים (חריגות מחיר סטטיסטיות) בטיסות, עם הפצה אוטומטית בשלוש שפות.
-כל הנתונים מגיעים מ-APIs רשמיים בלבד — **אין web scraping** בקוד הזה.
+פלטפורמת צימרים ווילות בישראל — בעלי נכסים מנהלים נכס, זמינות ובקשות הזמנה; גולשים מחפשים
+ומזמינים. המערכת בתהליך מעבר מפרויקט קודם (ציד דילי טיסות אנומליים) — ראו "עולם הטיסות" למטה.
+
+**מקורות מידע על נכסים:**
+- **ידני, ע"י בעל נכס מאומת** — דרך `/api/properties` (דורש אימות owner, אותה מערכת JWT
+  שמשמשת סוכני נסיעות היום — ראו `server/middleware/agentAuth.js`).
+- **איסוף אוטומטי (מתוכנן, טרם נבנה)** — מתוכנן שלב עתידי (`/engine`) שיאסוף נתוני נכסים
+  **אך ורק מאתרים עצמאיים של בעלי נכסים**, לעולם לא מפלטפורמות/OTA (Booking, Airbnb, פייסבוק
+  וכו') וכפוף לשכבת תאימות מלאה: כיבוד `robots.txt`, רשימת חסימה (blocklist) לדומיינים/מספרים
+  שביקשו הסרה, איסור מוחלט על הורדת תמונות (רק URL-ים נשמרים, בשדה פנימי שלא מוצג לגולשים),
+  ותיאורים שנכתבים מחדש ע"י מודל שפה ולא מועתקים מהמקור. עד שהמנוע הזה ייבנה, כל הנכסים באתר
+  מוזנים ידנית.
+
+## עולם הטיסות — הוסר משימוש (Retired)
+
+הפרויקט התחיל כמנוע לציד דילי טיסות אנומליים (חריגות מחיר סטטיסטיות), עם הפצה אוטומטית
+בשלוש שפות מ-APIs רשמיים בלבד (**לא scraping** — Amadeus/Travelpayouts). הפיצ'ר הזה **הוסר
+משימוש לחלוטין**, אך הקוד נשאר בריפו (לא נמחק, רק מנותק):
+
+- **טבלאות DB** `deals`, `packages`, `vibe_feed_cards`, `price_history` הועברו ל-`_legacy`
+  (ראו מיגרציית `ensureTableRenamed` ב-`core/db/index.js`) — הנתונים ההיסטוריים נשמרו, לא נמחקו.
+- **נתיבי API** של טיסות (`/api/deals/*`, `/api/packages/*`, `/api/personal-radar/*`,
+  `/api/stats/*`, `/api/config/*`, וחלק ממשפחת `/api/agents/*` שהיו ספציפיים לדילי טיסות)
+  מחזירים כעת `410 Gone` במקום לעבוד — הקוד שהם עטפו (`server/store/dealsStore.js`,
+  `server/store/packagesStore.js`, `server/store/vibeFeedStore.js`, ה-scanner, ה-anomaly-engine,
+  ה-adapters ב-`sources/`, וה-senders ב-`distribution/`) **עדיין קיים בריפו במלואו**, פשוט אף
+  קוד חי לא קורא לו יותר.
+- מערכת ה-**agents** (הרשמה/התחברות/JWT) נשארת חיה ומשמשת גם את בעלי הצימרים — ראו
+  `agents.account_type` (`flight_agent` לחשבונות טיסות קיימים, `property_owner` להרשמות
+  חדשות בעולם הצימרים).
+
+אם תרצו להחזיר את עולם הטיסות: הפכו את ה-migration חזרה (rename בחזרה מ-`_legacy`), החזירו את
+הקריאות ל-stores ב-`server/routes/deals.js`/`packages.js`/וכו', והפעילו מחדש את ה-jobs
+ב-`server/index.js`.
 
 ## ארכיטקטורה
 
 ```
-sources/        אדפטרים למקורות נתונים (Amadeus, Travelpayouts) — Strategy Pattern
+server/
+  routes/properties.js   API לנכסים: חיפוש, נכס בודד, יצירה/עריכה ע"י בעלים, זמינות, בקשות הזמנה
+  store/propertyStore.js  שכבת גישה ל-DB עבור properties/availability/booking_requests
+  routes/agents.js        הרשמה/התחברות/JWT (משותף לסוכני טיסות ולבעלי צימרים) + דירוגים
+sources/        [Retired] אדפטרים למקורות נתונים רשמיים (Amadeus, Travelpayouts) — Strategy Pattern
 core/
-  db/              חיבור MySQL משותף (pool + יצירת טבלאות + retry בעלייה)
-  anomaly-engine/  היסטוריית מחירים ב-MySQL + חישוב Z-score + ציון "סבירות אכיפה"
-  scanner/         DealScanner — מחבר sources ↔ anomaly-engine, וגם "Best Live Prices"
-ai/             נרטיב הדיל בשלוש שפות (he/en/es) בקריאה אחת ל-Claude
-distribution/   Telegram + WhatsApp, עם תור retry פשוט (in-memory)
-server/         Express API + composition root (DealPipeline) שמחבר את כל השכבות
-web/            React + Vite — frontend פרימיום, Dark mode, RTL/LTR דינמי
+  db/              חיבור MySQL משותף (pool + יצירת טבלאות + retry בעלייה + מיגרציות)
+  anomaly-engine/  [Retired] היסטוריית מחירים + Z-score לדילי טיסות
+  scanner/         [Retired] DealScanner — חיבר sources ↔ anomaly-engine
+ai/             [Retired] נרטיב דיל טיסה בשלוש שפות דרך Claude
+distribution/   [Retired] Telegram + WhatsApp לדילי טיסות, עם תור retry פשוט (in-memory)
+web/            React + Vite — frontend פרימיום, RTL/LTR דינמי
 ```
-
-זרימת הנתונים: `sources -> anomaly-engine -> ai -> server/store -> distribution`.
-כל שכבה תלויה רק בממשק של השכבה שמתחתיה — לעולם לא בפרטי המימוש.
 
 ## הקמה והרצה
 

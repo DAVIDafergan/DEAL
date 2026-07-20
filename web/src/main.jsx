@@ -6,12 +6,14 @@ import { PublicLayout } from './components/PublicLayout.jsx';
 import { LanguageProvider } from './context/LanguageContext.jsx';
 import { AgentAuthProvider } from './context/AgentAuthContext.jsx';
 import { RegisterPage } from './pages/RegisterPage.jsx';
-import { AgentRegisterPage } from './pages/AgentRegisterPage.jsx';
-import { AgentLoginPage } from './pages/AgentLoginPage.jsx';
-import { AgentDashboardPage } from './pages/AgentDashboardPage.jsx';
-import { AgentSettingsPage } from './pages/AgentSettingsPage.jsx';
 import { AdminPage } from './pages/AdminPage.jsx';
-import { AgentPublicProfilePage } from './pages/AgentPublicProfilePage.jsx';
+import { OwnerRegisterPage } from './pages/OwnerRegisterPage.jsx';
+import { OwnerLoginPage } from './pages/OwnerLoginPage.jsx';
+import { OwnerDashboardPage } from './pages/OwnerDashboardPage.jsx';
+import { OwnerSettingsPage } from './pages/OwnerSettingsPage.jsx';
+import { OwnerPublicProfilePage } from './pages/OwnerPublicProfilePage.jsx';
+import { PropertyPage } from './pages/PropertyPage.jsx';
+import { RemovePage } from './pages/RemovePage.jsx';
 import { FavoritesPage } from './pages/FavoritesPage.jsx';
 import { AccountPage } from './pages/AccountPage.jsx';
 import { TermsPage } from './pages/TermsPage.jsx';
@@ -37,11 +39,13 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/register/traveler" element={<TravelerRegisterPage />} />
               <Route path="/register/traveler/login" element={<TravelerLoginPage />} />
-              <Route path="/agent/register" element={<AgentRegisterPage />} />
-              <Route path="/agent/login" element={<AgentLoginPage />} />
-              <Route path="/agent/dashboard/settings" element={<AgentSettingsPage />} />
-              <Route path="/agent/dashboard" element={<AgentDashboardPage />} />
-              <Route path="/agent/:slug" element={<AgentPublicProfilePage />} />
+              <Route path="/owner/register" element={<OwnerRegisterPage />} />
+              <Route path="/owner/login" element={<OwnerLoginPage />} />
+              <Route path="/owner/dashboard/settings" element={<OwnerSettingsPage />} />
+              <Route path="/owner/dashboard" element={<OwnerDashboardPage />} />
+              <Route path="/owner/:slug" element={<OwnerPublicProfilePage />} />
+              <Route path="/property/:id" element={<PropertyPage />} />
+              <Route path="/remove" element={<RemovePage />} />
               <Route path="/my/favorites" element={<FavoritesPage />} />
               <Route path="/account" element={<AccountPage />} />
               <Route path="/terms" element={<TermsPage />} />

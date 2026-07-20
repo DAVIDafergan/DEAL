@@ -1,255 +1,241 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
-import { useLanguage } from './context/LanguageContext.jsx';
 import { NowProvider } from './context/NowContext.jsx';
-import { agentApi } from './api/client.js';
-import { TopValueDeals } from './components/TopValueDeals.jsx';
+import { propertyApi } from './api/client.js';
 import { HowItWorks } from './components/HowItWorks.jsx';
-import { AgentDealCard } from './components/agent/AgentDealCard.jsx';
-import { ReelsStrip } from './components/ReelsStrip.jsx';
+import { IsraelMap } from './components/heatmap/IsraelMap.jsx';
+import { PropertyFilterBar } from './components/PropertyFilterBar.jsx';
+import { PropertyGrid } from './components/PropertyGrid.jsx';
 import { SiteFooter } from './components/SiteFooter.jsx';
+import { REGIONS } from './data/propertyOptions.js';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Search, Calendar, Banknote, ArrowUpDown, X, ChevronDown, Briefcase, MapPin, UserPlus } from 'lucide-react';
-
-const gridVariants = { hidden: {}, visible: { transition: { staggerChildren: 0.08 } } };
-const cardIn = { hidden: { opacity: 0, y: 22 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
+import { Search, Calendar, Banknote, Users, X, MapPin, UserPlus } from 'lucide-react';
 
 export function App() {
-  const { t } = useLanguage();
-  const [agentDeals, setAgentDeals] = useState([]);
-  const dealsRef = useRef(null);
+  const [properties, setProperties] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const resultsRef = useRef(null);
   const searchSectionRef = useRef(null);
 
-  const [filterDest, setFilterDest] = useState('');
-  const [filterDate, setFilterDate] = useState('');
-  const [filterMaxPrice, setFilterMaxPrice] = useState('');
-  const [sortDir, setSortDir] = useState('asc');
+  // Hero search fields
+  const [heroRegion, setHeroRegion] = useState('');
+  const [checkIn, setCheckIn] = useState('');
+  const [checkOut, setCheckOut] = useState('');
+  const [guests, setGuests] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+
+  // Filter bar (below results)
+  const [propertyType, setPropertyType] = useState(null);
+  const [kosherLevel, setKosherLevel] = useState(null);
+  const [amenities, setAmenities] = useState([]);
+
+  function toggleAmenity(value) {
+    setAmenities((prev) => (prev.includes(value) ? prev.filter((a) => a !== value) : [...prev, value]));
+  }
+
+  const filters = useMemo(() => ({
+    region: heroRegion || undefined,
+    property_type: propertyType || undefined,
+    min_guests: guests || undefined,
+    max_price: maxPrice || undefined,
+    kosher_level: kosherLevel || undefined,
+    amenities,
+    check_in: checkIn || undefined,
+    check_out: checkOut || undefined,
+  }), [heroRegion, propertyType, guests, maxPrice, kosherLevel, amenities, checkIn, checkOut]);
 
   useEffect(() => {
-    agentApi.getApprovedDeals()
-      .then(({ deals }) => setAgentDeals(deals || []))
-      .catch(() => setAgentDeals([]));
-  }, []);
+    setIsLoading(true);
+    propertyApi.search(filters)
+      .then(({ properties: p }) => setProperties(p || []))
+      .catch(() => setProperties([]))
+      .finally(() => setIsLoading(false));
+  }, [filters]);
 
-  // Listen for header search submissions
-  useEffect(() => {
-    function onHeaderSearch(e) {
-      if (e.detail) setFilterDest(e.detail);
-      setTimeout(() => {
-        dealsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 80);
-    }
-    window.addEventListener('header-search-submit', onHeaderSearch);
-    return () => window.removeEventListener('header-search-submit', onHeaderSearch);
-  }, []);
+  const propertiesByRegion = useMemo(() => {
+    const counts = {};
+    for (const p of properties) counts[p.region] = (counts[p.region] || 0) + 1;
+    return counts;
+  }, [properties]);
 
-  // Notify Header when search section leaves viewport
-  useEffect(() => {
-    const el = searchSectionRef.current;
-    if (!el || !('IntersectionObserver' in window)) return;
-    const obs = new IntersectionObserver(
-      ([entry]) => {
-        window.dispatchEvent(new CustomEvent('search-section-visible', { detail: entry.isIntersecting }));
-      },
-      { threshold: 0.1, rootMargin: '-60px 0px 0px 0px' }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
-
-  const filteredDeals = useMemo(() => {
-    let result = [...agentDeals];
-    if (filterDest.trim()) {
-      const q = filterDest.trim().toLowerCase();
-      result = result.filter(d =>
-        (d.destination_name || '').toLowerCase().includes(q) ||
-        (d.destination || '').toLowerCase().includes(q) ||
-        (d.country || '').toLowerCase().includes(q)
-      );
-    }
-    if (filterDate) {
-      result = result.filter(d => d.departure_date && d.departure_date >= filterDate);
-    }
-    if (filterMaxPrice && Number(filterMaxPrice) > 0) {
-      result = result.filter(d => Number(d.price) <= Number(filterMaxPrice));
-    }
-    result.sort((a, b) => sortDir === 'asc' ? a.price - b.price : b.price - a.price);
-    return result;
-  }, [agentDeals, filterDest, filterDate, filterMaxPrice, sortDir]);
-
-  const hasFilter = filterDest || filterDate || filterMaxPrice;
+  const hasFilter = Boolean(heroRegion || checkIn || guests || maxPrice || propertyType || kosherLevel || amenities.length > 0);
 
   function clearFilters() {
-    setFilterDest('');
-    setFilterDate('');
-    setFilterMaxPrice('');
-    setSortDir('asc');
+    setHeroRegion('');
+    setCheckIn('');
+    setCheckOut('');
+    setGuests('');
+    setMaxPrice('');
+    setPropertyType(null);
+    setKosherLevel(null);
+    setAmenities([]);
   }
 
   function handleSearch() {
-    if (dealsRef.current) {
-      dealsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function handleSelectRegionFromMap(regionValue) {
+    setHeroRegion(regionValue);
+    handleSearch();
   }
 
   return (
     <NowProvider>
       <main id="main-content" aria-label="תוכן ראשי">
-      <HowItWorks />
+        <HowItWorks />
 
-      {/* ── Floating pill search — no outer box, fields float on page bg ── */}
-      <motion.section
-        className="dsh container"
-        ref={searchSectionRef}
-        dir="rtl"
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: '-20px' }}
-        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      >
-        <h2 className="dsh__title">חפש את הדיל שלך</h2>
-        <p className="dsh__sub">סנן לפי יעד, תאריך ותקציב — רק דילים מאומתים מסוכנים מובילים</p>
+        {/* ── Floating pill search — same shell as the original flight search hero ── */}
+        <motion.section
+          className="dsh container"
+          ref={searchSectionRef}
+          dir="rtl"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-20px' }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <h2 className="dsh__title">חפש את הצימר שלך</h2>
+          <p className="dsh__sub">סנן לפי אזור, תאריכים, אורחים ותקציב — רק נכסים אמיתיים בישראל</p>
 
-        <div className="dsh__row">
-          {/* Destination pill */}
-          <div className="dsh__pill dsh__pill--dest">
-            <MapPin size={16} className="dsh__pill-icon" />
-            <input
-              className="dsh__pill-input"
-              placeholder="לאן בא לך לטוס?"
-              value={filterDest}
-              onChange={e => setFilterDest(e.target.value)}
-            />
+          <div className="dsh__row">
+            <div className="dsh__pill dsh__pill--dest">
+              <MapPin size={16} className="dsh__pill-icon" />
+              <select
+                className="dsh__pill-input dsh__pill-input--select"
+                value={heroRegion}
+                onChange={(e) => setHeroRegion(e.target.value)}
+              >
+                <option value="">איזה אזור?</option>
+                {REGIONS.map((r) => (
+                  <option key={r.value} value={r.value}>{r.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="dsh__pill dsh__pill--date">
+              <Calendar size={16} className="dsh__pill-icon" />
+              <input
+                className="dsh__pill-input dsh__pill-input--date"
+                type="date"
+                value={checkIn}
+                onChange={(e) => setCheckIn(e.target.value)}
+                aria-label="תאריך כניסה"
+              />
+            </div>
+
+            <div className="dsh__pill dsh__pill--date">
+              <Calendar size={16} className="dsh__pill-icon" />
+              <input
+                className="dsh__pill-input dsh__pill-input--date"
+                type="date"
+                value={checkOut}
+                onChange={(e) => setCheckOut(e.target.value)}
+                aria-label="תאריך יציאה"
+              />
+            </div>
+
+            <div className="dsh__pill dsh__pill--price">
+              <Users size={16} className="dsh__pill-icon" />
+              <input
+                className="dsh__pill-input"
+                type="number"
+                min="1"
+                placeholder="כמה אורחים?"
+                value={guests}
+                onChange={(e) => setGuests(e.target.value)}
+              />
+            </div>
+
+            <div className="dsh__pill dsh__pill--price">
+              <Banknote size={16} className="dsh__pill-icon" />
+              <input
+                className="dsh__pill-input"
+                type="number"
+                min="0"
+                placeholder="תקציב מקסימלי ללילה ₪"
+                value={maxPrice}
+                onChange={(e) => setMaxPrice(e.target.value)}
+              />
+            </div>
+
+            <motion.button className="dsh__pill dsh__pill--btn" whileTap={{ scale: 0.96 }} onClick={handleSearch}>
+              <Search size={16} />
+              חפש
+            </motion.button>
+
+            <AnimatePresence>
+              {hasFilter && (
+                <motion.button
+                  className="dsh__pill dsh__pill--clear"
+                  initial={{ opacity: 0, scale: 0.85 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.85 }}
+                  whileTap={{ scale: 0.94 }}
+                  onClick={clearFilters}
+                  aria-label="נקה סינון"
+                >
+                  <X size={15} />
+                </motion.button>
+              )}
+            </AnimatePresence>
           </div>
 
-          {/* Date pill */}
-          <div className="dsh__pill dsh__pill--date">
-            <Calendar size={16} className="dsh__pill-icon" />
-            <input
-              className="dsh__pill-input dsh__pill-input--date"
-              type="date"
-              value={filterDate}
-              onChange={e => setFilterDate(e.target.value)}
-            />
-          </div>
-
-          {/* Budget pill */}
-          <div className="dsh__pill dsh__pill--price">
-            <Banknote size={16} className="dsh__pill-icon" />
-            <input
-              className="dsh__pill-input"
-              type="number"
-              min="0"
-              placeholder="תקציב מקסימלי ₪"
-              value={filterMaxPrice}
-              onChange={e => setFilterMaxPrice(e.target.value)}
-            />
-          </div>
-
-          {/* Sort pill */}
-          <div className="dsh__pill dsh__pill--sort">
-            <ArrowUpDown size={16} className="dsh__pill-icon" />
-            <select
-              className="dsh__pill-input dsh__pill-input--select"
-              value={sortDir}
-              onChange={e => setSortDir(e.target.value)}
-            >
-              <option value="asc">מחיר: נמוך → גבוה</option>
-              <option value="desc">מחיר: גבוה → נמוך</option>
-            </select>
-            <ChevronDown size={13} className="dsh__pill-chevron" />
-          </div>
-
-          {/* Search button pill */}
-          <motion.button
-            className="dsh__pill dsh__pill--btn"
-            whileTap={{ scale: 0.96 }}
-            onClick={handleSearch}
-          >
-            <Search size={16} />
-            חפש
-          </motion.button>
-
-          {/* Clear pill — appears only when filters active */}
           <AnimatePresence>
             {hasFilter && (
-              <motion.button
-                className="dsh__pill dsh__pill--clear"
-                initial={{ opacity: 0, scale: 0.85 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.85 }}
-                whileTap={{ scale: 0.94 }}
-                onClick={clearFilters}
-                aria-label="נקה סינון"
-              >
-                <X size={15} />
-              </motion.button>
+              <motion.p className="dsh__count" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                {properties.length} נכסים תואמים
+              </motion.p>
             )}
           </AnimatePresence>
-        </div>
+        </motion.section>
 
-        <AnimatePresence>
-          {hasFilter && (
-            <motion.p
-              className="dsh__count"
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-            >
-              {filteredDeals.length} דילים תואמים
-            </motion.p>
-          )}
-        </AnimatePresence>
-      </motion.section>
+        {/* ── Region map — same .heatmap-hero wrapper WorldHeatmap's CSS was built for ── */}
+        <section className="heatmap-hero">
+          <IsraelMap propertiesByRegion={propertiesByRegion} onSelectRegion={handleSelectRegionFromMap} />
+        </section>
 
-      <TopValueDeals hero />
-
-      <ReelsStrip deals={agentDeals} />
-
-      {agentDeals.length > 0 && (
-        <section className="agent-deals-section container" ref={dealsRef}>
+        {/* ── Results ── */}
+        <section className="agent-deals-section container" ref={resultsRef}>
           <h2 className="agent-deals-section__title">
-            <Briefcase size={20} color="var(--color-accent-from)" />
-            {t.agentDealsSectionTitle || 'דילים מסוכנים'}
+            <MapPin size={20} color="var(--color-accent-from)" />
+            צימרים ווילות
           </h2>
           <p className="agent-deals-section__subtitle">
-            {t.agentDealsSectionSubtitle || 'עסקאות ייחודיות ישירות מסוכנים מאומתים — לחץ לפרטים מלאים'}
+            נכסים ישירות מבעלים — חלקם מאומתים, חלקם עדיין ממתינים לאימות הבעלים
           </p>
 
-          <motion.div
-            className="agent-deals-carousel"
-            variants={gridVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-40px' }}
-          >
-            {filteredDeals.length === 0 ? (
-              <p className="deals-filter-empty">לא נמצאו דילים התואמים את הסינון</p>
-            ) : filteredDeals.map(deal => (
-              <motion.div key={deal.id} variants={cardIn} className="agent-deals-carousel__item">
-                <AgentDealCard deal={deal} />
-              </motion.div>
-            ))}
-          </motion.div>
+          <PropertyFilterBar
+            region={heroRegion}
+            propertyType={propertyType}
+            kosherLevel={kosherLevel}
+            amenities={amenities}
+            onChangeRegion={setHeroRegion}
+            onChangePropertyType={setPropertyType}
+            onChangeKosherLevel={setKosherLevel}
+            onToggleAmenity={toggleAmenity}
+            onClear={clearFilters}
+          />
+
+          <PropertyGrid properties={properties} isLoading={isLoading} hasActiveFilters={hasFilter} />
         </section>
-      )}
 
-      {/* Agent join strip — visible to agents browsing the feed, unobtrusive for travelers */}
-      <section className="agent-cta-strip" dir="rtl">
-        <div className="agent-cta-strip__inner container">
-          <div className="agent-cta-strip__text">
-            <span className="agent-cta-strip__eyebrow">סוכן נסיעות?</span>
-            <strong className="agent-cta-strip__heading">הצג את הדילים שלך לאלפי מטיילים</strong>
-            <p className="agent-cta-strip__sub">ללא עמלות · ישירות ללקוח · תוך דקות</p>
+        {/* Owner join strip */}
+        <section className="agent-cta-strip" dir="rtl">
+          <div className="agent-cta-strip__inner container">
+            <div className="agent-cta-strip__text">
+              <span className="agent-cta-strip__eyebrow">בעל צימר או וילה?</span>
+              <strong className="agent-cta-strip__heading">הצג את הנכס שלך לאלפי מטיילים</strong>
+              <p className="agent-cta-strip__sub">ללא עמלות · ישירות ללקוח · תוך דקות</p>
+            </div>
+            <Link to="/register" className="agent-cta-strip__btn">
+              <UserPlus size={16} />
+              הצטרף בחינם
+            </Link>
           </div>
-          <Link to="/register" className="agent-cta-strip__btn">
-            <UserPlus size={16} />
-            הצטרף בחינם
-          </Link>
-        </div>
-      </section>
+        </section>
 
-      <SiteFooter />
+        <SiteFooter />
       </main>
     </NowProvider>
   );

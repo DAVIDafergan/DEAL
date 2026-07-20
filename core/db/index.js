@@ -75,18 +75,61 @@ async function ensureColumn(connection, table, column, definition) {
   }
 }
 
+/**
+ * מעביר טבלה קיימת לשם `_legacy` בלי לאבד נתונים — משמש לסגירת עולם הטיסות (deals/packages/
+ * vibe_feed_cards/price_history) בלי למחוק היסטוריה. בטוח להריץ פעמים רבות: אם `oldName` כבר
+ * לא קיים (כבר הועבר בעבר, או שמעולם לא היה — התקנה חדשה), פשוט לא עושה כלום. מטפל גם במקרה
+ * שבו SCHEMA_STATEMENTS כבר יצר `newName` ריק ברגע זה בעלייה (כי ה-CREATE TABLE IF NOT EXISTS
+ * החדש מגדיר את השם החדש ישירות, ורץ *לפני* המיגרציות) — מוחק את המעטפת הריקה ואז מבצע rename
+ * אמיתי של הטבלה הישנה (עם הנתונים) למקומה.
+ *
+ * Renames an existing table to a `_legacy` name without losing data — used to retire the
+ * flight world (deals/packages/vibe_feed_cards/price_history) without deleting history. Safe
+ * to run repeatedly: no-ops once `oldName` no longer exists (already migrated, or a fresh
+ * install that never had it). Also handles the case where SCHEMA_STATEMENTS already created an
+ * empty `newName` shell earlier in this same boot (since schema statements run *before*
+ * migrations, and the schema now defines the new name directly) — drops that empty shell first,
+ * then does a real rename of the old, data-bearing table into place.
+ */
+async function ensureTableRenamed(connection, oldName, newName) {
+  const [[oldTable]] = await connection.query(
+    `SELECT COUNT(*) AS count FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?`,
+    [oldName]
+  );
+  if (oldTable.count === 0) return;
+
+  const [[newTable]] = await connection.query(
+    `SELECT COUNT(*) AS count FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?`,
+    [newName]
+  );
+  if (newTable.count > 0) {
+    const [[rowCount]] = await connection.query(`SELECT COUNT(*) AS count FROM \`${newName}\``);
+    if (rowCount.count > 0) {
+      console.error(
+        `[deal-radar-pro] Cannot rename ${oldName} -> ${newName}: both tables exist and ${newName} ` +
+          'already has rows. Skipping — resolve manually.'
+      );
+      return;
+    }
+    await connection.query(`DROP TABLE \`${newName}\``);
+  }
+
+  await connection.query(`RENAME TABLE \`${oldName}\` TO \`${newName}\``);
+  console.log(`[deal-radar-pro] Migrated: renamed table ${oldName} -> ${newName}`);
+}
+
 const MIGRATIONS = [
-  (connection) => ensureColumn(connection, 'deals', 'departure_at', 'DATETIME NULL'),
-  (connection) => ensureColumn(connection, 'deals', 'arrival_at', 'DATETIME NULL'),
-  (connection) => ensureColumn(connection, 'deals', 'duration_minutes', 'INT NULL'),
-  (connection) => ensureColumn(connection, 'deals', 'return_date', 'DATE NULL'),
-  (connection) => ensureColumn(connection, 'deals', 'return_departure_at', 'DATETIME NULL'),
-  (connection) => ensureColumn(connection, 'deals', 'return_stops', 'INT NULL'),
-  (connection) => ensureColumn(connection, 'vibe_feed_cards', 'photo_url', 'TEXT NULL'),
-  (connection) => ensureColumn(connection, 'vibe_feed_cards', 'video_poster_url', 'TEXT NULL'),
+  (connection) => ensureColumn(connection, 'deals_legacy', 'departure_at', 'DATETIME NULL'),
+  (connection) => ensureColumn(connection, 'deals_legacy', 'arrival_at', 'DATETIME NULL'),
+  (connection) => ensureColumn(connection, 'deals_legacy', 'duration_minutes', 'INT NULL'),
+  (connection) => ensureColumn(connection, 'deals_legacy', 'return_date', 'DATE NULL'),
+  (connection) => ensureColumn(connection, 'deals_legacy', 'return_departure_at', 'DATETIME NULL'),
+  (connection) => ensureColumn(connection, 'deals_legacy', 'return_stops', 'INT NULL'),
+  (connection) => ensureColumn(connection, 'vibe_feed_cards_legacy', 'photo_url', 'TEXT NULL'),
+  (connection) => ensureColumn(connection, 'vibe_feed_cards_legacy', 'video_poster_url', 'TEXT NULL'),
   (connection) => ensureColumn(connection, 'destination_images', 'source', "VARCHAR(16) NULL"),
-  (connection) => ensureColumn(connection, 'vibe_feed_cards', 'hotel_breakfast_included', 'TINYINT(1) NULL'),
-  (connection) => ensureColumn(connection, 'vibe_feed_cards', 'has_car_rental_option', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'vibe_feed_cards_legacy', 'hotel_breakfast_included', 'TINYINT(1) NULL'),
+  (connection) => ensureColumn(connection, 'vibe_feed_cards_legacy', 'has_car_rental_option', 'TINYINT(1) NOT NULL DEFAULT 0'),
   // agent_deals extended fields: airline, luggage, hotel, car
   (connection) => ensureColumn(connection, 'agent_deals', 'airline', 'VARCHAR(120) NULL'),
   (connection) => ensureColumn(connection, 'agent_deals', 'includes_checked_baggage', 'TINYINT(1) NOT NULL DEFAULT 0'),
@@ -123,6 +166,40 @@ const MIGRATIONS = [
   (connection) => ensureColumn(connection, 'agents', 'has_seen_onboarding', 'TINYINT(1) NOT NULL DEFAULT 0'),
   (connection) => ensureColumn(connection, 'agents', 'cover_url', 'TEXT NULL'),
   (connection) => ensureColumn(connection, 'agents', 'about', 'TEXT NULL'),
+  // Zimmer/villa platform: distinguishes today's paying flight agents from new property-owner
+  // signups within the same `agents` table (see core/db/index.js properties.owner_id comment —
+  // agents doubles as the owner table; renaming it is deferred to when routes are cut over).
+  // Existing rows default to 'flight_agent'; registration code picks 'property_owner' explicitly
+  // for new zimmer-world signups.
+  (connection) => ensureColumn(connection, 'agents', "account_type", "ENUM('flight_agent','property_owner') NOT NULL DEFAULT 'flight_agent'"),
+  // Retiring the flight world (README: platform now covers zimmer/villa rentals only) — rename
+  // the auto-scanned/generated tables to `_legacy` instead of deleting them. dealsStore,
+  // packagesStore, vibeFeedStore, and the deals-table lookup inside agentDealStore.computeValueScore
+  // are all disconnected in the same change (server/routes/deals.js, packages.js, and the relevant
+  // server/index.js background jobs no longer call them), so nothing reads/writes these tables
+  // under their old names anymore.
+  (connection) => ensureTableRenamed(connection, 'deals', 'deals_legacy'),
+  (connection) => ensureTableRenamed(connection, 'packages', 'packages_legacy'),
+  (connection) => ensureTableRenamed(connection, 'vibe_feed_cards', 'vibe_feed_cards_legacy'),
+  (connection) => ensureTableRenamed(connection, 'price_history', 'price_history_legacy'),
+  // Ownership-claim flow (Step 5): a verified claim needs an admin-review state between
+  // 'unclaimed' and 'claimed'. CREATE TABLE IF NOT EXISTS won't widen an ENUM on a
+  // already-deployed table, so this MODIFY COLUMN runs explicitly, once, guarded by a check.
+  async (connection) => {
+    const [rows] = await connection.query(
+      `SELECT COLUMN_TYPE FROM information_schema.columns
+       WHERE table_schema = DATABASE() AND table_name = 'properties' AND column_name = 'status'`
+    );
+    if (rows[0] && !rows[0].COLUMN_TYPE.includes("'pending'")) {
+      await connection.query(
+        "ALTER TABLE properties MODIFY COLUMN status ENUM('unclaimed','claimed','active','hidden','pending') NOT NULL DEFAULT 'unclaimed'"
+      );
+      console.log('[deal-radar-pro] Migrated: properties.status enum widened to include \'pending\'');
+    }
+  },
+  // Per-field confidence scores from the Extractor (Step 3) — separate from the single overall
+  // `confidence` column (which stays an aggregate used as the publish gate).
+  (connection) => ensureColumn(connection, 'properties', 'extraction_confidence', 'JSON NULL'),
 ];
 
 const SCHEMA_STATEMENTS = [
@@ -136,7 +213,7 @@ const SCHEMA_STATEMENTS = [
     created_at DATETIME NOT NULL,
     INDEX idx_contact_created_at (created_at)
   ) ENGINE=InnoDB`,
-  `CREATE TABLE IF NOT EXISTS price_history (
+  `CREATE TABLE IF NOT EXISTS price_history_legacy (
     id INT AUTO_INCREMENT PRIMARY KEY,
     route VARCHAR(16) NOT NULL,
     date DATE NOT NULL,
@@ -145,7 +222,7 @@ const SCHEMA_STATEMENTS = [
     INDEX idx_price_history_route_date (route, date),
     INDEX idx_price_history_route_scanned_at (route, scanned_at)
   ) ENGINE=InnoDB`,
-  `CREATE TABLE IF NOT EXISTS deals (
+  `CREATE TABLE IF NOT EXISTS deals_legacy (
     id VARCHAR(64) PRIMARY KEY,
     type VARCHAR(16) NOT NULL,
     origin VARCHAR(8) NOT NULL,
@@ -172,7 +249,7 @@ const SCHEMA_STATEMENTS = [
     sent_at DATETIME NOT NULL,
     INDEX idx_deals_sent_sent_at (sent_at)
   ) ENGINE=InnoDB`,
-  `CREATE TABLE IF NOT EXISTS packages (
+  `CREATE TABLE IF NOT EXISTS packages_legacy (
     id VARCHAR(64) PRIMARY KEY,
     origin VARCHAR(8) NOT NULL,
     destination VARCHAR(8) NOT NULL,
@@ -208,7 +285,7 @@ const SCHEMA_STATEMENTS = [
     attribution_url TEXT NULL,
     fetched_at DATETIME NOT NULL
   ) ENGINE=InnoDB`,
-  `CREATE TABLE IF NOT EXISTS vibe_feed_cards (
+  `CREATE TABLE IF NOT EXISTS vibe_feed_cards_legacy (
     id VARCHAR(64) PRIMARY KEY,
     vibe VARCHAR(16) NOT NULL,
     origin VARCHAR(8) NOT NULL,
@@ -321,6 +398,156 @@ const SCHEMA_STATEMENTS = [
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_user_favorites_session (session_id),
     INDEX idx_user_favorites_deal (deal_id, deal_type)
+  ) ENGINE=InnoDB`,
+
+  // ── Zimmer/villa platform (additive — not yet read by any route/store) ─────────
+  // properties.owner_id points at the existing `agents` table: it already has every
+  // field the Owner entity needs (business_name, contact_name, email, password_hash,
+  // phone, whatsapp_number, status...), and it's still the live, working auth table
+  // for today's travel agents. Renaming agents → owners is deferred to the step that
+  // also rewires the routes/stores that read `agents` by name, so nothing breaks in
+  // between. ON DELETE SET NULL: deleting an owner account reverts their properties
+  // to unclaimed rather than destroying booking history tied to them.
+  `CREATE TABLE IF NOT EXISTS blocklist (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    type ENUM('domain','phone') NOT NULL,
+    value VARCHAR(255) NOT NULL,
+    reason VARCHAR(255) NULL,
+    created_at DATETIME NOT NULL,
+    UNIQUE KEY uk_blocklist_type_value (type, value)
+  ) ENGINE=InnoDB`,
+  `CREATE TABLE IF NOT EXISTS properties (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    owner_id INT NULL,
+    name VARCHAR(255) NOT NULL,
+    description TEXT NULL,
+    property_type ENUM('zimmer','villa','cottage','suite') NOT NULL,
+    region ENUM('north','galilee','golan','carmel','center','jerusalem','south','dead_sea','eilat') NOT NULL,
+    city VARCHAR(120) NULL,
+    address VARCHAR(255) NULL,
+    latitude DECIMAL(9,6) NULL,
+    longitude DECIMAL(9,6) NULL,
+    guest_capacity TINYINT UNSIGNED NULL,
+    bedrooms TINYINT UNSIGNED NULL,
+    beds TINYINT UNSIGNED NULL,
+    bathrooms TINYINT UNSIGNED NULL,
+    has_private_jacuzzi TINYINT(1) NOT NULL DEFAULT 0,
+    has_private_pool TINYINT(1) NOT NULL DEFAULT 0,
+    has_heated_pool TINYINT(1) NOT NULL DEFAULT 0,
+    has_sauna TINYINT(1) NOT NULL DEFAULT 0,
+    has_view TINYINT(1) NOT NULL DEFAULT 0,
+    has_garden TINYINT(1) NOT NULL DEFAULT 0,
+    has_bbq TINYINT(1) NOT NULL DEFAULT 0,
+    has_outdoor_jacuzzi TINYINT(1) NOT NULL DEFAULT 0,
+    has_parking TINYINT(1) NOT NULL DEFAULT 0,
+    has_air_conditioning TINYINT(1) NOT NULL DEFAULT 0,
+    has_equipped_kitchen TINYINT(1) NOT NULL DEFAULT 0,
+    has_wifi TINYINT(1) NOT NULL DEFAULT 0,
+    is_kid_friendly TINYINT(1) NOT NULL DEFAULT 0,
+    is_pet_friendly TINYINT(1) NOT NULL DEFAULT 0,
+    is_accessible TINYINT(1) NOT NULL DEFAULT 0,
+    kosher_level ENUM('kosher','shomer_shabbat','kosher_kitchen','not_applicable') NOT NULL DEFAULT 'not_applicable',
+    base_price_night DECIMAL(10,2) NULL,
+    weekend_price DECIMAL(10,2) NULL,
+    holiday_price DECIMAL(10,2) NULL,
+    cleaning_fee DECIMAL(10,2) NULL,
+    min_nights TINYINT UNSIGNED NOT NULL DEFAULT 1,
+    currency VARCHAR(8) NOT NULL DEFAULT 'ILS',
+    owner_images JSON NULL,
+    source_image_urls JSON NULL,
+    phone VARCHAR(32) NULL,
+    whatsapp VARCHAR(32) NULL,
+    email VARCHAR(255) NULL,
+    website TEXT NULL,
+    status ENUM('unclaimed','claimed','active','hidden','pending') NOT NULL DEFAULT 'unclaimed',
+    source ENUM('manual','auto') NOT NULL DEFAULT 'manual',
+    confidence TINYINT UNSIGNED NULL,
+    collected_at DATETIME NULL,
+    source_url TEXT NULL,
+    opted_out TINYINT(1) NOT NULL DEFAULT 0,
+    do_not_contact TINYINT(1) NOT NULL DEFAULT 0,
+    opt_out_at DATETIME NULL,
+    opt_out_method VARCHAR(64) NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    INDEX idx_properties_owner (owner_id),
+    INDEX idx_properties_status (status),
+    INDEX idx_properties_region (region),
+    INDEX idx_properties_source (source),
+    CONSTRAINT fk_properties_owner FOREIGN KEY (owner_id) REFERENCES agents(id) ON DELETE SET NULL
+  ) ENGINE=InnoDB`,
+  `CREATE TABLE IF NOT EXISTS availability (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    property_id INT NOT NULL,
+    date DATE NOT NULL,
+    is_available TINYINT(1) NOT NULL DEFAULT 1,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_availability_property_date (property_id, date),
+    INDEX idx_availability_property (property_id),
+    CONSTRAINT fk_availability_property FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB`,
+  `CREATE TABLE IF NOT EXISTS booking_requests (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    property_id INT NOT NULL,
+    check_in DATE NOT NULL,
+    check_out DATE NOT NULL,
+    guest_count TINYINT UNSIGNED NOT NULL DEFAULT 1,
+    customer_name VARCHAR(255) NOT NULL,
+    customer_phone VARCHAR(32) NOT NULL,
+    customer_email VARCHAR(255) NULL,
+    message TEXT NULL,
+    status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+    notified_at DATETIME NULL,
+    reminder_sent_at DATETIME NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    INDEX idx_booking_requests_property (property_id),
+    INDEX idx_booking_requests_status (status),
+    CONSTRAINT fk_booking_requests_property FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB`,
+
+  // Shared one-time-code table for both ownership-claim verification and the /remove page —
+  // same short-lived OTP mechanism, different `purpose`. `target` is the phone number (claim,
+  // removal_phone) or domain (removal_domain) the code was sent to/about.
+  `CREATE TABLE IF NOT EXISTS verification_codes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    purpose ENUM('property_claim','removal_phone','removal_domain') NOT NULL,
+    target VARCHAR(255) NOT NULL,
+    property_id INT NULL,
+    owner_id INT NULL,
+    code VARCHAR(8) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    verified_at DATETIME NULL,
+    created_at DATETIME NOT NULL,
+    INDEX idx_verification_codes_target (purpose, target),
+    CONSTRAINT fk_verification_codes_property FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE,
+    CONSTRAINT fk_verification_codes_owner FOREIGN KEY (owner_id) REFERENCES agents(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB`,
+
+  // Collection engine (Step 3) run log + compliance report — one row per pipeline run
+  // (server/engine/pipeline.js). compliance_report is the auto-generated Step 5.5 report:
+  // images downloaded (must be 0), description-overlap check results, domains skipped for
+  // robots.txt/blocklist reasons.
+  `CREATE TABLE IF NOT EXISTS engine_runs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    mode ENUM('dry_run','live') NOT NULL DEFAULT 'dry_run',
+    status ENUM('running','completed','failed') NOT NULL DEFAULT 'running',
+    domains_discovered INT NOT NULL DEFAULT 0,
+    pages_fetched INT NOT NULL DEFAULT 0,
+    pages_extracted INT NOT NULL DEFAULT 0,
+    pages_rejected INT NOT NULL DEFAULT 0,
+    properties_created INT NOT NULL DEFAULT 0,
+    properties_updated INT NOT NULL DEFAULT 0,
+    properties_queued_for_review INT NOT NULL DEFAULT 0,
+    domains_skipped_robots INT NOT NULL DEFAULT 0,
+    domains_skipped_blocklist INT NOT NULL DEFAULT 0,
+    llm_cost_usd DECIMAL(10,4) NOT NULL DEFAULT 0,
+    compliance_report JSON NULL,
+    error_message TEXT NULL,
+    started_at DATETIME NOT NULL,
+    finished_at DATETIME NULL,
+    INDEX idx_engine_runs_started (started_at)
   ) ENGINE=InnoDB`,
 ];
 

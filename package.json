@@ -29,6 +29,8 @@
     "jsonwebtoken": "^9.0.3",
     "mysql2": "^3.11.5",
     "playwright": "^1.61.1",
-    "stripe": "^22.2.3"
+    "robots-parser": "^3.0.1",
+    "stripe": "^22.2.3",
+    "zod": "^4.4.3"
   }
 }

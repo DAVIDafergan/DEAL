@@ -19,17 +19,20 @@ async function uniqueSlug(connection, base) {
   }
 }
 
-export async function createAgent({ business_name, contact_name, email, password_hash, phone, whatsapp_number }) {
+export async function createAgent({ business_name, contact_name, email, password_hash, phone, whatsapp_number, account_type }) {
   const pool = getPool();
   const conn = await pool.getConnection();
   try {
     const base = slugify(business_name) || slugify(email.split('@')[0]);
     const slug = await uniqueSlug(conn, base || 'agent');
     const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    // account_type defaults to 'flight_agent' (existing registration flow, untouched) — zimmer-world
+    // signups pass account_type: 'property_owner' explicitly. See core/db/index.js MIGRATIONS comment.
+    const resolvedAccountType = account_type === 'property_owner' ? 'property_owner' : 'flight_agent';
     const [result] = await conn.query(
-      `INSERT INTO agents (slug,business_name,contact_name,email,password_hash,phone,whatsapp_number,status,subscription_tier,subscription_status,lead_count,created_at,updated_at)
-       VALUES (?,?,?,?,?,?,?,'approved','basic','trial',0,?,?)`,
-      [slug, business_name, contact_name, email, password_hash, phone || null, whatsapp_number || null, now, now]
+      `INSERT INTO agents (slug,business_name,contact_name,email,password_hash,phone,whatsapp_number,account_type,status,subscription_tier,subscription_status,lead_count,created_at,updated_at)
+       VALUES (?,?,?,?,?,?,?,?,'approved','basic','trial',0,?,?)`,
+      [slug, business_name, contact_name, email, password_hash, phone || null, whatsapp_number || null, resolvedAccountType, now, now]
     );
     return { id: result.insertId, slug };
   } finally {

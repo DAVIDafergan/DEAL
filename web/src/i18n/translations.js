@@ -4,7 +4,7 @@ export const translations = {
   he: {
     dir: 'rtl',
     brand: 'Dealim',
-    brandSub: 'מצא דילי טיסה מהטובים ביותר',
+    brandSub: 'צימרים ווילות ישירות מבעלי הנכס',
     heroTitle: 'כל הדילים הפעילים',
     heroSubtitle: 'אנומליות מחיר אמיתיות, מאומתות נתונים, עם ציון סבירות אכיפה לכל דיל.',
     statsDealsSent: 'דילים שנשלחו',
@@ -286,7 +286,7 @@ export const translations = {
   en: {
     dir: 'ltr',
     brand: 'Dealim',
-    brandSub: 'Find the best flight deals',
+    brandSub: 'Cabins & villas, direct from the owner',
     heroTitle: 'All active deals',
     heroSubtitle: 'Real, data-verified price anomalies — with an enforcement-likelihood score for every deal.',
     statsDealsSent: 'Deals sent',
@@ -568,7 +568,7 @@ export const translations = {
   es: {
     dir: 'ltr',
     brand: 'Dealim',
-    brandSub: 'Las mejores ofertas de vuelos',
+    brandSub: 'Cabañas y villas, directo del propietario',
     heroTitle: 'Todas las ofertas activas',
     heroSubtitle: 'Anomalías de precio reales y verificadas, con una puntuación de probabilidad de cumplimiento.',
     statsDealsSent: 'Ofertas enviadas',
