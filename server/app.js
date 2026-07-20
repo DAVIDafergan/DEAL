@@ -478,120 +478,21 @@ export function createApp() {
     next();
   });
 
-  // ── CORS ───────────────────────────────────────────────────────────────────
-  const allowedOrigins = buildCorsOrigins();
-  app.use(cors({
-    origin: (origin, cb) => {
-      // Allow same-origin requests (e.g. SSR, health checks) and listed origins
-      if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
-      cb(new Error(`CORS: origin ${origin} not allowed`));
-    },
-    credentials: true,
-  }));
-
   // ── Request logging ────────────────────────────────────────────────────────
   app.use((req, _res, next) => {
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
     next();
   });
-  app.use('/api/billing/webhook', express.raw({ type: 'application/json' }));
-  app.use(express.json());
 
-  app.get('/health', (_req, res) => res.json({ status: 'ok' }));
+  // ── Static assets + SSR page routes (before CORS) ──────────────────────────
+  // The site's own JS/CSS/HTML must load from whatever domain it's served on —
+  // custom domain, Railway's fallback domain, or any future domain — so none of this
+  // goes through the CORS check below. CORS only matters for /api, which is scoped
+  // separately further down.
+  const hasWebBuild = fs.existsSync(WEB_INDEX_HTML);
+  const indexHtml = hasWebBuild ? fs.readFileSync(WEB_INDEX_HTML, 'utf8') : null;
 
-  // ── robots.txt ─────────────────────────────────────────────────────────────
-  app.get('/robots.txt', (_req, res) => {
-    res.type('text/plain').send(
-      `User-agent: *\n` +
-      `Allow: /\n` +
-      `Disallow: /admin\n` +
-      `Disallow: /owner/dashboard\n` +
-      `Disallow: /account\n` +
-      `Disallow: /api/\n` +
-      `\n` +
-      `Sitemap: ${SITE_URL}/sitemap.xml\n`
-    );
-  });
-
-  // ── Sitemap ────────────────────────────────────────────────────────────────
-  app.get('/sitemap.xml', async (_req, res) => {
-    try {
-      const pool = getPool();
-      // Flight deals/agents are retired (see README) — no longer promoted for crawling.
-      // Properties: unclaimed listings are still real, useful content (factual info + source
-      // link), so they're included same as claimed/active — only hidden/opted-out are excluded.
-      const [properties] = await pool.query(
-        `SELECT id, updated_at, status FROM properties
-         WHERE status != 'hidden' AND opted_out = 0
-         ORDER BY updated_at DESC LIMIT 1000`
-      );
-      const [owners] = await pool.query(
-        `SELECT DISTINCT a.slug, a.updated_at FROM agents a
-         JOIN properties p ON p.owner_id = a.id
-         WHERE a.status='approved' AND a.account_type='property_owner'
-         ORDER BY a.updated_at DESC LIMIT 500`
-      );
-
-      const staticPages = [
-        { loc: `${SITE_URL}/`, freq: 'hourly', priority: '1.0' },
-        { loc: `${SITE_URL}/register`, freq: 'monthly', priority: '0.5' },
-        { loc: `${SITE_URL}/terms`, freq: 'yearly', priority: '0.2' },
-        { loc: `${SITE_URL}/privacy`, freq: 'yearly', priority: '0.2' },
-        { loc: `${SITE_URL}/accessibility`, freq: 'yearly', priority: '0.2' },
-      ];
-
-      const urls = [
-        ...staticPages.map(p =>
-          `  <url><loc>${p.loc}</loc><changefreq>${p.freq}</changefreq><priority>${p.priority}</priority></url>`
-        ),
-        ...properties.map(p => {
-          const lastmod = p.updated_at ? new Date(p.updated_at).toISOString().slice(0, 10) : '';
-          const priority = p.status === 'active' || p.status === 'claimed' ? '0.8' : '0.5';
-          return `  <url><loc>${SITE_URL}/property/${p.id}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}<changefreq>daily</changefreq><priority>${priority}</priority></url>`;
-        }),
-        ...owners.map(o => {
-          const lastmod = o.updated_at ? new Date(o.updated_at).toISOString().slice(0, 10) : '';
-          return `  <url><loc>${SITE_URL}/owner/${o.slug}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}<changefreq>weekly</changefreq><priority>0.65</priority></url>`;
-        }),
-      ];
-
-      res.type('application/xml').send(
-        `<?xml version="1.0" encoding="UTF-8"?>\n` +
-        `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
-        urls.join('\n') + '\n' +
-        `</urlset>\n`
-      );
-    } catch (err) {
-      console.error('[sitemap] error:', err.message);
-      res.status(500).type('text/plain').send('Sitemap temporarily unavailable');
-    }
-  });
-
-  // ── API routes ─────────────────────────────────────────────────────────────
-  app.use('/api/deals', dealsRouter);
-  app.use('/api/personal-radar', personalRadarRouter);
-  app.use('/api/stats', statsRouter);
-  app.use('/api/images', imagesRouter);
-  app.use('/api/config', configRouter);
-  app.use('/api/packages', packagesRouter);
-  app.use('/api/properties', propertiesRouter);
-  app.use('/api/remove', removeRouter);
-  app.use('/api/whatsapp', whatsappRouter);
-  app.use('/api/agents', agentsRouter);
-  app.use('/api/admin', adminRouter);
-  app.use('/api/billing', billingRouter);
-  app.use('/api/music', musicRouter);
-  app.use('/api/users', usersRouter);
-  app.use('/api/contact', contactRouter);
-
-  app.use('/api', (_req, res) => {
-    res.status(404).json({ error: 'Not found' });
-  });
-
-  // ── Dynamic OG meta-tag pages (before static file serving) ────────────────
-  if (fs.existsSync(WEB_INDEX_HTML)) {
-    const indexHtml = fs.readFileSync(WEB_INDEX_HTML, 'utf8');
-
+  if (hasWebBuild) {
     // Homepage: inject ItemList + FAQ schema + crawlable deal links for Googlebot
     app.get('/', async (req, res) => {
       try {
@@ -745,7 +646,119 @@ export function createApp() {
 
     // Static assets (JS, CSS, images)
     app.use(express.static(WEB_DIST_DIR));
+  }
 
+  // ── CORS (API only) ─────────────────────────────────────────────────────────
+  // Scoped to /api so it never gates static assets or SSR page loads — those must work
+  // from any domain the app happens to be served on. Rejections return 403, not a
+  // generic 500 (see the error handler at the bottom of this file).
+  const allowedOrigins = buildCorsOrigins();
+  app.use('/api', cors({
+    origin: (origin, cb) => {
+      // Allow same-origin/non-browser requests (e.g. curl, health checks) and listed origins
+      if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+      const err = new Error(`CORS: origin ${origin} not allowed`);
+      err.status = 403;
+      cb(err);
+    },
+    credentials: true,
+  }));
+
+  app.use('/api/billing/webhook', express.raw({ type: 'application/json' }));
+  app.use(express.json());
+
+  app.get('/health', (_req, res) => res.json({ status: 'ok' }));
+
+  // ── robots.txt ─────────────────────────────────────────────────────────────
+  app.get('/robots.txt', (_req, res) => {
+    res.type('text/plain').send(
+      `User-agent: *\n` +
+      `Allow: /\n` +
+      `Disallow: /admin\n` +
+      `Disallow: /owner/dashboard\n` +
+      `Disallow: /account\n` +
+      `Disallow: /api/\n` +
+      `\n` +
+      `Sitemap: ${SITE_URL}/sitemap.xml\n`
+    );
+  });
+
+  // ── Sitemap ────────────────────────────────────────────────────────────────
+  app.get('/sitemap.xml', async (_req, res) => {
+    try {
+      const pool = getPool();
+      // Flight deals/agents are retired (see README) — no longer promoted for crawling.
+      // Properties: unclaimed listings are still real, useful content (factual info + source
+      // link), so they're included same as claimed/active — only hidden/opted-out are excluded.
+      const [properties] = await pool.query(
+        `SELECT id, updated_at, status FROM properties
+         WHERE status != 'hidden' AND opted_out = 0
+         ORDER BY updated_at DESC LIMIT 1000`
+      );
+      const [owners] = await pool.query(
+        `SELECT DISTINCT a.slug, a.updated_at FROM agents a
+         JOIN properties p ON p.owner_id = a.id
+         WHERE a.status='approved' AND a.account_type='property_owner'
+         ORDER BY a.updated_at DESC LIMIT 500`
+      );
+
+      const staticPages = [
+        { loc: `${SITE_URL}/`, freq: 'hourly', priority: '1.0' },
+        { loc: `${SITE_URL}/register`, freq: 'monthly', priority: '0.5' },
+        { loc: `${SITE_URL}/terms`, freq: 'yearly', priority: '0.2' },
+        { loc: `${SITE_URL}/privacy`, freq: 'yearly', priority: '0.2' },
+        { loc: `${SITE_URL}/accessibility`, freq: 'yearly', priority: '0.2' },
+      ];
+
+      const urls = [
+        ...staticPages.map(p =>
+          `  <url><loc>${p.loc}</loc><changefreq>${p.freq}</changefreq><priority>${p.priority}</priority></url>`
+        ),
+        ...properties.map(p => {
+          const lastmod = p.updated_at ? new Date(p.updated_at).toISOString().slice(0, 10) : '';
+          const priority = p.status === 'active' || p.status === 'claimed' ? '0.8' : '0.5';
+          return `  <url><loc>${SITE_URL}/property/${p.id}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}<changefreq>daily</changefreq><priority>${priority}</priority></url>`;
+        }),
+        ...owners.map(o => {
+          const lastmod = o.updated_at ? new Date(o.updated_at).toISOString().slice(0, 10) : '';
+          return `  <url><loc>${SITE_URL}/owner/${o.slug}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}<changefreq>weekly</changefreq><priority>0.65</priority></url>`;
+        }),
+      ];
+
+      res.type('application/xml').send(
+        `<?xml version="1.0" encoding="UTF-8"?>\n` +
+        `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+        urls.join('\n') + '\n' +
+        `</urlset>\n`
+      );
+    } catch (err) {
+      console.error('[sitemap] error:', err.message);
+      res.status(500).type('text/plain').send('Sitemap temporarily unavailable');
+    }
+  });
+
+  // ── API routes ─────────────────────────────────────────────────────────────
+  app.use('/api/deals', dealsRouter);
+  app.use('/api/personal-radar', personalRadarRouter);
+  app.use('/api/stats', statsRouter);
+  app.use('/api/images', imagesRouter);
+  app.use('/api/config', configRouter);
+  app.use('/api/packages', packagesRouter);
+  app.use('/api/properties', propertiesRouter);
+  app.use('/api/remove', removeRouter);
+  app.use('/api/whatsapp', whatsappRouter);
+  app.use('/api/agents', agentsRouter);
+  app.use('/api/admin', adminRouter);
+  app.use('/api/billing', billingRouter);
+  app.use('/api/music', musicRouter);
+  app.use('/api/users', usersRouter);
+  app.use('/api/contact', contactRouter);
+
+  app.use('/api', (_req, res) => {
+    res.status(404).json({ error: 'Not found' });
+  });
+
+  if (hasWebBuild) {
     // SPA fallback for all other routes
     app.use((req, res, next) => {
       if (req.method !== 'GET') return next();
@@ -759,8 +772,12 @@ export function createApp() {
 
   // eslint-disable-next-line no-unused-vars
   app.use((err, _req, res, _next) => {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
+    const status = err.status || err.statusCode || 500;
+    if (status >= 500) {
+      console.error(err);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+    res.status(status).json({ error: err.message });
   });
 
   return app;
