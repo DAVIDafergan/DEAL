@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, XCircle, Eye, RefreshCw, ArrowLeft, Trash2, ChevronLeft, ChevronRight, User, LogOut, Users, FileCheck, LayoutDashboard, Clock, Home, BarChart3, Search, ShoppingBag, MousePointerClick } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, RefreshCw, ArrowLeft, Trash2, ChevronLeft, ChevronRight, User, LogOut, Users, FileCheck, LayoutDashboard, Clock, Home, BarChart3, Search, ShoppingBag, MousePointerClick, Bot, ShieldCheck, PlayCircle, MapPin, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { adminApi } from '../api/client.js';
 import { Logo } from '../components/Logo.jsx';
@@ -196,6 +196,248 @@ function AnalyticsTab({ token }) {
             <div className="adm-analytics-kpi__label">לקוחות חדשים החודש</div>
             <div className="adm-analytics-kpi__sub">סה"כ {data.users_total} לקוחות</div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ComplianceReportBlock({ report }) {
+  if (!report) return null;
+  return (
+    <div className="adm-agent-detail" style={{ marginTop: 12 }}>
+      <div className="adm-agent-detail__row"><span>תמונות שהורדו:</span> {report.imagesDownloaded} {report.imagesDownloaded === 0 ? '✓' : '⚠️'}</div>
+      <div className="adm-agent-detail__row"><span>דומיינים שדולגו (robots.txt):</span> {report.domainsSkippedRobots?.length || 0}</div>
+      <div className="adm-agent-detail__row"><span>דומיינים שדולגו (blocklist):</span> {report.domainsSkippedBlocklist?.length || 0}</div>
+      <div className="adm-agent-detail__row">
+        <span>פלטפורמות חסומות — אימות:</span>
+        {' '}
+        {report.hardBlockedDomainsVerified?.every((d) => d.blocked) ? '✓ כולן נחסמו' : '⚠️ בדוק ידנית'}
+        {' '}({report.hardBlockedDomainsVerified?.length || 0} נבדקו)
+      </div>
+      <div className="adm-agent-detail__row">
+        <span>בדיקת 8-מילים (העתקת תיאור):</span>
+        {' '}
+        {(report.descriptionOverlapChecks || []).filter((c) => c.result === 'FAIL').length > 0 ? '⚠️ נמצאה חפיפה!' : `✓ ${report.descriptionOverlapChecks?.length || 0} נבדקו, תקין`}
+      </div>
+      {report.llmCost && (
+        <div className="adm-agent-detail__row"><span>עלות LLM (ריצה זו):</span> ${report.llmCost.costUsd} ({report.llmCost.callCount} קריאות)</div>
+      )}
+    </div>
+  );
+}
+
+function EngineTab({ token, notify }) {
+  const [status, setStatus] = useState(null);
+  const [runs, setRuns] = useState([]);
+  const [starting, setStarting] = useState(false);
+  const pollRef = useRef(null);
+
+  async function loadStatus() {
+    try {
+      const s = await adminApi.getEngineStatus(token);
+      setStatus(s);
+      return s;
+    } catch { return null; }
+  }
+
+  async function loadRuns() {
+    try { const { runs: r } = await adminApi.getEngineRuns(token); setRuns(r || []); } catch {}
+  }
+
+  useEffect(() => {
+    loadStatus();
+    loadRuns();
+    return () => clearInterval(pollRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+
+  async function handleRun() {
+    setStarting(true);
+    try {
+      await adminApi.runEngine(token);
+      notify('הריצה החלה — מריץ על אתרי בדיקה מקומיים בלבד');
+      pollRef.current = setInterval(async () => {
+        const s = await loadStatus();
+        if (s && !s.running) {
+          clearInterval(pollRef.current);
+          loadRuns();
+          notify('הריצה הסתיימה ✓');
+        }
+      }, 2000);
+    } catch (err) {
+      notify(err.message || 'שגיאה בהפעלת המנוע', 'error');
+    } finally {
+      setStarting(false);
+    }
+  }
+
+  const latest = status?.latestRun;
+
+  return (
+    <div dir="rtl">
+      <div className="adm-quick-actions" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px' }}>
+        <motion.button
+          className="adm-row__approve"
+          whileTap={{ scale: 0.97 }}
+          onClick={handleRun}
+          disabled={starting || status?.running}
+        >
+          <PlayCircle size={16} /> {status?.running ? 'רץ כרגע…' : starting ? 'מפעיל…' : 'הרץ מנוע (dry-run, אתרי בדיקה בלבד)'}
+        </motion.button>
+        <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+          תמיד רץ מול אתרי בדיקה מקומיים — לעולם לא סורק אתרים אמיתיים
+        </span>
+      </div>
+
+      {latest && (
+        <>
+          <div className="adm-analytics__grid" style={{ padding: '0 20px' }}>
+            <div className="adm-analytics-kpi">
+              <div className="adm-analytics-kpi__icon" style={{ color: '#2563EB', background: 'rgba(37,99,235,0.12)' }}><MapPin size={26} /></div>
+              <div className="adm-analytics-kpi__value">{latest.domains_discovered}</div>
+              <div className="adm-analytics-kpi__label">דומיינים שהתגלו</div>
+            </div>
+            <div className="adm-analytics-kpi">
+              <div className="adm-analytics-kpi__icon" style={{ color: '#059669', background: 'rgba(5,150,105,0.12)' }}><CheckCircle size={26} /></div>
+              <div className="adm-analytics-kpi__value">{latest.pages_extracted}</div>
+              <div className="adm-analytics-kpi__label">דפים חולצו בהצלחה</div>
+              <div className="adm-analytics-kpi__sub">{latest.pages_rejected} נדחו</div>
+            </div>
+            <div className="adm-analytics-kpi">
+              <div className="adm-analytics-kpi__icon" style={{ color: '#f59e0b', background: 'rgba(245,158,11,0.12)' }}><Home size={26} /></div>
+              <div className="adm-analytics-kpi__value">{latest.properties_created}</div>
+              <div className="adm-analytics-kpi__label">נכסים חדשים</div>
+              <div className="adm-analytics-kpi__sub">{latest.properties_updated} עודכנו</div>
+            </div>
+            <div className="adm-analytics-kpi">
+              <div className="adm-analytics-kpi__icon" style={{ color: '#8b5cf6', background: 'rgba(139,92,246,0.12)' }}><AlertTriangle size={26} /></div>
+              <div className="adm-analytics-kpi__value">{latest.properties_queued_for_review}</div>
+              <div className="adm-analytics-kpi__label">ממתינים לאישור (confidence&lt;60)</div>
+            </div>
+          </div>
+          <div style={{ padding: '4px 20px 20px' }}>
+            <h3 className="dash-section-title" style={{ margin: '12px 0 4px' }}>דוח תאימות — ריצה אחרונה</h3>
+            <ComplianceReportBlock report={latest.compliance_report} />
+          </div>
+        </>
+      )}
+
+      {!latest && <p className="adm-list__empty">עדיין לא בוצעה ריצה</p>}
+
+      {runs.length > 0 && (
+        <div className="adm-list" style={{ padding: '0 20px 20px' }}>
+          <h3 className="dash-section-title">היסטוריית ריצות</h3>
+          {runs.map((r) => (
+            <div key={r.id} className="adm-row">
+              <div className="adm-row__info">
+                <strong>ריצה #{r.id} — {r.status === 'completed' ? '✓ הושלמה' : r.status === 'failed' ? '✗ נכשלה' : '⏳ רצה'}</strong>
+                <span className="adm-row__date">{new Date(r.started_at).toLocaleString('he-IL')}</span>
+                <span>נכסים: {r.properties_created} חדשים, {r.properties_updated} עודכנו · עלות: ${r.llm_cost_usd}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PropertyReviewTab({ token, notify }) {
+  const [queue, setQueue] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const [{ properties }, statsRes] = await Promise.all([
+        adminApi.getPropertyReviewQueue(token),
+        adminApi.getPropertyStats(token),
+      ]);
+      setQueue(properties || []);
+      setStats(statsRes);
+    } catch (err) {
+      notify(err.message || 'שגיאה בטעינה', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { load(); }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function approve(id) {
+    try {
+      await adminApi.approveAutoProperty(token, id);
+      notify('הנכס אושר ופורסם ✓');
+      setQueue((prev) => prev.filter((p) => p.id !== id));
+    } catch (err) { notify(err.message, 'error'); }
+  }
+
+  async function reject(id) {
+    try {
+      await adminApi.rejectAutoProperty(token, id);
+      notify('הנכס נדחה והוסתר');
+      setQueue((prev) => prev.filter((p) => p.id !== id));
+    } catch (err) { notify(err.message, 'error'); }
+  }
+
+  return (
+    <div dir="rtl">
+      {stats && (
+        <div className="adm-analytics__grid" style={{ padding: '16px 20px 0' }}>
+          <div className="adm-analytics-kpi">
+            <div className="adm-analytics-kpi__icon" style={{ color: '#2563EB', background: 'rgba(37,99,235,0.12)' }}><Home size={26} /></div>
+            <div className="adm-analytics-kpi__value">{stats.total}</div>
+            <div className="adm-analytics-kpi__label">סה"כ נכסים</div>
+          </div>
+          <div className="adm-analytics-kpi">
+            <div className="adm-analytics-kpi__icon" style={{ color: '#059669', background: 'rgba(5,150,105,0.12)' }}><Bot size={26} /></div>
+            <div className="adm-analytics-kpi__value">{stats.autoCollection.totalAuto}</div>
+            <div className="adm-analytics-kpi__label">נאספו אוטומטית</div>
+            <div className="adm-analytics-kpi__sub">{stats.autoCollection.successRate}% אחוז פרסום</div>
+          </div>
+          <div className="adm-analytics-kpi">
+            <div className="adm-analytics-kpi__icon" style={{ color: '#f59e0b', background: 'rgba(245,158,11,0.12)' }}><Clock size={26} /></div>
+            <div className="adm-analytics-kpi__value">{stats.autoCollection.pendingReview}</div>
+            <div className="adm-analytics-kpi__label">ממתינים לאישור</div>
+          </div>
+          <div className="adm-analytics-kpi">
+            <div className="adm-analytics-kpi__icon" style={{ color: '#8b5cf6', background: 'rgba(139,92,246,0.12)' }}><ShieldCheck size={26} /></div>
+            <div className="adm-analytics-kpi__value">{stats.autoCollection.avgConfidence}</div>
+            <div className="adm-analytics-kpi__label">confidence ממוצע</div>
+          </div>
+        </div>
+      )}
+
+      {loading && <p style={{ textAlign: 'center', padding: 32, color: 'var(--color-text-muted)' }}>טוען…</p>}
+
+      {!loading && (
+        <div className="adm-list">
+          {queue.length === 0 && <p className="adm-list__empty">אין נכסים הממתינים לאישור</p>}
+          {queue.map((p) => (
+            <div key={p.id} className="adm-row">
+              <div className="adm-row__info">
+                <strong>{p.name}</strong>
+                <span>{p.region} · {p.city || '—'} · confidence: {p.confidence}</span>
+                {p.source_url && (
+                  <a href={p.source_url} target="_blank" rel="noopener noreferrer" className="adm-agent-detail__link">
+                    <Eye size={12} /> מקור
+                  </a>
+                )}
+                {p.description && <span className="adm-row__meta">{p.description}</span>}
+                <span className="adm-row__date">נאסף: {new Date(p.collected_at).toLocaleDateString('he-IL')}</span>
+              </div>
+              <div className="adm-row__actions">
+                <motion.button className="adm-row__approve" whileTap={{ scale: 0.97 }} onClick={() => approve(p.id)}>
+                  <CheckCircle size={16} /> אשר ופרסם
+                </motion.button>
+                <motion.button className="adm-row__reject" whileTap={{ scale: 0.97 }} onClick={() => reject(p.id)}>
+                  <XCircle size={16} /> דחה והסתר
+                </motion.button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -448,6 +690,12 @@ export function AdminPage() {
             <span className="adm-tabs__badge">{contactSubmissions.filter(s => !s.is_read).length}</span>
           )}
         </button>
+        <button className={`adm-tabs__btn${tab === 'property-review' ? ' is-active' : ''}`} onClick={() => setTab('property-review')}>
+          <ShieldCheck size={14} /> נכסים לאישור
+        </button>
+        <button className={`adm-tabs__btn${tab === 'engine' ? ' is-active' : ''}`} onClick={() => setTab('engine')}>
+          <Bot size={14} /> מנוע איסוף
+        </button>
       </div>
 
       {/* Search bar — visible on agents / deals tabs */}
@@ -511,6 +759,12 @@ export function AdminPage() {
 
       {/* Analytics */}
       {tab === 'analytics' && <AnalyticsTab token={token} />}
+
+      {/* Property review queue (auto-collected, confidence < 60) */}
+      {tab === 'property-review' && <PropertyReviewTab token={token} notify={notify} />}
+
+      {/* Collection engine (Step 3/4) */}
+      {tab === 'engine' && <EngineTab token={token} notify={notify} />}
 
       {/* Contact Submissions */}
       {tab === 'contact' && (

@@ -6,6 +6,7 @@ import { propertyApi } from '../api/client.js';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { getCurrencySymbol } from '../utils/currency.js';
 import { regionLabel, propertyTypeLabel, kosherLabel, AMENITIES } from '../data/propertyOptions.js';
+import { PropertyImageCarousel } from '../components/PropertyImageCarousel.jsx';
 
 function activeAmenityLabels(property) {
   return AMENITIES.filter((a) => property[a.value]).map((a) => a.label);
@@ -182,7 +183,6 @@ export function PropertyPage() {
   const isClaimed = property.status === 'claimed' || property.status === 'active';
   const isPendingClaim = property.status === 'pending';
   const amenities = activeAmenityLabels(property);
-  const heroImage = isClaimed ? property.owner_images?.[0] : null;
 
   return (
     <div className="agent-social-profile" dir="rtl">
@@ -193,21 +193,19 @@ export function PropertyPage() {
       </div>
 
       <div className="container" style={{ maxWidth: 640 }}>
-        <div className="deal-modal__media" style={{ borderRadius: 'var(--radius-lg)', height: 280 }}>
-          {heroImage ? (
-            <img src={heroImage} alt={property.name} className="deal-modal__media-img" />
-          ) : (
+        {isClaimed ? (
+          <PropertyImageCarousel images={property.owner_images || []} alt={property.name} />
+        ) : (
+          <div className="deal-modal__media" style={{ borderRadius: 'var(--radius-lg)', height: 280 }}>
             <div className="deal-modal__media-placeholder" />
-          )}
-          <div className="deal-modal__media-gradient" />
-          {!isClaimed && (
+            <div className="deal-modal__media-gradient" />
             <div className="deal-modal__price-overlay">
               <span className="adc__exclusive-badge" style={{ position: 'static' }}>
                 <ShieldAlert size={12} /> בעל הנכס טרם אימת את העמוד
               </span>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         <div className="deal-modal__body" style={{ padding: '20px 4px' }}>
           <h1 className="deal-modal__title">{property.name}</h1>

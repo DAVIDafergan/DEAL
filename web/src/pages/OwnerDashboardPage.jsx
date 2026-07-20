@@ -3,11 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   PlusCircle, Settings, LogOut, CheckCircle, AlertTriangle, MessageCircle,
-  LayoutDashboard, Trash2, Home, Pencil, MapPin,
+  LayoutDashboard, Trash2, Home, Pencil, MapPin, CalendarDays,
 } from 'lucide-react';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { agentApi, propertyApi } from '../api/client.js';
 import { PropertyWizard } from '../components/property/PropertyWizard.jsx';
+import { AvailabilityCalendar } from '../components/property/AvailabilityCalendar.jsx';
 import { getGreeting } from '../utils/greeting.js';
 import { regionLabel, propertyTypeLabel } from '../data/propertyOptions.js';
 
@@ -37,6 +38,7 @@ export function OwnerDashboardPage() {
   const [notification, setNotification] = useState(null);
   const [showWizard, setShowWizard] = useState(false);
   const [editingProperty, setEditingProperty] = useState(null);
+  const [availabilityProperty, setAvailabilityProperty] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -113,6 +115,25 @@ export function OwnerDashboardPage() {
           <motion.div className="dash-wizard-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <motion.div className="dash-wizard-sheet" initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', stiffness: 260, damping: 32 }}>
               <PropertyWizard initialData={editingProperty} propertyId={editingProperty.id} onSuccess={handlePropertyEdited} onCancel={() => setEditingProperty(null)} />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {availabilityProperty && (
+          <motion.div
+            className="dash-wizard-overlay"
+            style={{ alignItems: 'center', justifyContent: 'center', padding: 16 }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setAvailabilityProperty(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <AvailabilityCalendar propertyId={availabilityProperty.id} token={token} onClose={() => setAvailabilityProperty(null)} />
             </motion.div>
           </motion.div>
         )}
@@ -227,6 +248,10 @@ export function OwnerDashboardPage() {
                   <CheckCircle size={13} /> {property.status === 'active' ? 'פעיל' : property.status === 'claimed' ? 'מאומת' : property.status}
                 </span>
                 {property.whatsapp && <span className="dash-deal-wa"><MessageCircle size={12} /></span>}
+                <motion.button className="dash-deal-edit" whileTap={{ scale: 0.9 }} onClick={(e) => { e.stopPropagation(); setAvailabilityProperty(property); }} title="לוח זמינות">
+                  <CalendarDays size={14} />
+                  <span className="dash-deal-btn-label">זמינות</span>
+                </motion.button>
                 <motion.button className="dash-deal-edit" whileTap={{ scale: 0.9 }} onClick={(e) => { e.stopPropagation(); setEditingProperty(property); }} title="ערוך נכס">
                   <Pencil size={14} />
                   <span className="dash-deal-btn-label">ערוך</span>

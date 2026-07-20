@@ -33,7 +33,121 @@ function parseProperty(row) {
     ...row,
     owner_images: parseJsonField(row.owner_images),
     source_image_urls: parseJsonField(row.source_image_urls),
+    extraction_confidence: parseJsonField(row.extraction_confidence),
   };
+}
+
+/** Engine-only write path (Step 3 Loader) — bypasses OWNER_EDITABLE_FIELDS since the engine
+ * writes fields (source, confidence, collected_at, source_url, source_image_urls) that an
+ * owner is never allowed to touch directly. Used only by server/engine/loader/loader.js. */
+export async function upsertAutoCollectedProperty(fields) {
+  const pool = getPool();
+  const ts = nowStr();
+  const [result] = await pool.query(
+    `INSERT INTO properties (
+       name, description, property_type, region, city, address, latitude, longitude,
+       guest_capacity, bedrooms, beds, bathrooms,
+       ${AMENITY_FIELDS.join(', ')},
+       kosher_level, phone, whatsapp, email, website,
+       source_image_urls, extraction_confidence,
+       status, source, confidence, collected_at, source_url, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+       ${AMENITY_FIELDS.map(() => '?').join(', ')},
+       ?, ?, ?, ?, ?, ?, ?, 'unclaimed', 'auto', ?, ?, ?, ?, ?)`,
+    [
+      fields.name,
+      fields.description || null,
+      fields.property_type,
+      fields.region,
+      fields.city || null,
+      fields.address || null,
+      fields.latitude ?? null,
+      fields.longitude ?? null,
+      fields.guest_capacity ?? null,
+      fields.bedrooms ?? null,
+      fields.beds ?? null,
+      fields.bathrooms ?? null,
+      ...AMENITY_FIELDS.map((f) => (fields[f] ? 1 : 0)),
+      fields.kosher_level || 'not_applicable',
+      normalizePhone(fields.phone) || fields.phone || null,
+      normalizePhone(fields.whatsapp) || fields.whatsapp || null,
+      fields.email || null,
+      fields.website || null,
+      fields.source_image_urls ? JSON.stringify(fields.source_image_urls) : null,
+      fields.extraction_confidence ? JSON.stringify(fields.extraction_confidence) : null,
+      fields.confidence ?? null,
+      ts,
+      fields.source_url || null,
+      ts, ts,
+    ]
+  );
+  return result.insertId;
+}
+
+export async function updateAutoCollectedProperty(id, fields) {
+  const pool = getPool();
+  const settable = [
+    'name', 'description', 'property_type', 'region', 'city', 'address', 'latitude', 'longitude',
+    'guest_capacity', 'bedrooms', 'beds', 'bathrooms', ...AMENITY_FIELDS,
+    'kosher_level', 'phone', 'whatsapp', 'email', 'website', 'confidence',
+  ];
+  const sets = [];
+  const vals = [];
+  for (const key of settable) {
+    if (!Object.hasOwn(fields, key)) continue;
+    let value = fields[key];
+    if ((key === 'phone' || key === 'whatsapp') && value) value = normalizePhone(value) || value;
+    sets.push(`${key} = ?`);
+    vals.push(value);
+  }
+  if (Object.hasOwn(fields, 'source_image_urls')) {
+    sets.push('source_image_urls = ?');
+    vals.push(fields.source_image_urls ? JSON.stringify(fields.source_image_urls) : null);
+  }
+  if (Object.hasOwn(fields, 'extraction_confidence')) {
+    sets.push('extraction_confidence = ?');
+    vals.push(fields.extraction_confidence ? JSON.stringify(fields.extraction_confidence) : null);
+  }
+  if (sets.length === 0) return;
+  sets.push('collected_at = ?', 'updated_at = ?');
+  vals.push(nowStr(), nowStr(), id);
+  await pool.query(`UPDATE properties SET ${sets.join(', ')} WHERE id = ? AND source = 'auto'`, [...vals]);
+}
+
+/** Finds an existing auto-collected property by normalized phone or matching source domain —
+ * used by the Deduplicator to decide "update existing" vs. "create new". */
+export async function findAutoPropertyByPhoneOrDomain({ phone, domain }) {
+  const pool = getPool();
+  if (phone) {
+    const [rows] = await pool.query(`SELECT * FROM properties WHERE source = 'auto' AND (phone = ? OR whatsapp = ?) LIMIT 1`, [phone, phone]);
+    if (rows[0]) return parseProperty(rows[0]);
+  }
+  if (domain) {
+    const [rows] = await pool.query(`SELECT * FROM properties WHERE source = 'auto' AND source_url LIKE CONCAT('%', ?, '%') LIMIT 1`, [domain]);
+    if (rows[0]) return parseProperty(rows[0]);
+  }
+  return null;
+}
+
+/** Admin review queue — auto-collected properties below the publish confidence gate. */
+export async function listPropertiesPendingReview() {
+  const pool = getPool();
+  const [rows] = await pool.query(
+    `SELECT * FROM properties WHERE source = 'auto' AND confidence < 60 ORDER BY collected_at DESC`
+  );
+  return rows.map(parseProperty);
+}
+
+export async function approveAutoProperty(id) {
+  const pool = getPool();
+  // Publish gate is confidence>=60 (see CONFIDENCE_PUBLISHABLE_SQL) — admin approval bumps the
+  // score itself rather than adding a parallel "approved" flag the gate would also need to check.
+  await pool.query(`UPDATE properties SET confidence = 100, updated_at = ? WHERE id = ? AND source = 'auto'`, [nowStr(), id]);
+}
+
+export async function rejectAutoProperty(id) {
+  const pool = getPool();
+  await pool.query(`UPDATE properties SET status = 'hidden', updated_at = ? WHERE id = ? AND source = 'auto'`, [nowStr(), id]);
 }
 
 // Defense-in-depth beyond opted_out (which is set immediately at removal time): a property
@@ -45,10 +159,16 @@ const NOT_BLOCKLISTED_SQL = `
   AND NOT EXISTS (SELECT 1 FROM blocklist b WHERE b.type = 'domain' AND properties.source_url IS NOT NULL AND properties.source_url LIKE CONCAT('%', b.value, '%'))
 `;
 
-/** GET /api/properties — public search. Never returns hidden, opted-out, or blocklisted rows. */
+// Step 3 spec: "כל נכס שנאסף אוטומטית ומגיע לציון confidence נמוך מ-60 נכנס לתור אישור ידני ולא
+// מתפרסם" — gated here rather than via a separate status value, so it doesn't collide with
+// 'pending' (which already means "ownership claim awaiting admin review", a different thing).
+// Manually-created properties have confidence=NULL and are never affected by this gate.
+const CONFIDENCE_PUBLISHABLE_SQL = `(confidence IS NULL OR confidence >= 60)`;
+
+/** GET /api/properties — public search. Never returns hidden, opted-out, blocklisted, or low-confidence-unreviewed rows. */
 export async function searchProperties(filters = {}) {
   const pool = getPool();
-  const where = [`status != 'hidden'`, 'opted_out = 0', NOT_BLOCKLISTED_SQL];
+  const where = [`status != 'hidden'`, 'opted_out = 0', NOT_BLOCKLISTED_SQL, CONFIDENCE_PUBLISHABLE_SQL];
   const vals = [];
 
   if (filters.region) { where.push('region = ?'); vals.push(filters.region); }
@@ -77,11 +197,11 @@ export async function searchProperties(filters = {}) {
   return rows.map(parseProperty);
 }
 
-/** Public single-property lookup — 404-equivalent (null) for hidden/opted-out/blocklisted rows. */
+/** Public single-property lookup — 404-equivalent (null) for hidden/opted-out/blocklisted/low-confidence-unreviewed rows. */
 export async function getPropertyById(id) {
   const pool = getPool();
   const [rows] = await pool.query(
-    `SELECT * FROM properties WHERE id = ? AND status != 'hidden' AND opted_out = 0 AND ${NOT_BLOCKLISTED_SQL} LIMIT 1`,
+    `SELECT * FROM properties WHERE id = ? AND status != 'hidden' AND opted_out = 0 AND ${NOT_BLOCKLISTED_SQL} AND ${CONFIDENCE_PUBLISHABLE_SQL} LIMIT 1`,
     [id]
   );
   return rows[0] ? parseProperty(rows[0]) : null;
@@ -402,4 +522,34 @@ export async function removeAndBlock({ phone, domain, method }) {
   if (phone) await addToBlocklist('phone', phone, `Opted out via ${method}`);
   if (domain) await addToBlocklist('domain', domain, `Opted out via ${method}`);
   return properties.length;
+}
+
+// ── Admin dashboard stats (Step 4) ────────────────────────────────────────────
+
+export async function getPropertyStats() {
+  const pool = getPool();
+  const [[totals]] = await pool.query(`SELECT COUNT(*) AS total FROM properties`);
+  const [byRegion] = await pool.query(`SELECT region, COUNT(*) AS count FROM properties GROUP BY region ORDER BY count DESC`);
+  const [byStatus] = await pool.query(`SELECT status, COUNT(*) AS count FROM properties GROUP BY status ORDER BY count DESC`);
+  const [bySource] = await pool.query(`SELECT source, COUNT(*) AS count FROM properties GROUP BY source`);
+  const [[autoStats]] = await pool.query(
+    `SELECT COUNT(*) AS total_auto,
+            SUM(CASE WHEN confidence >= 60 THEN 1 ELSE 0 END) AS published,
+            SUM(CASE WHEN confidence < 60 THEN 1 ELSE 0 END) AS pending_review,
+            AVG(confidence) AS avg_confidence
+     FROM properties WHERE source = 'auto'`
+  );
+  return {
+    total: totals.total,
+    byRegion,
+    byStatus,
+    bySource,
+    autoCollection: {
+      totalAuto: autoStats.total_auto || 0,
+      published: autoStats.published || 0,
+      pendingReview: autoStats.pending_review || 0,
+      avgConfidence: autoStats.avg_confidence ? Math.round(autoStats.avg_confidence) : 0,
+      successRate: autoStats.total_auto > 0 ? Math.round((autoStats.published / autoStats.total_auto) * 100) : 0,
+    },
+  };
 }

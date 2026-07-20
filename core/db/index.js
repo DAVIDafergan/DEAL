@@ -197,6 +197,9 @@ const MIGRATIONS = [
       console.log('[deal-radar-pro] Migrated: properties.status enum widened to include \'pending\'');
     }
   },
+  // Per-field confidence scores from the Extractor (Step 3) — separate from the single overall
+  // `confidence` column (which stays an aggregate used as the publish gate).
+  (connection) => ensureColumn(connection, 'properties', 'extraction_confidence', 'JSON NULL'),
 ];
 
 const SCHEMA_STATEMENTS = [
@@ -520,6 +523,31 @@ const SCHEMA_STATEMENTS = [
     INDEX idx_verification_codes_target (purpose, target),
     CONSTRAINT fk_verification_codes_property FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE,
     CONSTRAINT fk_verification_codes_owner FOREIGN KEY (owner_id) REFERENCES agents(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB`,
+
+  // Collection engine (Step 3) run log + compliance report — one row per pipeline run
+  // (server/engine/pipeline.js). compliance_report is the auto-generated Step 5.5 report:
+  // images downloaded (must be 0), description-overlap check results, domains skipped for
+  // robots.txt/blocklist reasons.
+  `CREATE TABLE IF NOT EXISTS engine_runs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    mode ENUM('dry_run','live') NOT NULL DEFAULT 'dry_run',
+    status ENUM('running','completed','failed') NOT NULL DEFAULT 'running',
+    domains_discovered INT NOT NULL DEFAULT 0,
+    pages_fetched INT NOT NULL DEFAULT 0,
+    pages_extracted INT NOT NULL DEFAULT 0,
+    pages_rejected INT NOT NULL DEFAULT 0,
+    properties_created INT NOT NULL DEFAULT 0,
+    properties_updated INT NOT NULL DEFAULT 0,
+    properties_queued_for_review INT NOT NULL DEFAULT 0,
+    domains_skipped_robots INT NOT NULL DEFAULT 0,
+    domains_skipped_blocklist INT NOT NULL DEFAULT 0,
+    llm_cost_usd DECIMAL(10,4) NOT NULL DEFAULT 0,
+    compliance_report JSON NULL,
+    error_message TEXT NULL,
+    started_at DATETIME NOT NULL,
+    finished_at DATETIME NULL,
+    INDEX idx_engine_runs_started (started_at)
   ) ENGINE=InnoDB`,
 ];
 
