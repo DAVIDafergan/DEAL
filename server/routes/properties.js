@@ -4,7 +4,7 @@ import {
   createProperty, updateProperty,
   getAvailability, setAvailability,
   createBookingRequest, getBookingRequestById, listBookingRequestsForOwner,
-  listPublicPropertiesByOwner,
+  listPublicPropertiesByOwner, listCitiesForRegion,
   createClaimCode, verifyClaimCode,
 } from '../store/propertyStore.js';
 import { findAgentBySlug } from '../store/agentStore.js';
@@ -28,11 +28,14 @@ const KOSHER_LEVELS = ['kosher', 'shomer_shabbat', 'kosher_kitchen', 'not_applic
 /** GET /api/properties?region=&property_type=&min_guests=&max_price=&kosher_level=&amenities=a,b — public search */
 router.get('/', async (req, res) => {
   try {
-    const { region, property_type, min_guests, max_price, kosher_level, amenities, check_in, check_out, limit } = req.query;
+    const { region, city, property_type, min_guests, bedrooms, min_price, max_price, kosher_level, amenities, check_in, check_out, limit } = req.query;
     const properties = await searchProperties({
       region: REGIONS.includes(region) ? region : undefined,
+      city: city || undefined,
       propertyType: PROPERTY_TYPES.includes(property_type) ? property_type : undefined,
       minGuests: min_guests,
+      bedrooms,
+      minPrice: min_price,
       maxPrice: max_price,
       kosherLevel: KOSHER_LEVELS.includes(kosher_level) ? kosher_level : undefined,
       amenities: amenities ? String(amenities).split(',') : [],
@@ -44,6 +47,19 @@ router.get('/', async (req, res) => {
   } catch (err) {
     console.error('[properties] search error:', err.message);
     res.status(500).json({ error: 'Search failed' });
+  }
+});
+
+/** GET /api/properties/cities?region= — distinct cities with listings in that region, for the
+ * staged filter's "where" step. */
+router.get('/cities', async (req, res) => {
+  try {
+    const { region } = req.query;
+    if (!REGIONS.includes(region)) return res.json({ cities: [] });
+    const cities = await listCitiesForRegion(region);
+    res.json({ cities });
+  } catch (err) {
+    res.status(500).json({ error: 'Internal error' });
   }
 });
 

@@ -172,8 +172,11 @@ export async function searchProperties(filters = {}) {
   const vals = [];
 
   if (filters.region) { where.push('region = ?'); vals.push(filters.region); }
+  if (filters.city) { where.push('city = ?'); vals.push(filters.city); }
   if (filters.propertyType) { where.push('property_type = ?'); vals.push(filters.propertyType); }
   if (filters.minGuests) { where.push('guest_capacity >= ?'); vals.push(Number(filters.minGuests)); }
+  if (filters.bedrooms) { where.push('bedrooms >= ?'); vals.push(Number(filters.bedrooms)); }
+  if (filters.minPrice) { where.push('base_price_night >= ?'); vals.push(Number(filters.minPrice)); }
   if (filters.maxPrice) { where.push('base_price_night <= ?'); vals.push(Number(filters.maxPrice)); }
   if (filters.kosherLevel) { where.push('kosher_level = ?'); vals.push(filters.kosherLevel); }
   for (const amenity of filters.amenities || []) {
@@ -195,6 +198,19 @@ export async function searchProperties(filters = {}) {
     [...vals, limit]
   );
   return rows.map(parseProperty);
+}
+
+/** GET /api/properties/cities?region= — distinct cities with a listed property in that region,
+ * for the staged filter's "where" step (7.2: "רק ערים שיש בהן נכסים בפועל"). Same visibility
+ * guard as searchProperties so the count a traveler sees matches what they'll actually get. */
+export async function listCitiesForRegion(region) {
+  const pool = getPool();
+  const where = [`status != 'hidden'`, 'opted_out = 0', NOT_BLOCKLISTED_SQL, CONFIDENCE_PUBLISHABLE_SQL, 'region = ?', 'city IS NOT NULL', "city != ''"];
+  const [rows] = await pool.query(
+    `SELECT city, COUNT(*) AS count FROM properties WHERE ${where.join(' AND ')} GROUP BY city ORDER BY count DESC`,
+    [region]
+  );
+  return rows;
 }
 
 /** Public single-property lookup — 404-equivalent (null) for hidden/opted-out/blocklisted/low-confidence-unreviewed rows. */

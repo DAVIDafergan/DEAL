@@ -99,15 +99,16 @@ export function PropertyCard({ property }) {
 
           <div className="adc__actions" onClick={(e) => e.stopPropagation()}>
             {property.whatsapp && (
-              <a
+              // A <button> (not a nested <a>) — the whole card is already an <a> (Link above),
+              // and an anchor-inside-anchor is invalid HTML that breaks click targeting.
+              <button
+                type="button"
                 className="adc__btn adc__btn--wa"
-                href={buildWhatsAppUrl(property.whatsapp, property.name)}
-                target="_blank"
-                rel="noopener noreferrer"
+                onClick={() => window.open(buildWhatsAppUrl(property.whatsapp, property.name), '_blank', 'noopener,noreferrer')}
                 aria-label="שאל בWhatsApp"
               >
                 <MessageCircle size={14} />
-              </a>
+              </button>
             )}
           </div>
         </div>

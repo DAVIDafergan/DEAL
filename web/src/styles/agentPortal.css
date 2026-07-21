@@ -233,7 +233,7 @@
 .agent-form__input {
   padding: 10px 12px; border-radius: var(--radius-sm);
   background: var(--color-bg-gradient); border: 1px solid var(--color-border);
-  color: var(--color-text-primary); font-size: 0.95rem;
+  color: var(--color-text-primary); font-size: 1rem;
 }
 .agent-form__input--error { border-color: var(--color-error,#ef4444); }
 .agent-form__error-msg { font-size: 0.75rem; color: var(--color-error,#ef4444); }
@@ -385,7 +385,7 @@
 .settings-field__country-code {
   padding: 9px 8px; border-radius: var(--radius-sm);
   background: var(--color-bg-gradient); border: 1px solid var(--color-border);
-  color: var(--color-text-primary); font-size: 0.88rem; flex-shrink: 0;
+  color: var(--color-text-primary); font-size: 1rem; flex-shrink: 0;
 }
 
 /* ── Admin page ──────────────────────────────────────────────────────────── */
@@ -2334,7 +2334,7 @@ img, svg { max-width: 100%; }
   background: transparent;
   border: none;
   outline: none;
-  font-size: 0.9rem;
+  font-size: 1rem;
   font-weight: 500;
   color: var(--color-text-primary);
   padding-inline-start: 44px;

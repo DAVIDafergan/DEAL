@@ -147,6 +147,7 @@ function buildQuery(params) {
 
 export const propertyApi = {
   search: (filters = {}) => getJson(`/properties${buildQuery(filters)}`),
+  cities: (region) => getJson(`/properties/cities${buildQuery({ region })}`),
   get: (id) => getJson(`/properties/${id}`),
   getMine: (token) => getJson('/properties/mine', token),
   create: (token, data) => postJson('/properties', data, token),

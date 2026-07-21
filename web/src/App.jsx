@@ -1,56 +1,32 @@
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { NowProvider } from './context/NowContext.jsx';
 import { propertyApi } from './api/client.js';
 import { HowItWorks } from './components/HowItWorks.jsx';
 import { IsraelMap } from './components/heatmap/IsraelMap.jsx';
-import { PropertyFilterBar } from './components/PropertyFilterBar.jsx';
+import { PropertyFilterPanel } from './components/PropertyFilterPanel.jsx';
+import { PropertyFilterSheet } from './components/PropertyFilterSheet.jsx';
+import { PropertyActiveChips } from './components/PropertyActiveChips.jsx';
+import { PropertyEmptyState } from './components/PropertyEmptyState.jsx';
 import { PropertyGrid } from './components/PropertyGrid.jsx';
 import { SiteFooter } from './components/SiteFooter.jsx';
-import { REGIONS } from './data/propertyOptions.js';
-import { motion, AnimatePresence } from 'framer-motion';
+import { usePropertyFilters } from './hooks/usePropertyFilters.js';
+import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Search, Calendar, Banknote, Users, X, MapPin, UserPlus } from 'lucide-react';
+import { MapPin, UserPlus } from 'lucide-react';
 
 export function App() {
+  const resultsRef = useRef(null);
+  const { filters, setFilter, toggleAmenity, clearAll, activeCount, apiFilters, hasActiveFilters } = usePropertyFilters();
   const [properties, setProperties] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const resultsRef = useRef(null);
-  const searchSectionRef = useRef(null);
-
-  // Hero search fields
-  const [heroRegion, setHeroRegion] = useState('');
-  const [checkIn, setCheckIn] = useState('');
-  const [checkOut, setCheckOut] = useState('');
-  const [guests, setGuests] = useState('');
-  const [maxPrice, setMaxPrice] = useState('');
-
-  // Filter bar (below results)
-  const [propertyType, setPropertyType] = useState(null);
-  const [kosherLevel, setKosherLevel] = useState(null);
-  const [amenities, setAmenities] = useState([]);
-
-  function toggleAmenity(value) {
-    setAmenities((prev) => (prev.includes(value) ? prev.filter((a) => a !== value) : [...prev, value]));
-  }
-
-  const filters = useMemo(() => ({
-    region: heroRegion || undefined,
-    property_type: propertyType || undefined,
-    min_guests: guests || undefined,
-    max_price: maxPrice || undefined,
-    kosher_level: kosherLevel || undefined,
-    amenities,
-    check_in: checkIn || undefined,
-    check_out: checkOut || undefined,
-  }), [heroRegion, propertyType, guests, maxPrice, kosherLevel, amenities, checkIn, checkOut]);
 
   useEffect(() => {
     setIsLoading(true);
-    propertyApi.search(filters)
+    propertyApi.search(apiFilters)
       .then(({ properties: p }) => setProperties(p || []))
       .catch(() => setProperties([]))
       .finally(() => setIsLoading(false));
-  }, [filters]);
+  }, [apiFilters]);
 
   const propertiesByRegion = useMemo(() => {
     const counts = {};
@@ -58,26 +34,13 @@ export function App() {
     return counts;
   }, [properties]);
 
-  const hasFilter = Boolean(heroRegion || checkIn || guests || maxPrice || propertyType || kosherLevel || amenities.length > 0);
-
-  function clearFilters() {
-    setHeroRegion('');
-    setCheckIn('');
-    setCheckOut('');
-    setGuests('');
-    setMaxPrice('');
-    setPropertyType(null);
-    setKosherLevel(null);
-    setAmenities([]);
-  }
-
-  function handleSearch() {
+  function scrollToResults() {
     resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   function handleSelectRegionFromMap(regionValue) {
-    setHeroRegion(regionValue);
-    handleSearch();
+    setFilter({ region: regionValue });
+    scrollToResults();
   }
 
   return (
@@ -85,10 +48,8 @@ export function App() {
       <main id="main-content" aria-label="תוכן ראשי">
         <HowItWorks />
 
-        {/* ── Floating pill search — same shell as the original flight search hero ── */}
         <motion.section
           className="dsh container"
-          ref={searchSectionRef}
           dir="rtl"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -96,106 +57,15 @@ export function App() {
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         >
           <h2 className="dsh__title">חפש את הצימר שלך</h2>
-          <p className="dsh__sub">סנן לפי אזור, תאריכים, אורחים ותקציב — רק נכסים אמיתיים בישראל</p>
-
-          <div className="dsh__row">
-            <div className="dsh__pill dsh__pill--dest">
-              <MapPin size={16} className="dsh__pill-icon" />
-              <select
-                className="dsh__pill-input dsh__pill-input--select"
-                value={heroRegion}
-                onChange={(e) => setHeroRegion(e.target.value)}
-              >
-                <option value="">איזה אזור?</option>
-                {REGIONS.map((r) => (
-                  <option key={r.value} value={r.value}>{r.label}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="dsh__pill dsh__pill--date">
-              <Calendar size={16} className="dsh__pill-icon" />
-              <input
-                className="dsh__pill-input dsh__pill-input--date"
-                type="date"
-                value={checkIn}
-                onChange={(e) => setCheckIn(e.target.value)}
-                aria-label="תאריך כניסה"
-              />
-            </div>
-
-            <div className="dsh__pill dsh__pill--date">
-              <Calendar size={16} className="dsh__pill-icon" />
-              <input
-                className="dsh__pill-input dsh__pill-input--date"
-                type="date"
-                value={checkOut}
-                onChange={(e) => setCheckOut(e.target.value)}
-                aria-label="תאריך יציאה"
-              />
-            </div>
-
-            <div className="dsh__pill dsh__pill--price">
-              <Users size={16} className="dsh__pill-icon" />
-              <input
-                className="dsh__pill-input"
-                type="number"
-                min="1"
-                placeholder="כמה אורחים?"
-                value={guests}
-                onChange={(e) => setGuests(e.target.value)}
-              />
-            </div>
-
-            <div className="dsh__pill dsh__pill--price">
-              <Banknote size={16} className="dsh__pill-icon" />
-              <input
-                className="dsh__pill-input"
-                type="number"
-                min="0"
-                placeholder="תקציב מקסימלי ללילה ₪"
-                value={maxPrice}
-                onChange={(e) => setMaxPrice(e.target.value)}
-              />
-            </div>
-
-            <motion.button className="dsh__pill dsh__pill--btn" whileTap={{ scale: 0.96 }} onClick={handleSearch}>
-              <Search size={16} />
-              חפש
-            </motion.button>
-
-            <AnimatePresence>
-              {hasFilter && (
-                <motion.button
-                  className="dsh__pill dsh__pill--clear"
-                  initial={{ opacity: 0, scale: 0.85 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.85 }}
-                  whileTap={{ scale: 0.94 }}
-                  onClick={clearFilters}
-                  aria-label="נקה סינון"
-                >
-                  <X size={15} />
-                </motion.button>
-              )}
-            </AnimatePresence>
-          </div>
-
-          <AnimatePresence>
-            {hasFilter && (
-              <motion.p className="dsh__count" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-                {properties.length} נכסים תואמים
-              </motion.p>
-            )}
-          </AnimatePresence>
+          <p className="dsh__sub">בחרו אזור על המפה או פתחו את הסינון — רק נכסים אמיתיים בישראל</p>
         </motion.section>
 
-        {/* ── Region map — same .heatmap-hero wrapper WorldHeatmap's CSS was built for ── */}
+        {/* ── Region map — quick region pick, feeds the same filter state as the panel below ── */}
         <section className="heatmap-hero">
           <IsraelMap propertiesByRegion={propertiesByRegion} onSelectRegion={handleSelectRegionFromMap} />
         </section>
 
-        {/* ── Results ── */}
+        {/* ── Results + staged filters (7.2) ── */}
         <section className="agent-deals-section container" ref={resultsRef}>
           <h2 className="agent-deals-section__title">
             <MapPin size={20} color="var(--color-accent-from)" />
@@ -205,19 +75,30 @@ export function App() {
             נכסים ישירות מבעלים — חלקם מאומתים, חלקם עדיין ממתינים לאימות הבעלים
           </p>
 
-          <PropertyFilterBar
-            region={heroRegion}
-            propertyType={propertyType}
-            kosherLevel={kosherLevel}
-            amenities={amenities}
-            onChangeRegion={setHeroRegion}
-            onChangePropertyType={setPropertyType}
-            onChangeKosherLevel={setKosherLevel}
-            onToggleAmenity={toggleAmenity}
-            onClear={clearFilters}
-          />
+          <div className="property-search-layout">
+            <aside className="pfp--aside">
+              <PropertyFilterPanel filters={filters} setFilter={setFilter} toggleAmenity={toggleAmenity} resultCount={properties.length} isLoading={isLoading} />
+            </aside>
 
-          <PropertyGrid properties={properties} isLoading={isLoading} hasActiveFilters={hasFilter} />
+            <div>
+              <PropertyFilterSheet
+                filters={filters}
+                setFilter={setFilter}
+                toggleAmenity={toggleAmenity}
+                activeCount={activeCount}
+                resultCount={properties.length}
+                isLoading={isLoading}
+              />
+
+              <PropertyActiveChips filters={filters} setFilter={setFilter} toggleAmenity={toggleAmenity} onClearAll={clearAll} />
+
+              {!isLoading && properties.length === 0 ? (
+                <PropertyEmptyState filters={filters} setFilter={setFilter} toggleAmenity={toggleAmenity} onClearAll={clearAll} hasActiveFilters={hasActiveFilters} />
+              ) : (
+                <PropertyGrid properties={properties} isLoading={isLoading} hasActiveFilters={hasActiveFilters} />
+              )}
+            </div>
+          </div>
         </section>
 
         {/* Owner join strip */}
