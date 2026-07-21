@@ -37,6 +37,156 @@ function parseProperty(row) {
   };
 }
 
+function parseUnit(row) {
+  if (!row) return row;
+  return {
+    ...row,
+    unit_amenities: parseJsonField(row.unit_amenities),
+    images: parseJsonField(row.images),
+  };
+}
+
+// Every property has >=1 property_units row (7.3 backfill migration + createProperty both
+// guarantee this), so search/display always read price and capacity from active units rather
+// than the legacy property-level columns — "מחיר התצוגה = היחידה הזולה", "קיבולת = סכום היחידות".
+const UNITS_AGG_JOIN = `
+  LEFT JOIN (
+    SELECT property_id,
+      MIN(base_price_night) AS price_from,
+      SUM(max_guests) AS total_guest_capacity,
+      MAX(bedrooms) AS max_bedrooms,
+      COUNT(*) AS unit_count
+    FROM property_units WHERE is_active = 1
+    GROUP BY property_id
+  ) units_agg ON units_agg.property_id = properties.id
+`;
+
+const UNIT_FIELDS = [
+  'name', 'description', 'max_guests', 'bedrooms', 'beds', 'bathrooms',
+  'base_price_night', 'weekend_price', 'holiday_price', 'min_nights',
+  'unit_amenities', 'images',
+];
+
+export async function listUnitsForProperty(propertyId, { activeOnly = false } = {}) {
+  const pool = getPool();
+  const where = ['property_id = ?'];
+  const vals = [propertyId];
+  if (activeOnly) where.push('is_active = 1');
+  const [rows] = await pool.query(
+    `SELECT * FROM property_units WHERE ${where.join(' AND ')} ORDER BY sort_order ASC, id ASC`,
+    vals
+  );
+  return rows.map(parseUnit);
+}
+
+/** Ownership-scoped lookup, used by every owner-facing unit mutation below. */
+async function getUnitOwnedBy(unitId, ownerId) {
+  const pool = getPool();
+  const [rows] = await pool.query(
+    `SELECT pu.* FROM property_units pu JOIN properties p ON p.id = pu.property_id
+     WHERE pu.id = ? AND p.owner_id = ? LIMIT 1`,
+    [unitId, ownerId]
+  );
+  return rows[0] ? parseUnit(rows[0]) : null;
+}
+
+export async function createUnit(propertyId, ownerId, fields) {
+  const pool = getPool();
+  const property = await getPropertyByIdForOwner(propertyId, ownerId);
+  if (!property) return null;
+  const ts = nowStr();
+  const [[{ nextSort }]] = await pool.query(
+    'SELECT COALESCE(MAX(sort_order), -1) + 1 AS nextSort FROM property_units WHERE property_id = ?',
+    [propertyId]
+  );
+  const [result] = await pool.query(
+    `INSERT INTO property_units
+       (property_id, name, description, max_guests, bedrooms, beds, bathrooms,
+        base_price_night, weekend_price, holiday_price, min_nights, unit_amenities, images,
+        sort_order, is_active, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
+    [
+      propertyId,
+      fields.name || property.name,
+      fields.description || null,
+      fields.max_guests ?? null,
+      fields.bedrooms ?? null,
+      fields.beds ?? null,
+      fields.bathrooms ?? null,
+      fields.base_price_night ?? null,
+      fields.weekend_price ?? null,
+      fields.holiday_price ?? null,
+      fields.min_nights ?? 1,
+      fields.unit_amenities ? JSON.stringify(fields.unit_amenities) : null,
+      fields.images ? JSON.stringify(fields.images) : null,
+      nextSort,
+      ts, ts,
+    ]
+  );
+  return getUnitOwnedBy(result.insertId, ownerId);
+}
+
+/** Duplicates a unit in place (7.4: "הוספה/עריכה/מחיקה/שכפול") — copies every field except
+ * identity/ordering, appends "(עותק)" to the name, and places the copy right after the source. */
+export async function duplicateUnit(unitId, ownerId) {
+  const pool = getPool();
+  const source = await getUnitOwnedBy(unitId, ownerId);
+  if (!source) return null;
+  return createUnit(source.property_id, ownerId, {
+    ...source,
+    name: `${source.name} (עותק)`,
+  });
+}
+
+export async function updateUnit(unitId, ownerId, fields) {
+  const pool = getPool();
+  const owned = await getUnitOwnedBy(unitId, ownerId);
+  if (!owned) return null;
+  const sets = [];
+  const vals = [];
+  for (const key of UNIT_FIELDS) {
+    if (!Object.hasOwn(fields, key)) continue;
+    let value = fields[key];
+    if ((key === 'unit_amenities' || key === 'images') && value != null) value = JSON.stringify(value);
+    sets.push(`${key} = ?`);
+    vals.push(value);
+  }
+  if (Object.hasOwn(fields, 'is_active')) {
+    sets.push('is_active = ?');
+    vals.push(fields.is_active ? 1 : 0);
+  }
+  if (sets.length === 0) return owned;
+  sets.push('updated_at = ?');
+  vals.push(nowStr(), unitId);
+  await pool.query(`UPDATE property_units SET ${sets.join(', ')} WHERE id = ?`, vals);
+  return getUnitOwnedBy(unitId, ownerId);
+}
+
+/** Soft — flips is_active=0 rather than deleting the row, so booking history tied to the unit
+ * (booking_requests.unit_id, availability.unit_id) is never orphaned. Hidden from search/display
+ * the same way a hidden property is. */
+export async function deactivateUnit(unitId, ownerId) {
+  const owned = await getUnitOwnedBy(unitId, ownerId);
+  if (!owned) return false;
+  const pool = getPool();
+  await pool.query('UPDATE property_units SET is_active = 0, updated_at = ? WHERE id = ?', [nowStr(), unitId]);
+  return true;
+}
+
+export async function reorderUnits(propertyId, ownerId, orderedIds) {
+  const property = await getPropertyByIdForOwner(propertyId, ownerId);
+  if (!property) return false;
+  const pool = getPool();
+  const ts = nowStr();
+  for (let i = 0; i < orderedIds.length; i++) {
+    await pool.query(
+      'UPDATE property_units SET sort_order = ?, updated_at = ? WHERE id = ? AND property_id = ?',
+      [i, ts, orderedIds[i], propertyId]
+    );
+  }
+  return true;
+}
+
 /** Engine-only write path (Step 3 Loader) — bypasses OWNER_EDITABLE_FIELDS since the engine
  * writes fields (source, confidence, collected_at, source_url, source_image_urls) that an
  * owner is never allowed to touch directly. Used only by server/engine/loader/loader.js. */
@@ -81,7 +231,16 @@ export async function upsertAutoCollectedProperty(fields) {
       ts, ts,
     ]
   );
-  return result.insertId;
+  const propertyId = result.insertId;
+  // Same "every property needs >=1 unit" rule as the manual owner-creation path (7.3) — the
+  // engine rarely extracts a reliable nightly price, so this unit's price fields typically stay
+  // null (the property just shows "מחיר לפי פנייה" until an owner claims and fills it in).
+  await pool.query(
+    `INSERT INTO property_units (property_id, name, max_guests, bedrooms, beds, bathrooms, sort_order, is_active, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, 0, 1, ?, ?)`,
+    [propertyId, fields.name, fields.guest_capacity ?? null, fields.bedrooms ?? null, fields.beds ?? null, fields.bathrooms ?? null, ts, ts]
+  );
+  return propertyId;
 }
 
 export async function updateAutoCollectedProperty(id, fields) {
@@ -108,10 +267,27 @@ export async function updateAutoCollectedProperty(id, fields) {
     sets.push('extraction_confidence = ?');
     vals.push(fields.extraction_confidence ? JSON.stringify(fields.extraction_confidence) : null);
   }
-  if (sets.length === 0) return;
-  sets.push('collected_at = ?', 'updated_at = ?');
-  vals.push(nowStr(), nowStr(), id);
-  await pool.query(`UPDATE properties SET ${sets.join(', ')} WHERE id = ? AND source = 'auto'`, [...vals]);
+  if (sets.length > 0) {
+    sets.push('collected_at = ?', 'updated_at = ?');
+    vals.push(nowStr(), nowStr(), id);
+    await pool.query(`UPDATE properties SET ${sets.join(', ')} WHERE id = ? AND source = 'auto'`, [...vals]);
+  }
+
+  // Same single-unit mirroring as the owner-facing updateProperty (7.3) — a re-crawl that finds
+  // a new bedroom/guest count should update what search actually filters on.
+  const UNIT_MIRROR = { guest_capacity: 'max_guests', bedrooms: 'bedrooms', beds: 'beds', bathrooms: 'bathrooms' };
+  const mirrored = Object.keys(UNIT_MIRROR).filter((k) => Object.hasOwn(fields, k));
+  if (mirrored.length > 0) {
+    const units = await listUnitsForProperty(id);
+    if (units.length === 1) {
+      const unitSets = mirrored.map((k) => `${UNIT_MIRROR[k]} = ?`);
+      const unitVals = mirrored.map((k) => fields[k]);
+      await pool.query(
+        `UPDATE property_units SET ${unitSets.join(', ')}, updated_at = ? WHERE id = ?`,
+        [...unitVals, nowStr(), units[0].id]
+      );
+    }
+  }
 }
 
 /** Finds an existing auto-collected property by normalized phone or matching source domain —
@@ -168,33 +344,38 @@ const CONFIDENCE_PUBLISHABLE_SQL = `(confidence IS NULL OR confidence >= 60)`;
 /** GET /api/properties — public search. Never returns hidden, opted-out, blocklisted, or low-confidence-unreviewed rows. */
 export async function searchProperties(filters = {}) {
   const pool = getPool();
-  const where = [`status != 'hidden'`, 'opted_out = 0', NOT_BLOCKLISTED_SQL, CONFIDENCE_PUBLISHABLE_SQL];
+  const where = [`status != 'hidden'`, 'opted_out = 0', 'deleted_at IS NULL', NOT_BLOCKLISTED_SQL, CONFIDENCE_PUBLISHABLE_SQL];
   const vals = [];
 
   if (filters.region) { where.push('region = ?'); vals.push(filters.region); }
   if (filters.city) { where.push('city = ?'); vals.push(filters.city); }
   if (filters.propertyType) { where.push('property_type = ?'); vals.push(filters.propertyType); }
-  if (filters.minGuests) { where.push('guest_capacity >= ?'); vals.push(Number(filters.minGuests)); }
-  if (filters.bedrooms) { where.push('bedrooms >= ?'); vals.push(Number(filters.bedrooms)); }
-  if (filters.minPrice) { where.push('base_price_night >= ?'); vals.push(Number(filters.minPrice)); }
-  if (filters.maxPrice) { where.push('base_price_night <= ?'); vals.push(Number(filters.maxPrice)); }
+  if (filters.minGuests) { where.push('units_agg.total_guest_capacity >= ?'); vals.push(Number(filters.minGuests)); }
+  if (filters.bedrooms) { where.push('units_agg.max_bedrooms >= ?'); vals.push(Number(filters.bedrooms)); }
+  if (filters.minPrice) { where.push('units_agg.price_from >= ?'); vals.push(Number(filters.minPrice)); }
+  if (filters.maxPrice) { where.push('units_agg.price_from <= ?'); vals.push(Number(filters.maxPrice)); }
   if (filters.kosherLevel) { where.push('kosher_level = ?'); vals.push(filters.kosherLevel); }
   for (const amenity of filters.amenities || []) {
     if (AMENITY_FIELDS.includes(amenity)) where.push(`${amenity} = 1`);
   }
   // No availability row for a date = available by default (see availability table); only an
-  // explicit is_available=0 row excludes a property from date-filtered search results.
+  // explicit is_available=0 row excludes a unit for that date. A property still counts as
+  // available if at least one active unit is free for the whole range (7.3: search no longer
+  // knows about "the" property's availability, only its units').
   if (filters.checkIn && filters.checkOut) {
-    where.push(`NOT EXISTS (
-      SELECT 1 FROM availability av
-      WHERE av.property_id = properties.id AND av.date >= ? AND av.date < ? AND av.is_available = 0
+    where.push(`EXISTS (
+      SELECT 1 FROM property_units pu2 WHERE pu2.property_id = properties.id AND pu2.is_active = 1
+      AND NOT EXISTS (
+        SELECT 1 FROM availability av WHERE av.unit_id = pu2.id AND av.date >= ? AND av.date < ? AND av.is_available = 0
+      )
     )`);
     vals.push(filters.checkIn, filters.checkOut);
   }
 
   const limit = Math.min(Number(filters.limit) || 40, 100);
   const [rows] = await pool.query(
-    `SELECT * FROM properties WHERE ${where.join(' AND ')} ORDER BY updated_at DESC LIMIT ?`,
+    `SELECT properties.*, units_agg.price_from, units_agg.total_guest_capacity, units_agg.max_bedrooms, units_agg.unit_count
+     FROM properties ${UNITS_AGG_JOIN} WHERE ${where.join(' AND ')} ORDER BY properties.updated_at DESC LIMIT ?`,
     [...vals, limit]
   );
   return rows.map(parseProperty);
@@ -213,26 +394,46 @@ export async function listCitiesForRegion(region) {
   return rows;
 }
 
-/** Public single-property lookup — 404-equivalent (null) for hidden/opted-out/blocklisted/low-confidence-unreviewed rows. */
+/** Attaches the property's units (public callers get only active ones — a deactivated unit is
+ * exactly as invisible to a traveler as a hidden property). */
+async function withUnits(property, { activeOnly }) {
+  if (!property) return property;
+  property.units = await listUnitsForProperty(property.id, { activeOnly });
+  return property;
+}
+
+/** Public single-property lookup — 404-equivalent (null) for hidden/opted-out/blocklisted/low-confidence-unreviewed/deleted rows. */
 export async function getPropertyById(id) {
   const pool = getPool();
   const [rows] = await pool.query(
-    `SELECT * FROM properties WHERE id = ? AND status != 'hidden' AND opted_out = 0 AND ${NOT_BLOCKLISTED_SQL} AND ${CONFIDENCE_PUBLISHABLE_SQL} LIMIT 1`,
+    `SELECT properties.*, units_agg.price_from, units_agg.total_guest_capacity, units_agg.max_bedrooms, units_agg.unit_count
+     FROM properties ${UNITS_AGG_JOIN}
+     WHERE properties.id = ? AND status != 'hidden' AND opted_out = 0 AND deleted_at IS NULL
+       AND ${NOT_BLOCKLISTED_SQL} AND ${CONFIDENCE_PUBLISHABLE_SQL} LIMIT 1`,
     [id]
   );
-  return rows[0] ? parseProperty(rows[0]) : null;
+  return rows[0] ? withUnits(parseProperty(rows[0]), { activeOnly: true }) : null;
 }
 
-/** Owner-scoped lookup — bypasses the hidden/opted-out filter so an owner can see their own listing regardless of status. */
+/** Owner-scoped lookup — bypasses the hidden/opted-out/deleted filter so an owner can see their
+ * own listing (including from the recycle bin) regardless of status. */
 export async function getPropertyByIdForOwner(id, ownerId) {
   const pool = getPool();
-  const [rows] = await pool.query('SELECT * FROM properties WHERE id = ? AND owner_id = ? LIMIT 1', [id, ownerId]);
-  return rows[0] ? parseProperty(rows[0]) : null;
+  const [rows] = await pool.query(
+    `SELECT properties.*, units_agg.price_from, units_agg.total_guest_capacity, units_agg.max_bedrooms, units_agg.unit_count
+     FROM properties ${UNITS_AGG_JOIN} WHERE properties.id = ? AND owner_id = ? LIMIT 1`,
+    [id, ownerId]
+  );
+  return rows[0] ? withUnits(parseProperty(rows[0]), { activeOnly: false }) : null;
 }
 
 export async function listPropertiesByOwner(ownerId) {
   const pool = getPool();
-  const [rows] = await pool.query('SELECT * FROM properties WHERE owner_id = ? ORDER BY updated_at DESC', [ownerId]);
+  const [rows] = await pool.query(
+    `SELECT properties.*, units_agg.price_from, units_agg.total_guest_capacity, units_agg.max_bedrooms, units_agg.unit_count
+     FROM properties ${UNITS_AGG_JOIN} WHERE owner_id = ? AND deleted_at IS NULL ORDER BY properties.updated_at DESC`,
+    [ownerId]
+  );
   return rows.map(parseProperty);
 }
 
@@ -240,9 +441,10 @@ export async function listPropertiesByOwner(ownerId) {
 export async function listPublicPropertiesByOwner(ownerId) {
   const pool = getPool();
   const [rows] = await pool.query(
-    `SELECT * FROM properties
-     WHERE owner_id = ? AND status IN ('claimed', 'active') AND opted_out = 0
-     ORDER BY updated_at DESC`,
+    `SELECT properties.*, units_agg.price_from, units_agg.total_guest_capacity, units_agg.max_bedrooms, units_agg.unit_count
+     FROM properties ${UNITS_AGG_JOIN}
+     WHERE owner_id = ? AND status IN ('claimed', 'active') AND opted_out = 0 AND deleted_at IS NULL
+     ORDER BY properties.updated_at DESC`,
     [ownerId]
   );
   return rows.map(parseProperty);
@@ -295,7 +497,25 @@ export async function createProperty(ownerId, fields) {
       ts, ts,
     ]
   );
-  return result.insertId;
+  const propertyId = result.insertId;
+  // Every property needs >=1 unit to have a price/capacity at all (7.3). The simple owner form
+  // (name/type/region/price/capacity, no explicit units) still works exactly as before — it just
+  // creates one unit behind the scenes instead of writing price/capacity onto properties directly.
+  await pool.query(
+    `INSERT INTO property_units
+       (property_id, name, max_guests, bedrooms, beds, bathrooms,
+        base_price_night, weekend_price, holiday_price, min_nights, images,
+        sort_order, is_active, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1, ?, ?)`,
+    [
+      propertyId, fields.name,
+      fields.guest_capacity ?? null, fields.bedrooms ?? null, fields.beds ?? null, fields.bathrooms ?? null,
+      fields.base_price_night ?? null, fields.weekend_price ?? null, fields.holiday_price ?? null, fields.min_nights ?? 1,
+      fields.owner_images ? JSON.stringify(fields.owner_images) : null,
+      ts, ts,
+    ]
+  );
+  return propertyId;
 }
 
 export async function updateProperty(id, ownerId, fields) {
@@ -311,16 +531,50 @@ export async function updateProperty(id, ownerId, fields) {
     sets.push(`${key} = ?`);
     vals.push(value);
   }
-  if (sets.length === 0) return;
-  sets.push('updated_at = ?');
-  vals.push(nowStr(), id, ownerId);
-  await pool.query(`UPDATE properties SET ${sets.join(', ')} WHERE id = ? AND owner_id = ?`, vals);
+  if (sets.length > 0) {
+    sets.push('updated_at = ?');
+    vals.push(nowStr(), id, ownerId);
+    await pool.query(`UPDATE properties SET ${sets.join(', ')} WHERE id = ? AND owner_id = ?`, vals);
+  }
+
+  // Mirror onto the default unit — only while the property is still single-unit. Once an owner
+  // has split it into multiple units (7.4), price/capacity moves entirely to per-unit editing and
+  // these top-level fields on `properties` are no longer read for display at all.
+  const UNIT_MIRROR = {
+    guest_capacity: 'max_guests', bedrooms: 'bedrooms', beds: 'beds', bathrooms: 'bathrooms',
+    base_price_night: 'base_price_night', weekend_price: 'weekend_price', holiday_price: 'holiday_price',
+    min_nights: 'min_nights', owner_images: 'images',
+  };
+  const mirrored = Object.keys(UNIT_MIRROR).filter((k) => Object.hasOwn(fields, k));
+  if (mirrored.length > 0) {
+    const units = await listUnitsForProperty(id);
+    if (units.length === 1) {
+      const unitFields = {};
+      for (const key of mirrored) unitFields[UNIT_MIRROR[key]] = fields[key];
+      await updateUnit(units[0].id, ownerId, unitFields);
+    }
+  }
 }
 
-export async function getAvailability(propertyId, { from, to } = {}) {
+// Availability/booking still take a propertyId at the API surface (unchanged route shape) and
+// resolve internally to a specific unit — defaulting to the first one. Correct as long as the
+// owner-facing calendar/booking UI stays single-unit-at-a-time (true today); a genuine per-unit
+// calendar picker for multi-unit complexes is out of 7.3's scope (not requested by the spec) and
+// deferred — see DECISIONS.md.
+async function resolveUnitId(propertyId, explicitUnitId) {
+  const units = await listUnitsForProperty(propertyId, { activeOnly: true });
+  // A client-supplied unit_id must actually belong to this property — otherwise a booking/
+  // availability write for property A could silently attach to a unit under property B.
+  if (explicitUnitId) return units.some((u) => String(u.id) === String(explicitUnitId)) ? explicitUnitId : null;
+  return units[0]?.id || null;
+}
+
+export async function getAvailability(propertyId, { from, to, unitId } = {}) {
   const pool = getPool();
-  const where = ['property_id = ?'];
-  const vals = [propertyId];
+  const resolvedUnitId = await resolveUnitId(propertyId, unitId);
+  if (!resolvedUnitId) return [];
+  const where = ['unit_id = ?'];
+  const vals = [resolvedUnitId];
   if (from) { where.push('date >= ?'); vals.push(from); }
   if (to) { where.push('date <= ?'); vals.push(to); }
   const [rows] = await pool.query(
@@ -331,32 +585,38 @@ export async function getAvailability(propertyId, { from, to } = {}) {
 }
 
 /** dates: [{ date: 'YYYY-MM-DD', is_available: boolean }]. Returns false if the property isn't owned by ownerId. */
-export async function setAvailability(propertyId, ownerId, dates) {
+export async function setAvailability(propertyId, ownerId, dates, unitId) {
   const pool = getPool();
   const owned = await getPropertyByIdForOwner(propertyId, ownerId);
   if (!owned) return false;
+  const resolvedUnitId = await resolveUnitId(propertyId, unitId);
+  if (!resolvedUnitId) return false;
   const ts = nowStr();
   for (const { date, is_available } of dates) {
     await pool.query(
-      `INSERT INTO availability (property_id, date, is_available, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?)
+      `INSERT INTO availability (property_id, unit_id, date, is_available, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE is_available = VALUES(is_available), updated_at = VALUES(updated_at)`,
-      [propertyId, date, is_available ? 1 : 0, ts, ts]
+      [propertyId, resolvedUnitId, date, is_available ? 1 : 0, ts, ts]
     );
   }
   return true;
 }
 
+/** Returns null if fields.unit_id was supplied but doesn't belong to this property. */
 export async function createBookingRequest(propertyId, fields) {
   const pool = getPool();
   const ts = nowStr();
+  const unitId = await resolveUnitId(propertyId, fields.unit_id);
+  if (!unitId) return null;
   const [result] = await pool.query(
     `INSERT INTO booking_requests
-      (property_id, check_in, check_out, guest_count, customer_name, customer_phone, customer_email,
+      (property_id, unit_id, check_in, check_out, guest_count, customer_name, customer_phone, customer_email,
        message, status, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
     [
       propertyId,
+      unitId,
       fields.check_in,
       fields.check_out,
       fields.guest_count || 1,

@@ -1,0 +1,68 @@
+/* ── 7.3 — per-unit card, shown only for multi-unit complexes ───────────────── */
+
+.puc {
+  display: flex;
+  gap: 14px;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-surface);
+  margin-bottom: 12px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.puc--selected {
+  border-color: var(--color-accent-from);
+  box-shadow: 0 0 0 2px rgba(37,99,235,0.12);
+}
+.puc__media {
+  flex-shrink: 0;
+  width: 110px;
+  height: 110px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--color-surface-elevated);
+}
+.puc__img { width: 100%; height: 100%; object-fit: cover; }
+.puc__img-placeholder { width: 100%; height: 100%; background: var(--gradient-card); }
+.puc__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.puc__name { margin: 0; font-size: 0.98rem; font-weight: 700; color: var(--color-text-primary); }
+.puc__meta { display: flex; flex-wrap: wrap; gap: 10px; }
+.puc__meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+}
+.puc__amenities { margin: 0; font-size: 0.78rem; color: var(--color-text-muted); }
+.puc__desc { margin: 2px 0 0; font-size: 0.82rem; color: var(--color-text-secondary); }
+.puc__footer {
+  margin-top: auto;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 6px;
+}
+.puc__price-block { display: flex; flex-direction: column; }
+.puc__price { font-size: 1.15rem; font-weight: 800; color: var(--ds-amber); }
+.puc__price--inquire { font-size: 0.85rem; color: var(--color-text-muted); font-weight: 700; }
+.puc__currency { font-size: 0.85rem; font-weight: 600; opacity: 0.85; }
+.puc__pax { font-size: 0.7rem; color: var(--color-text-muted); }
+.puc__book-btn {
+  min-height: 40px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: none;
+  background: var(--gradient-accent);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+  .puc { flex-direction: column; }
+  .puc__media { width: 100%; height: 160px; }
+}

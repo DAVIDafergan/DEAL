@@ -57,6 +57,21 @@ export const AMENITIES = [
   { value: 'is_accessible', label: 'נגישות' },
 ];
 
+// Per-unit amenities (7.3: "מתקנים ספציפיים ליחידה: ג'קוזי פרטי, מרפסת, בריכה פרטית") — a small,
+// separate catalog from the property-level AMENITIES above, since these describe one unit inside
+// a complex rather than something shared by the whole property.
+export const UNIT_AMENITIES = [
+  { value: 'private_jacuzzi', label: 'ג׳קוזי פרטי' },
+  { value: 'balcony', label: 'מרפסת' },
+  { value: 'private_pool', label: 'בריכה פרטית' },
+  { value: 'private_view', label: 'נוף פרטי' },
+  { value: 'kitchenette', label: 'מטבחון' },
+];
+
+export function unitAmenityLabel(value) {
+  return UNIT_AMENITIES.find((a) => a.value === value)?.label || value;
+}
+
 export function regionLabel(value) {
   return REGIONS.find((r) => r.value === value)?.label || value;
 }

@@ -159,6 +159,11 @@ export const propertyApi = {
   getByOwnerSlug: (slug) => getJson(`/properties/by-owner/${slug}`),
   requestClaim: (token, id) => postJson(`/properties/${id}/claim/request`, {}, token),
   verifyClaim: (token, id, code) => postJson(`/properties/${id}/claim/verify`, { code }, token),
+  createUnit: (token, propertyId, data) => postJson(`/properties/${propertyId}/units`, data, token),
+  updateUnit: (token, propertyId, unitId, data) => patchJson(`/properties/${propertyId}/units/${unitId}`, data, token),
+  duplicateUnit: (token, propertyId, unitId) => postJson(`/properties/${propertyId}/units/${unitId}/duplicate`, {}, token),
+  deleteUnit: (token, propertyId, unitId) => deleteReq(`/properties/${propertyId}/units/${unitId}`, token),
+  reorderUnits: (token, propertyId, orderedIds) => patchJson(`/properties/${propertyId}/units/reorder`, { orderedIds }, token),
 };
 
 export const removeApi = {

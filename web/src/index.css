@@ -2,6 +2,7 @@
 @import './styles/vibeFeed.css';
 @import './styles/agentPortal.css';
 @import './styles/propertyFilters.css';
+@import './styles/propertyUnits.css';
 
 * {
   box-sizing: border-box;
@@ -2892,6 +2893,13 @@ body {
   font-size: 1rem;
   font-weight: 600;
   opacity: 0.85;
+}
+.adc__price-from {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-inline-end: 3px;
+  letter-spacing: 0;
 }
 .adc__desc-snippet {
   font-size: 0.68rem;

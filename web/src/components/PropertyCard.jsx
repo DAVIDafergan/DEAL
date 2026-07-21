@@ -19,11 +19,18 @@ function topAmenities(property) {
   return list;
 }
 
-/** PropertyCard — same anatomy as AgentDealCard (.adc*): image+badges, bottom overlay, info rows, price+actions. */
+/** PropertyCard — same anatomy as AgentDealCard (.adc*): image+badges, bottom overlay, info rows, price+actions.
+ * Price/capacity come from the units aggregate (7.3: "החל מ-" the cheapest active unit, capacity
+ * = sum of active units) — falls back to the legacy property-level columns for any row that
+ * somehow has neither (shouldn't happen post-migration, but cheap to guard). */
 export function PropertyCard({ property }) {
   const image = property.owner_images?.[0] || null;
   const isClaimed = property.status === 'claimed' || property.status === 'active';
   const amenities = topAmenities(property);
+  const price = property.price_from ?? property.base_price_night;
+  const capacity = property.total_guest_capacity ?? property.guest_capacity;
+  const bedrooms = property.max_bedrooms ?? property.bedrooms;
+  const isMultiUnit = (property.unit_count ?? 1) > 1;
 
   return (
     <Link to={`/property/${property.id}`} className="adc" aria-label={property.name}>
@@ -51,15 +58,15 @@ export function PropertyCard({ property }) {
       </div>
 
       <div className="adc__body">
-        {(property.guest_capacity || property.bedrooms) && (
+        {(capacity || bedrooms) && (
           <div className="adc__info-row">
             <span className="icon-draw icon-draw--once adc__info-icon">
               <Users size={12} strokeWidth={1.8} />
             </span>
             <span className="adc__info-text">
               {[
-                property.guest_capacity ? `עד ${property.guest_capacity} אורחים` : null,
-                property.bedrooms ? `${property.bedrooms} חדרי שינה` : null,
+                capacity ? `עד ${capacity} אורחים` : null,
+                bedrooms ? `${bedrooms} חדרי שינה` : null,
               ].filter(Boolean).join(' · ')}
             </span>
           </div>
@@ -72,26 +79,27 @@ export function PropertyCard({ property }) {
             <span className="adc__info-text">{amenities.join(' · ')}</span>
           </div>
         )}
-        {property.bedrooms > 0 && amenities.length === 0 && (
+        {bedrooms > 0 && amenities.length === 0 && (
           <div className="adc__info-row">
             <span className="icon-draw icon-draw--once adc__info-icon">
               <BedDouble size={12} strokeWidth={1.8} />
             </span>
-            <span className="adc__info-text">{property.bedrooms} חדרי שינה</span>
+            <span className="adc__info-text">{bedrooms} חדרי שינה</span>
           </div>
         )}
 
         <div className="adc__footer">
           <div className="adc__price-block">
-            {property.base_price_night ? (
+            {price ? (
               <span className="adc__price">
-                {Math.round(property.base_price_night)}{' '}
+                {isMultiUnit && <span className="adc__price-from">החל מ-</span>}
+                {Math.round(price)}{' '}
                 <span className="adc__currency">{getCurrencySymbol(property.currency)}</span>
               </span>
             ) : (
               <span className="adc__price">מחיר לפי פנייה</span>
             )}
-            {property.base_price_night && <span className="adc__pax">ללילה</span>}
+            {price && <span className="adc__pax">ללילה</span>}
             {property.description && (
               <span className="adc__desc-snippet">{property.description.slice(0, 40)}</span>
             )}

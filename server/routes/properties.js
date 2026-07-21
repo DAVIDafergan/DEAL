@@ -6,6 +6,7 @@ import {
   createBookingRequest, getBookingRequestById, listBookingRequestsForOwner,
   listPublicPropertiesByOwner, listCitiesForRegion,
   createClaimCode, verifyClaimCode,
+  createUnit, updateUnit, deactivateUnit, duplicateUnit, reorderUnits,
 } from '../store/propertyStore.js';
 import { findAgentBySlug } from '../store/agentStore.js';
 import { requireAgentAuth } from '../middleware/agentAuth.js';
@@ -121,28 +122,92 @@ router.patch('/:id', requireAgentAuth, async (req, res) => {
   }
 });
 
+// ── Units (7.3) — always registered before /:id ────────────────────────────────
+
+/** POST /api/properties/:id/units — add a unit to the complex */
+router.post('/:id/units', requireAgentAuth, async (req, res) => {
+  try {
+    const unit = await createUnit(req.params.id, req.agentId, req.body || {});
+    if (!unit) return res.status(404).json({ error: 'Not found' });
+    res.status(201).json({ unit });
+  } catch (err) {
+    console.error('[properties] create unit error:', err.message);
+    res.status(500).json({ error: 'Failed to create unit' });
+  }
+});
+
+/** PATCH /api/properties/:id/units/:unitId — edit a unit */
+router.patch('/:id/units/:unitId', requireAgentAuth, async (req, res) => {
+  try {
+    const unit = await updateUnit(req.params.unitId, req.agentId, req.body || {});
+    if (!unit) return res.status(404).json({ error: 'Not found' });
+    res.json({ unit });
+  } catch (err) {
+    console.error('[properties] update unit error:', err.message);
+    res.status(500).json({ error: 'Failed to update unit' });
+  }
+});
+
+/** POST /api/properties/:id/units/:unitId/duplicate */
+router.post('/:id/units/:unitId/duplicate', requireAgentAuth, async (req, res) => {
+  try {
+    const unit = await duplicateUnit(req.params.unitId, req.agentId);
+    if (!unit) return res.status(404).json({ error: 'Not found' });
+    res.status(201).json({ unit });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to duplicate unit' });
+  }
+});
+
+/** DELETE /api/properties/:id/units/:unitId — soft: flips is_active=0 (see deactivateUnit) */
+router.delete('/:id/units/:unitId', requireAgentAuth, async (req, res) => {
+  try {
+    const ok = await deactivateUnit(req.params.unitId, req.agentId);
+    if (!ok) return res.status(404).json({ error: 'Not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete unit' });
+  }
+});
+
+/** PATCH /api/properties/:id/units/reorder — body: { orderedIds: [id, id, ...] } */
+router.patch('/:id/units/reorder', requireAgentAuth, async (req, res) => {
+  try {
+    const { orderedIds } = req.body || {};
+    if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
+      return res.status(400).json({ error: 'orderedIds array is required' });
+    }
+    const ok = await reorderUnits(req.params.id, req.agentId, orderedIds);
+    if (!ok) return res.status(404).json({ error: 'Not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to reorder units' });
+  }
+});
+
 // ── Availability ──────────────────────────────────────────────────────────────
 
-/** GET /api/properties/:id/availability?from=&to= — public read */
+/** GET /api/properties/:id/availability?from=&to=&unit_id= — public read */
 router.get('/:id/availability', async (req, res) => {
   try {
     const property = await getPropertyById(req.params.id);
     if (!property) return res.status(404).json({ error: 'Not found' });
-    const availability = await getAvailability(req.params.id, req.query);
+    const { from, to, unit_id } = req.query;
+    const availability = await getAvailability(req.params.id, { from, to, unitId: unit_id });
     res.json({ availability });
   } catch (err) {
     res.status(500).json({ error: 'Internal error' });
   }
 });
 
-/** PATCH /api/properties/:id/availability — owner sets availability for a batch of dates */
+/** PATCH /api/properties/:id/availability — owner sets availability for a batch of dates, optionally scoped to unit_id */
 router.patch('/:id/availability', requireAgentAuth, async (req, res) => {
   try {
-    const { dates } = req.body || {};
+    const { dates, unit_id } = req.body || {};
     if (!Array.isArray(dates) || dates.length === 0) {
       return res.status(400).json({ error: 'dates array is required' });
     }
-    const ok = await setAvailability(req.params.id, req.agentId, dates);
+    const ok = await setAvailability(req.params.id, req.agentId, dates, unit_id);
     if (!ok) return res.status(404).json({ error: 'Not found' });
     res.json({ ok: true });
   } catch (err) {
@@ -165,6 +230,7 @@ router.post('/:id/booking-requests', async (req, res) => {
       return res.status(400).json({ error: 'check_in, check_out, customer_name, and customer_phone are required' });
     }
     const id = await createBookingRequest(req.params.id, req.body);
+    if (!id) return res.status(400).json({ error: 'Invalid unit for this property' });
     if (!property.owner_id) {
       const booking = await getBookingRequestById(id);
       notifyOwnerOfBookingRequest(property, booking).catch((err) =>

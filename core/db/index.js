@@ -118,6 +118,61 @@ async function ensureTableRenamed(connection, oldName, newName) {
   console.log(`[deal-radar-pro] Migrated: renamed table ${oldName} -> ${newName}`);
 }
 
+/** Drops `oldKeyName` and adds a unique key `newKeyName(newColumns)` if the old one is still
+ * present — used to move availability's uniqueness from (property_id, date) to (unit_id, date)
+ * on a table that was already deployed before property_units existed. No-ops once already run. */
+async function ensureUniqueKeyReplaced(connection, table, oldKeyName, newKeyName, newColumns) {
+  const [rows] = await connection.query(
+    `SELECT COUNT(*) AS count FROM information_schema.statistics
+     WHERE table_schema = DATABASE() AND table_name = ? AND index_name = ?`,
+    [table, oldKeyName]
+  );
+  if (rows[0].count === 0) return;
+  await connection.query(`ALTER TABLE ${table} DROP INDEX ${oldKeyName}`);
+  await connection.query(`ALTER TABLE ${table} ADD UNIQUE KEY ${newKeyName} (${newColumns})`);
+  console.log(`[deal-radar-pro] Migrated: ${table} unique key ${oldKeyName} -> ${newKeyName}(${newColumns})`);
+}
+
+/** Step 7.3 backfill — every property needs exactly one property_units row to stay a valid
+ * "complex" under the new model. Only touches properties with zero units, so it's a no-op once
+ * every property has been backfilled (and never re-runs against a property an owner has since
+ * split into multiple units). */
+async function backfillDefaultPropertyUnits(connection) {
+  const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+  const [properties] = await connection.query(
+    `SELECT p.* FROM properties p
+     WHERE NOT EXISTS (SELECT 1 FROM property_units pu WHERE pu.property_id = p.id)`
+  );
+  for (const p of properties) {
+    await connection.query(
+      `INSERT INTO property_units
+         (property_id, name, max_guests, bedrooms, beds, bathrooms,
+          base_price_night, weekend_price, holiday_price, min_nights, images,
+          sort_order, is_active, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1, ?, ?)`,
+      [
+        p.id, p.name, p.guest_capacity, p.bedrooms, p.beds, p.bathrooms,
+        p.base_price_night, p.weekend_price, p.holiday_price, p.min_nights || 1,
+        p.owner_images ? JSON.stringify(typeof p.owner_images === 'string' ? JSON.parse(p.owner_images) : p.owner_images) : null,
+        now, now,
+      ]
+    );
+  }
+  if (properties.length > 0) {
+    console.log(`[deal-radar-pro] Migrated: backfilled ${properties.length} default property_units row(s)`);
+  }
+  // Link any pre-existing availability/booking rows to the unit that was just backfilled for
+  // their property — safe only while every property still has exactly one unit (see docstring).
+  await connection.query(
+    `UPDATE availability av JOIN property_units pu ON pu.property_id = av.property_id
+     SET av.unit_id = pu.id WHERE av.unit_id IS NULL`
+  );
+  await connection.query(
+    `UPDATE booking_requests br JOIN property_units pu ON pu.property_id = br.property_id
+     SET br.unit_id = pu.id WHERE br.unit_id IS NULL`
+  );
+}
+
 const MIGRATIONS = [
   (connection) => ensureColumn(connection, 'deals_legacy', 'departure_at', 'DATETIME NULL'),
   (connection) => ensureColumn(connection, 'deals_legacy', 'arrival_at', 'DATETIME NULL'),
@@ -200,6 +255,15 @@ const MIGRATIONS = [
   // Per-field confidence scores from the Extractor (Step 3) — separate from the single overall
   // `confidence` column (which stays an aggregate used as the publish gate).
   (connection) => ensureColumn(connection, 'properties', 'extraction_confidence', 'JSON NULL'),
+  // Step 7.3 — multi-unit properties. unit_id columns first (so the backfill below has
+  // somewhere to write), then the backfill itself, then the unique-key migration (which only
+  // fires against a table deployed before property_units existed).
+  (connection) => ensureColumn(connection, 'availability', 'unit_id', 'INT NULL'),
+  (connection) => ensureColumn(connection, 'booking_requests', 'unit_id', 'INT NULL'),
+  (connection) => backfillDefaultPropertyUnits(connection),
+  (connection) => ensureUniqueKeyReplaced(connection, 'availability', 'uk_availability_property_date', 'uk_availability_unit_date', 'unit_id, date'),
+  // Step 7.6 — soft delete for properties (recycle bin, 30-day restore window).
+  (connection) => ensureColumn(connection, 'properties', 'deleted_at', 'DATETIME NULL'),
 ];
 
 const SCHEMA_STATEMENTS = [
@@ -476,20 +540,49 @@ const SCHEMA_STATEMENTS = [
     INDEX idx_properties_source (source),
     CONSTRAINT fk_properties_owner FOREIGN KEY (owner_id) REFERENCES agents(id) ON DELETE SET NULL
   ) ENGINE=InnoDB`,
+  // Step 7.3 — a property ("complex") has one or more bookable units. A single-unit complex is
+  // the common case and stays invisible in the UI (system creates the one unit behind the
+  // scenes); multi-unit complexes (Booking-style) show each unit as its own card. Shared
+  // amenities/description/gallery live on `properties`; per-unit amenities/images/price live here.
+  `CREATE TABLE IF NOT EXISTS property_units (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    property_id INT NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    description TEXT NULL,
+    max_guests TINYINT UNSIGNED NULL,
+    bedrooms TINYINT UNSIGNED NULL,
+    beds TINYINT UNSIGNED NULL,
+    bathrooms TINYINT UNSIGNED NULL,
+    base_price_night DECIMAL(10,2) NULL,
+    weekend_price DECIMAL(10,2) NULL,
+    holiday_price DECIMAL(10,2) NULL,
+    min_nights TINYINT UNSIGNED NOT NULL DEFAULT 1,
+    unit_amenities JSON NULL,
+    images JSON NULL,
+    sort_order SMALLINT NOT NULL DEFAULT 0,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    INDEX idx_property_units_property (property_id),
+    CONSTRAINT fk_property_units_property FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB`,
   `CREATE TABLE IF NOT EXISTS availability (
     id INT AUTO_INCREMENT PRIMARY KEY,
     property_id INT NOT NULL,
+    unit_id INT NULL,
     date DATE NOT NULL,
     is_available TINYINT(1) NOT NULL DEFAULT 1,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
-    UNIQUE KEY uk_availability_property_date (property_id, date),
+    UNIQUE KEY uk_availability_unit_date (unit_id, date),
     INDEX idx_availability_property (property_id),
-    CONSTRAINT fk_availability_property FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE
+    CONSTRAINT fk_availability_property FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE,
+    CONSTRAINT fk_availability_unit FOREIGN KEY (unit_id) REFERENCES property_units(id) ON DELETE CASCADE
   ) ENGINE=InnoDB`,
   `CREATE TABLE IF NOT EXISTS booking_requests (
     id INT AUTO_INCREMENT PRIMARY KEY,
     property_id INT NOT NULL,
+    unit_id INT NULL,
     check_in DATE NOT NULL,
     check_out DATE NOT NULL,
     guest_count TINYINT UNSIGNED NOT NULL DEFAULT 1,

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, MessageCircle, CheckCircle, ExternalLink, Users, BedDouble, Bath, ShieldAlert, Send, Clock } from 'lucide-react';
@@ -7,6 +7,7 @@ import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { getCurrencySymbol } from '../utils/currency.js';
 import { regionLabel, propertyTypeLabel, kosherLabel, AMENITIES } from '../data/propertyOptions.js';
 import { PropertyImageCarousel } from '../components/PropertyImageCarousel.jsx';
+import { PropertyUnitCard } from '../components/PropertyUnitCard.jsx';
 
 function activeAmenityLabels(property) {
   return AMENITIES.filter((a) => property[a.value]).map((a) => a.label);
@@ -92,7 +93,7 @@ function ClaimFlow({ propertyId }) {
   );
 }
 
-function BookingRequestForm({ propertyId }) {
+function BookingRequestForm({ propertyId, unitId, unitName }) {
   const [form, setForm] = useState({ check_in: '', check_out: '', guest_count: 2, customer_name: '', customer_phone: '', message: '' });
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null); // 'success' | 'error' | null
@@ -104,7 +105,7 @@ function BookingRequestForm({ propertyId }) {
     setSubmitting(true);
     setResult(null);
     try {
-      await propertyApi.requestBooking(propertyId, form);
+      await propertyApi.requestBooking(propertyId, { ...form, unit_id: unitId });
       setResult('success');
     } catch {
       setResult('error');
@@ -124,7 +125,7 @@ function BookingRequestForm({ propertyId }) {
 
   return (
     <form onSubmit={handleSubmit} className="settings-card" style={{ marginTop: 16 }}>
-      <h2 className="settings-card__title">בקשת הזמנה</h2>
+      <h2 className="settings-card__title">בקשת הזמנה{unitName ? ` — ${unitName}` : ''}</h2>
       <div className="agent-form__field">
         <label className="agent-form__label">תאריך כניסה</label>
         <input className="agent-form__input" type="date" required value={form.check_in} onChange={set('check_in')} />
@@ -162,10 +163,15 @@ export function PropertyPage() {
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedUnitId, setSelectedUnitId] = useState(null);
+  const bookingRef = useRef(null);
 
   useEffect(() => {
     propertyApi.get(id)
-      .then(({ property: p }) => setProperty(p))
+      .then(({ property: p }) => {
+        setProperty(p);
+        setSelectedUnitId(p.units?.[0]?.id ?? null);
+      })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [id]);
@@ -183,6 +189,17 @@ export function PropertyPage() {
   const isClaimed = property.status === 'claimed' || property.status === 'active';
   const isPendingClaim = property.status === 'pending';
   const amenities = activeAmenityLabels(property);
+  const units = property.units || [];
+  const isMultiUnit = units.length > 1;
+  const selectedUnit = units.find((u) => u.id === selectedUnitId) || units[0] || null;
+  const capacity = property.total_guest_capacity ?? property.guest_capacity;
+  const bedrooms = property.max_bedrooms ?? property.bedrooms;
+  const priceFrom = property.price_from ?? property.base_price_night;
+
+  function handleBookUnit(unit) {
+    setSelectedUnitId(unit.id);
+    bookingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   return (
     <div className="agent-social-profile" dir="rtl">
@@ -222,13 +239,13 @@ export function PropertyPage() {
           )}
 
           <motion.div className="deal-modal__details" initial="hidden" animate="visible">
-            {(property.guest_capacity || property.bedrooms || property.bathrooms) && (
+            {(capacity || bedrooms || property.bathrooms) && (
               <div className="deal-modal__detail-row">
                 <Users size={15} />
                 <span>
                   {[
-                    property.guest_capacity ? `עד ${property.guest_capacity} אורחים` : null,
-                    property.bedrooms ? `${property.bedrooms} חדרי שינה` : null,
+                    capacity ? `עד ${capacity} אורחים` : null,
+                    bedrooms ? `${bedrooms} חדרי שינה` : null,
                     property.bathrooms ? `${property.bathrooms} חדרי רחצה` : null,
                   ].filter(Boolean).join(' · ')}
                 </span>
@@ -238,7 +255,7 @@ export function PropertyPage() {
               <div className="deal-modal__detail-row">
                 <BedDouble size={15} />
                 <div className="deal-modal__detail-block">
-                  <span className="deal-modal__detail-label">מתקנים</span>
+                  <span className="deal-modal__detail-label">מתקנים משותפים</span>
                   <span>{amenities.join(' · ')}</span>
                 </div>
               </div>
@@ -249,15 +266,30 @@ export function PropertyPage() {
                 <span>{kosherLabel(property.kosher_level)}</span>
               </div>
             )}
-            {property.base_price_night && (
+            {priceFrom && (
               <div className="deal-modal__detail-row">
-                <span className="deal-modal__detail-label">מחיר ללילה</span>
-                <span>{Math.round(property.base_price_night)} {getCurrencySymbol(property.currency)}</span>
+                <span className="deal-modal__detail-label">{isMultiUnit ? 'החל מ-' : 'מחיר ללילה'}</span>
+                <span>{Math.round(priceFrom)} {getCurrencySymbol(property.currency)}</span>
               </div>
             )}
           </motion.div>
 
           {property.description && <p className="deal-modal__desc">{property.description}</p>}
+
+          {isMultiUnit && (
+            <div style={{ marginTop: 20 }}>
+              <h2 className="settings-card__title" style={{ marginBottom: 10 }}>יחידות במתחם</h2>
+              {units.map((unit) => (
+                <PropertyUnitCard
+                  key={unit.id}
+                  unit={unit}
+                  currency={property.currency}
+                  isSelected={unit.id === selectedUnitId}
+                  onBook={handleBookUnit}
+                />
+              ))}
+            </div>
+          )}
 
           {!isClaimed && (
             <>
@@ -303,7 +335,15 @@ export function PropertyPage() {
           )}
         </div>
 
-        <BookingRequestForm propertyId={property.id} />
+        <div ref={bookingRef}>
+          {selectedUnit && (
+            <BookingRequestForm
+              propertyId={property.id}
+              unitId={selectedUnit.id}
+              unitName={isMultiUnit ? selectedUnit.name : null}
+            />
+          )}
+        </div>
       </div>
     </div>
   );
