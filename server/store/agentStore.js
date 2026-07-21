@@ -85,7 +85,11 @@ export async function updateAgentStatus(id, status, rejection_reason = null) {
 
 export async function updateAgentProfile(id, fields) {
   const pool = getPool();
-  const allowed = ['business_name','contact_name','phone','whatsapp_number','whatsapp_template','license_number','logo_url','description','about','cover_url','response_hours','preferred_currency','has_seen_onboarding'];
+  const allowed = [
+    'business_name','contact_name','email','phone','whatsapp_number','whatsapp_template','license_number',
+    'logo_url','description','about','cover_url','response_hours','preferred_currency','has_seen_onboarding',
+    'website','facebook_url','instagram_url','tiktok_url','youtube_url',
+  ];
   const sets = [];
   const vals = [];
   for (const k of allowed) {
@@ -99,6 +103,15 @@ export async function updateAgentProfile(id, fields) {
   sets.push('updated_at=?');
   vals.push(now, id);
   await pool.query(`UPDATE agents SET ${sets.join(',')} WHERE id=?`, vals);
+}
+
+/** Separate from updateAgentProfile — a password change is a sensitive action with its own
+ * verify-current-password flow (see PATCH /api/agents/me/password), not something that should
+ * ride along with the autosaved profile form. */
+export async function updateAgentPassword(id, password_hash) {
+  const pool = getPool();
+  const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+  await pool.query('UPDATE agents SET password_hash=?, updated_at=? WHERE id=?', [password_hash, now, id]);
 }
 
 export async function updateAgentSubscription(id, { subscription_tier, subscription_status, subscription_expires_at, stripe_customer_id, stripe_subscription_id }) {

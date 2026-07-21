@@ -282,6 +282,13 @@ const MIGRATIONS = [
       console.log('[deal-radar-pro] Migrated: properties.status enum widened to include \'draft\'');
     }
   },
+  // Step 7.7 — owner profile social links (agents doubles as the owner table, see the account_type
+  // migration comment above).
+  (connection) => ensureColumn(connection, 'agents', 'website', 'TEXT NULL'),
+  (connection) => ensureColumn(connection, 'agents', 'facebook_url', 'TEXT NULL'),
+  (connection) => ensureColumn(connection, 'agents', 'instagram_url', 'TEXT NULL'),
+  (connection) => ensureColumn(connection, 'agents', 'tiktok_url', 'TEXT NULL'),
+  (connection) => ensureColumn(connection, 'agents', 'youtube_url', 'TEXT NULL'),
 ];
 
 const SCHEMA_STATEMENTS = [
@@ -417,6 +424,11 @@ const SCHEMA_STATEMENTS = [
     logo_url TEXT NULL,
     description TEXT NULL,
     response_hours VARCHAR(255) NULL,
+    website TEXT NULL,
+    facebook_url TEXT NULL,
+    instagram_url TEXT NULL,
+    tiktok_url TEXT NULL,
+    youtube_url TEXT NULL,
     preferred_currency VARCHAR(8) NOT NULL DEFAULT 'USD',
     status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
     rejection_reason TEXT NULL,

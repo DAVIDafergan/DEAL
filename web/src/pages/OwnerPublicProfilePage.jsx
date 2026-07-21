@@ -1,9 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Share2, MessageCircle, CheckCircle, ArrowLeft } from 'lucide-react';
+import { Share2, MessageCircle, CheckCircle, ArrowLeft, Globe } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { propertyApi } from '../api/client.js';
 import { PropertyCard } from '../components/PropertyCard.jsx';
+import { FacebookIcon, InstagramIcon, TikTokIcon, YouTubeIcon } from '../components/SocialIcons.jsx';
+
+const SOCIAL_LINKS = [
+  { key: 'website', Icon: Globe, label: 'אתר' },
+  { key: 'facebook_url', Icon: FacebookIcon, label: 'פייסבוק' },
+  { key: 'instagram_url', Icon: InstagramIcon, label: 'אינסטגרם' },
+  { key: 'tiktok_url', Icon: TikTokIcon, label: 'טיקטוק' },
+  { key: 'youtube_url', Icon: YouTubeIcon, label: 'יוטיוב' },
+];
 
 /** OwnerPublicProfilePage — same agent-social-profile shell as AgentPublicProfilePage, properties instead of deals. */
 export function OwnerPublicProfilePage() {
@@ -83,6 +92,16 @@ export function OwnerPublicProfilePage() {
           </div>
 
           {owner.description && <p className="agent-social-profile__bio">{owner.description}</p>}
+
+          {SOCIAL_LINKS.some(({ key }) => owner[key]) && (
+            <div className="owner-card__socials" style={{ marginBottom: 4 }}>
+              {SOCIAL_LINKS.filter(({ key }) => owner[key]).map(({ key, Icon, label }) => (
+                <a key={key} href={owner[key]} target="_blank" rel="noopener noreferrer" aria-label={label} className="owner-card__social-link">
+                  <Icon />
+                </a>
+              ))}
+            </div>
+          )}
 
           <div className="agent-social-profile__cta">
             {waNumber && (

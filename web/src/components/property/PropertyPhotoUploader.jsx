@@ -10,16 +10,18 @@ import { compressImageFile, ACCEPTED_IMAGE_TYPES, MAX_IMAGE_BYTES } from '../../
  * pick + delete + per-file progress (7.4). `images` is the array of already-uploaded URLs (the
  * source of truth); uploads-in-progress are tracked locally and appended once each one finishes.
  */
-export function PropertyPhotoUploader({ images, onChange, label, minRequired = 0 }) {
+export function PropertyPhotoUploader({ images, onChange, label, minRequired = 0, maxImages = Infinity }) {
   const { token } = useAgentAuth();
   const [uploading, setUploading] = useState([]); // [{ id, name, progress, error }]
   const [dragOver, setDragOver] = useState(false);
   const [dragIndex, setDragIndex] = useState(null);
   const inputRef = useRef(null);
+  const atCapacity = images.length + uploading.length >= maxImages;
 
   async function handleFiles(fileList) {
     const files = Array.from(fileList);
     for (const file of files) {
+      if (images.length + uploading.length >= maxImages) break;
       if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) continue;
       if (file.size > MAX_IMAGE_BYTES) continue;
       const id = `${file.name}-${Date.now()}-${Math.random()}`;
@@ -69,26 +71,28 @@ export function PropertyPhotoUploader({ images, onChange, label, minRequired = 0
     <div className="ppu">
       {label && <p className="ppu__label">{label}{minRequired > 0 && <span className="ppu__label-req"> (לפחות {minRequired})</span>}</p>}
 
-      <div
-        className={`ppu__dropzone ${dragOver ? 'ppu__dropzone--over' : ''}`}
-        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={handleDrop}
-        onClick={() => inputRef.current?.click()}
-        role="button"
-        tabIndex={0}
-      >
-        <Upload size={22} />
-        <span>גררו תמונות לכאן או לחצו לבחירה</span>
-        <input
-          ref={inputRef}
-          type="file"
-          accept={ACCEPTED_IMAGE_TYPES.join(',')}
-          multiple
-          hidden
-          onChange={(e) => { handleFiles(e.target.files); e.target.value = ''; }}
-        />
-      </div>
+      {!atCapacity && (
+        <div
+          className={`ppu__dropzone ${dragOver ? 'ppu__dropzone--over' : ''}`}
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={handleDrop}
+          onClick={() => inputRef.current?.click()}
+          role="button"
+          tabIndex={0}
+        >
+          <Upload size={22} />
+          <span>גררו תמונות לכאן או לחצו לבחירה</span>
+          <input
+            ref={inputRef}
+            type="file"
+            accept={ACCEPTED_IMAGE_TYPES.join(',')}
+            multiple={maxImages > 1}
+            hidden
+            onChange={(e) => { handleFiles(e.target.files); e.target.value = ''; }}
+          />
+        </div>
+      )}
 
       {(images.length > 0 || uploading.length > 0) && (
         <div className="ppu__grid">

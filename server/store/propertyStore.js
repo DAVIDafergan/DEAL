@@ -403,6 +403,22 @@ async function withUnits(property, { activeOnly }) {
 }
 
 /** Public single-property lookup — 404-equivalent (null) for hidden/opted-out/blocklisted/low-confidence-unreviewed/deleted rows. */
+// 7.7 public property page "owner card" — only ever the fields safe to show a stranger (no
+// email/phone here; those are surfaced separately via property.phone/whatsapp, which the owner
+// explicitly set as the property's own public contact).
+const OWNER_CARD_FIELDS = ['business_name', 'logo_url', 'description', 'slug', 'website', 'facebook_url', 'instagram_url', 'tiktok_url', 'youtube_url'];
+
+async function attachOwnerCard(property) {
+  if (!property?.owner_id) return property;
+  const pool = getPool();
+  const [rows] = await pool.query(
+    `SELECT ${OWNER_CARD_FIELDS.join(', ')} FROM agents WHERE id = ? LIMIT 1`,
+    [property.owner_id]
+  );
+  property.owner = rows[0] || null;
+  return property;
+}
+
 export async function getPropertyById(id) {
   const pool = getPool();
   const [rows] = await pool.query(
@@ -412,7 +428,9 @@ export async function getPropertyById(id) {
        AND ${NOT_BLOCKLISTED_SQL} AND ${CONFIDENCE_PUBLISHABLE_SQL} LIMIT 1`,
     [id]
   );
-  return rows[0] ? withUnits(parseProperty(rows[0]), { activeOnly: true }) : null;
+  if (!rows[0]) return null;
+  const property = await withUnits(parseProperty(rows[0]), { activeOnly: true });
+  return attachOwnerCard(property);
 }
 
 /** Owner-scoped lookup — bypasses the hidden/opted-out/deleted filter so an owner can see their

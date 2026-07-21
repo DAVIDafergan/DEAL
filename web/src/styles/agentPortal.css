@@ -377,9 +377,11 @@
 .settings-field__input {
   width: 100%; padding: 9px 36px 9px 12px; border-radius: var(--radius-sm);
   background: var(--color-bg-gradient); border: 1px solid var(--color-border);
-  color: var(--color-text-primary); font-size: 0.9rem;
+  color: var(--color-text-primary); font-size: 1rem;
 }
 .settings-field__input--textarea { resize: vertical; min-height: 64px; padding-inline-end: 12px; }
+.settings-field__input--error { border-color: var(--color-error,#ef4444); }
+.settings-field__error { margin: 2px 0 0; font-size: 0.75rem; color: var(--color-error,#ef4444); }
 .settings-field__saved-icon { position: absolute; inset-inline-end: 10px; top: 50%; transform: translateY(-50%); color: var(--color-success,#22c55e); }
 .settings-field__wa-row { display: flex; gap: 6px; }
 .settings-field__country-code {
@@ -387,6 +389,7 @@
   background: var(--color-bg-gradient); border: 1px solid var(--color-border);
   color: var(--color-text-primary); font-size: 1rem; flex-shrink: 0;
 }
+.settings-save-indicator { margin-inline-start: auto; font-size: 0.82rem; min-height: 20px; display: flex; align-items: center; }
 
 /* ── Admin page ──────────────────────────────────────────────────────────── */
 

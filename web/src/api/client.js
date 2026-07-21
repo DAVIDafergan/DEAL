@@ -137,6 +137,7 @@ export const agentApi = {
   googleAuth: (credential) => postJson('/agents/google', { credential }),
   getMe: (token) => getJson('/agents/me', token),
   updateMe: (token, data) => patchJson('/agents/me', data, token),
+  changePassword: (token, current_password, new_password) => patchJson('/agents/me/password', { current_password, new_password }, token),
   getDeals: (token) => getJson('/agents/me/deals', token),
   createDeal: (token, data) => postJson('/agents/me/deals', data, token),
   updateDeal: (token, id, data) => patchJson(`/agents/me/deals/${id}`, data, token),

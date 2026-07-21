@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { OAuth2Client } from 'google-auth-library';
 import {
   createAgent, findAgentByEmail, findAgentById,
-  updateAgentProfile, deleteAgentById,
+  updateAgentProfile, updateAgentPassword, deleteAgentById,
 } from '../store/agentStore.js';
 import { requireAgentAuth, signAgentToken } from '../middleware/agentAuth.js';
 import { upsertRating, getAgentRatingSummary, getSessionRating, getSessionAllRatings } from '../store/ratingStore.js';
@@ -103,12 +103,41 @@ router.get('/me', requireAgentAuth, async (req, res) => {
 
 router.patch('/me', requireAgentAuth, async (req, res) => {
   try {
+    if (req.body?.email) {
+      const existing = await findAgentByEmail(req.body.email);
+      if (existing && existing.id !== req.agentId) {
+        return res.status(409).json({ error: 'האימייל הזה כבר בשימוש' });
+      }
+    }
     await updateAgentProfile(req.agentId, req.body);
     const agent = await findAgentById(req.agentId);
     res.json({ agent: safeAgent(agent) });
   } catch (err) {
     console.error('[agents] patch /me error:', err);
     res.status(500).json({ error: 'Update failed' });
+  }
+});
+
+/** PATCH /api/agents/me/password — 7.7 "שינוי סיסמה". Verifies the current password first;
+ * registered before the generic /:id-shaped routes further down aren't affected since this is
+ * still under /me, same as the routes above. */
+router.patch('/me/password', requireAgentAuth, authRateLimiter, async (req, res) => {
+  try {
+    const { current_password, new_password } = req.body || {};
+    if (!current_password || !new_password) {
+      return res.status(400).json({ error: 'current_password and new_password are required' });
+    }
+    if (new_password.length < 8) return res.status(400).json({ error: 'הסיסמה החדשה חייבת להכיל לפחות 8 תווים' });
+    const agent = await findAgentById(req.agentId);
+    if (!agent) return res.status(404).json({ error: 'Not found' });
+    const ok = await bcrypt.compare(current_password, agent.password_hash);
+    if (!ok) return res.status(401).json({ error: 'הסיסמה הנוכחית שגויה' });
+    const password_hash = await bcrypt.hash(new_password, 12);
+    await updateAgentPassword(req.agentId, password_hash);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[agents] password change error:', err);
+    res.status(500).json({ error: 'שגיאה בשינוי הסיסמה' });
   }
 });
 

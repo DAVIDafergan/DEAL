@@ -8,6 +8,7 @@ import { getCurrencySymbol } from '../utils/currency.js';
 import { regionLabel, propertyTypeLabel, kosherLabel, AMENITIES } from '../data/propertyOptions.js';
 import { PropertyImageCarousel } from '../components/PropertyImageCarousel.jsx';
 import { PropertyUnitCard } from '../components/PropertyUnitCard.jsx';
+import { OwnerCard } from '../components/property/OwnerCard.jsx';
 
 function activeAmenityLabels(property) {
   return AMENITIES.filter((a) => property[a.value]).map((a) => a.label);
@@ -294,6 +295,8 @@ export function PropertyPage() {
               </span>
             </div>
           )}
+
+          {isClaimed && <OwnerCard owner={property.owner} />}
 
           <motion.div className="deal-modal__details" initial="hidden" animate="visible">
             {(capacity || bedrooms || property.bathrooms) && (
