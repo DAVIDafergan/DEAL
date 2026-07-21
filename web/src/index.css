@@ -3,6 +3,7 @@
 @import './styles/agentPortal.css';
 @import './styles/propertyFilters.css';
 @import './styles/propertyUnits.css';
+@import './styles/propertyWizard.css';
 
 * {
   box-sizing: border-box;

@@ -1,0 +1,112 @@
+/* ── 7.4 — photo uploader ─────────────────────────────────────────────────── */
+
+.ppu__label { font-size: 0.85rem; font-weight: 700; color: var(--color-text-secondary); margin: 0 0 8px; }
+.ppu__label-req { font-weight: 500; color: var(--color-text-muted); }
+
+.ppu__dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 110px;
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.ppu__dropzone--over { border-color: var(--color-accent-from); background: rgba(37,99,235,0.05); }
+
+.ppu__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.ppu__thumb {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--color-surface-elevated);
+  cursor: grab;
+}
+.ppu__thumb-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ppu__thumb-drag {
+  position: absolute; top: 4px; inset-inline-start: 4px;
+  color: #fff; background: rgba(0,0,0,0.4); border-radius: 5px; padding: 2px;
+  display: flex; pointer-events: none;
+}
+.ppu__thumb-cover {
+  position: absolute; bottom: 0; inset-inline: 0;
+  background: var(--gradient-accent); color: #fff;
+  font-size: 0.62rem; font-weight: 700; text-align: center; padding: 3px 0;
+}
+.ppu__thumb-star, .ppu__thumb-remove {
+  position: absolute; top: 4px;
+  width: 26px; height: 26px; border-radius: 999px; border: none;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.55); color: #fff; cursor: pointer;
+}
+.ppu__thumb-star { inset-inline-end: 34px; }
+.ppu__thumb-remove { inset-inline-end: 4px; }
+.ppu__thumb-star:hover, .ppu__thumb-remove:hover { background: rgba(0,0,0,0.75); }
+
+.ppu__thumb--uploading {
+  display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 6px;
+  cursor: default;
+}
+.ppu__progress-ring {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 3px solid var(--color-border); border-top-color: var(--color-accent-from);
+}
+.ppu__thumb-progress { font-size: 0.72rem; color: var(--color-text-muted); font-weight: 700; }
+.ppu__thumb-error { font-size: 0.68rem; color: var(--color-error,#ef4444); text-align: center; padding: 4px; }
+
+/* ── Units step ───────────────────────────────────────────────────────────── */
+
+.wus__list { display: flex; flex-direction: column; gap: 10px; }
+.wus__unit {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+}
+.wus__unit-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  cursor: pointer;
+}
+.wus__unit-name { font-weight: 700; font-size: 0.92rem; }
+.wus__unit-summary { font-size: 0.78rem; color: var(--color-text-muted); }
+.wus__unit-actions { display: flex; gap: 6px; }
+.wus__unit-icon-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 8px; border: none;
+  background: var(--color-surface-elevated); color: var(--color-text-secondary); cursor: pointer;
+}
+.wus__unit-icon-btn:hover { color: var(--color-accent-from); }
+.wus__unit-icon-btn--danger:hover { color: var(--color-error,#ef4444); }
+.wus__unit-body { margin-top: 12px; display: flex; flex-direction: column; gap: 12px; }
+.wus__add-btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 46px; border-radius: var(--radius-md);
+  border: 2px dashed var(--color-border); background: transparent;
+  color: var(--color-accent-from); font-weight: 700; font-size: 0.88rem; cursor: pointer;
+}
+
+/* ── Location map (pin drop) ─────────────────────────────────────────────── */
+
+.wlm { border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--color-border); }
+.wlm__map { width: 100%; height: 220px; cursor: crosshair; }
+.wlm__hint { font-size: 0.75rem; color: var(--color-text-muted); padding: 8px 4px 0; text-align: center; }
+
+/* ── Publish checklist ────────────────────────────────────────────────────── */
+
+.wpc { display: flex; flex-direction: column; gap: 8px; }
+.wpc__item {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 0.85rem; color: var(--color-text-secondary);
+}
+.wpc__item--ok { color: var(--color-success,#22c55e); }
+.wpc__item--missing { color: var(--color-text-muted); }

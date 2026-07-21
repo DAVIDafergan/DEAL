@@ -1,11 +1,22 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, CheckCircle2, Circle } from 'lucide-react';
 import { useAgentAuth } from '../../context/AgentAuthContext.jsx';
 import { propertyApi } from '../../api/client.js';
 import { REGIONS, PROPERTY_TYPES, KOSHER_LEVELS, AMENITIES } from '../../data/propertyOptions.js';
+import { PropertyLocationMap } from './PropertyLocationMap.jsx';
+import { PropertyUnitsStep } from './PropertyUnitsStep.jsx';
+import { PropertyPhotoUploader } from './PropertyPhotoUploader.jsx';
 
-const TOTAL_STEPS = 4;
+const TOTAL_STEPS = 7;
+const STEP_TITLES = ['פרטים בסיסיים', 'מיקום', 'יחידות במתחם', 'מתקנים משותפים וכשרות', 'תמונות המתחם', 'פרטי קשר', 'תצוגה מקדימה ופרסום'];
+
+const CHECKLIST_LABELS = {
+  region: 'בחירת אזור', city: 'עיר / יישוב', name: 'שם הנכס', property_type: 'סוג נכס',
+  unit: 'לפחות יחידה אחת', unit_price_capacity: 'מחיר וקיבולת לכל יחידה',
+  complex_photos: 'לפחות 3 תמונות למתחם', unit_photos: 'תמונה אחת לפחות לכל יחידה',
+  contact: 'טלפון או וואטסאפ',
+};
 
 const slideVariants = {
   enter: (dir) => ({ x: dir > 0 ? '100%' : '-100%', opacity: 0 }),
@@ -19,7 +30,9 @@ function ProgressBar({ step }) {
       <div className="wizard-progress__track">
         <motion.div className="wizard-progress__fill" animate={{ width: `${(step / TOTAL_STEPS) * 100}%` }} transition={{ type: 'spring', stiffness: 200, damping: 30 }} />
       </div>
-      <span className="wizard-progress__label">{step} / {TOTAL_STEPS}</span>
+      <span className="wizard-progress__label">
+        {STEP_TITLES[step - 1]} — <span dir="ltr">{step}/{TOTAL_STEPS}</span>
+      </span>
     </div>
   );
 }
@@ -33,69 +46,77 @@ function WizardStep({ title, children }) {
   );
 }
 
-/** PropertyWizard — same shell as DealWizard (.wizard-* classes), property fields instead of flight/hotel/car fields. */
-export function PropertyWizard({ initialData = null, propertyId = null, onSuccess, onCancel }) {
+/**
+ * PropertyWizard — 7.4 multi-step listing form. Persists incrementally: the draft property is
+ * created as soon as step 2 (location) is complete, and every later step saves straight to the
+ * server — so closing the wizard at any point leaves a resumable draft (7.4: "שמירת טיוטה"),
+ * with no separate save-draft action needed. Publishing (draft -> active) only happens on the
+ * last step, gated by the server-side checklist (propertyStore.getPublishChecklist).
+ */
+export function PropertyWizard({ initialData = null, propertyId: initialPropertyId = null, onSuccess, onCancel }) {
   const { token } = useAgentAuth();
-  const isEditing = Boolean(propertyId);
   const [step, setStep] = useState(1);
   const [dir, setDir] = useState(1);
-  const [submitting, setSubmitting] = useState(false);
+  const [propertyId, setPropertyId] = useState(initialPropertyId);
+  const [status, setStatus] = useState(initialData?.status || 'draft');
+  const [units, setUnits] = useState(initialData?.units || []);
+  const [saving, setSaving] = useState(false);
   const [apiError, setApiError] = useState(null);
   const [nameError, setNameError] = useState('');
+  const [locationError, setLocationError] = useState('');
+  const [checklist, setChecklist] = useState(null);
+  const [publishing, setPublishing] = useState(false);
 
-  const [name, setName] = useState('');
-  const [propertyType, setPropertyType] = useState('zimmer');
-  const [region, setRegion] = useState('north');
-  const [city, setCity] = useState('');
-  const [address, setAddress] = useState('');
+  const [name, setName] = useState(initialData?.name || '');
+  const [propertyType, setPropertyType] = useState(initialData?.property_type || 'zimmer');
+  const [description, setDescription] = useState(initialData?.description || '');
 
-  const [guestCapacity, setGuestCapacity] = useState('');
-  const [bedrooms, setBedrooms] = useState('');
-  const [beds, setBeds] = useState('');
-  const [bathrooms, setBathrooms] = useState('');
-  const [amenities, setAmenities] = useState({});
-  const [kosherLevel, setKosherLevel] = useState('not_applicable');
+  const [region, setRegion] = useState(initialData?.region || '');
+  const [city, setCity] = useState(initialData?.city || '');
+  const [address, setAddress] = useState(initialData?.address || '');
+  const [latitude, setLatitude] = useState(initialData?.latitude ?? null);
+  const [longitude, setLongitude] = useState(initialData?.longitude ?? null);
 
-  const [basePrice, setBasePrice] = useState('');
-  const [weekendPrice, setWeekendPrice] = useState('');
-  const [holidayPrice, setHolidayPrice] = useState('');
-  const [cleaningFee, setCleaningFee] = useState('');
-  const [minNights, setMinNights] = useState('1');
-  const [currency, setCurrency] = useState('ILS');
+  const [amenities, setAmenities] = useState(() => {
+    const state = {};
+    for (const a of AMENITIES) state[a.value] = Boolean(initialData?.[a.value]);
+    return state;
+  });
+  const [kosherLevel, setKosherLevel] = useState(initialData?.kosher_level || 'not_applicable');
 
-  const [phone, setPhone] = useState('');
-  const [whatsapp, setWhatsapp] = useState('');
-  const [website, setWebsite] = useState('');
-  const [imagesText, setImagesText] = useState('');
-  const [description, setDescription] = useState('');
+  const [ownerImages, setOwnerImages] = useState(initialData?.owner_images || []);
 
+  const [phone, setPhone] = useState(initialData?.phone || '');
+  const [whatsapp, setWhatsapp] = useState(initialData?.whatsapp || '');
+  const [website, setWebsite] = useState(initialData?.website || '');
+
+  // Resuming an existing draft (or editing a live listing) — refetch the full owner-scoped
+  // record so units/photos/etc. are current even if the dashboard's list view was stale.
   useEffect(() => {
-    if (!initialData) return;
-    setName(initialData.name || '');
-    setPropertyType(initialData.property_type || 'zimmer');
-    setRegion(initialData.region || 'north');
-    setCity(initialData.city || '');
-    setAddress(initialData.address || '');
-    setGuestCapacity(initialData.guest_capacity ? String(initialData.guest_capacity) : '');
-    setBedrooms(initialData.bedrooms ? String(initialData.bedrooms) : '');
-    setBeds(initialData.beds ? String(initialData.beds) : '');
-    setBathrooms(initialData.bathrooms ? String(initialData.bathrooms) : '');
-    const amenityState = {};
-    for (const a of AMENITIES) amenityState[a.value] = Boolean(initialData[a.value]);
-    setAmenities(amenityState);
-    setKosherLevel(initialData.kosher_level || 'not_applicable');
-    setBasePrice(initialData.base_price_night ? String(initialData.base_price_night) : '');
-    setWeekendPrice(initialData.weekend_price ? String(initialData.weekend_price) : '');
-    setHolidayPrice(initialData.holiday_price ? String(initialData.holiday_price) : '');
-    setCleaningFee(initialData.cleaning_fee ? String(initialData.cleaning_fee) : '');
-    setMinNights(initialData.min_nights ? String(initialData.min_nights) : '1');
-    setCurrency(initialData.currency || 'ILS');
-    setPhone(initialData.phone || '');
-    setWhatsapp(initialData.whatsapp || '');
-    setWebsite(initialData.website || '');
-    setImagesText((initialData.owner_images || []).join('\n'));
-    setDescription(initialData.description || '');
-  }, [initialData]);
+    if (!initialPropertyId) return;
+    propertyApi.getOneMine(token, initialPropertyId).then(({ property: p }) => {
+      setStatus(p.status);
+      setUnits(p.units || []);
+      setName(p.name || '');
+      setPropertyType(p.property_type || 'zimmer');
+      setDescription(p.description || '');
+      setRegion(p.region || '');
+      setCity(p.city || '');
+      setAddress(p.address || '');
+      setLatitude(p.latitude ?? null);
+      setLongitude(p.longitude ?? null);
+      const amenityState = {};
+      for (const a of AMENITIES) amenityState[a.value] = Boolean(p[a.value]);
+      setAmenities(amenityState);
+      setKosherLevel(p.kosher_level || 'not_applicable');
+      setOwnerImages(p.owner_images || []);
+      setPhone(p.phone || '');
+      setWhatsapp(p.whatsapp || '');
+      setWebsite(p.website || '');
+    }).catch(() => {});
+  }, [initialPropertyId, token]);
+
+  const isNewDraft = status === 'draft';
 
   function go(next) {
     setDir(next > step ? 1 : -1);
@@ -106,53 +127,92 @@ export function PropertyWizard({ initialData = null, propertyId = null, onSucces
     setAmenities((prev) => ({ ...prev, [value]: !prev[value] }));
   }
 
-  function validateAndNext() {
+  async function persist(patch) {
+    if (!propertyId) return;
+    setSaving(true);
+    setApiError(null);
+    try {
+      await propertyApi.update(token, propertyId, patch);
+    } catch (err) {
+      setApiError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleNext() {
     if (step === 1) {
       if (!name.trim()) { setNameError('שם הנכס הוא שדה חובה'); return; }
       setNameError('');
+      go(2);
+      return;
     }
+
+    if (step === 2) {
+      if (!region || !city.trim()) { setLocationError('אזור ועיר הם שדות חובה'); return; }
+      setLocationError('');
+      setSaving(true);
+      setApiError(null);
+      try {
+        if (!propertyId) {
+          const { property } = await propertyApi.create(token, {
+            name, property_type: propertyType, description: description || null,
+            region, city, address: address || null, latitude, longitude,
+          });
+          setPropertyId(property.id);
+          setUnits(property.units || []);
+          setStatus(property.status);
+        } else {
+          await propertyApi.update(token, propertyId, {
+            name, property_type: propertyType, description: description || null,
+            region, city, address: address || null, latitude, longitude,
+          });
+        }
+        go(3);
+      } catch (err) {
+        setApiError(err.message);
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
+    if (step === 4) {
+      await persist({ ...amenities, kosher_level: kosherLevel });
+      go(5);
+      return;
+    }
+
+    if (step === 6) {
+      await persist({ phone: phone || null, whatsapp: whatsapp || null, website: website || null });
+      const { ok, missing } = await propertyApi.getPublishChecklist(token, propertyId);
+      setChecklist({ ok, missing });
+      go(7);
+      return;
+    }
+
     go(step + 1);
   }
 
-  async function handleSubmit() {
-    if (!name.trim()) { setNameError('שם הנכס הוא שדה חובה'); setStep(1); return; }
-    setSubmitting(true);
+  async function handlePublish() {
+    setPublishing(true);
     setApiError(null);
-    const payload = {
-      name,
-      property_type: propertyType,
-      region,
-      city: city || null,
-      address: address || null,
-      guest_capacity: guestCapacity ? Number(guestCapacity) : null,
-      bedrooms: bedrooms ? Number(bedrooms) : null,
-      beds: beds ? Number(beds) : null,
-      bathrooms: bathrooms ? Number(bathrooms) : null,
-      ...amenities,
-      kosher_level: kosherLevel,
-      base_price_night: basePrice ? Number(basePrice) : null,
-      weekend_price: weekendPrice ? Number(weekendPrice) : null,
-      holiday_price: holidayPrice ? Number(holidayPrice) : null,
-      cleaning_fee: cleaningFee ? Number(cleaningFee) : null,
-      min_nights: minNights ? Number(minNights) : 1,
-      currency,
-      phone: phone || null,
-      whatsapp: whatsapp || null,
-      website: website || null,
-      owner_images: imagesText.split('\n').map((s) => s.trim()).filter(Boolean),
-      description: description || null,
-    };
     try {
-      if (isEditing) {
-        await propertyApi.update(token, propertyId, payload);
-      } else {
-        await propertyApi.create(token, payload);
+      const result = await propertyApi.publish(token, propertyId);
+      if (!result.ok) {
+        setChecklist(result);
+        setPublishing(false);
+        return;
       }
       onSuccess?.();
     } catch (err) {
       setApiError(err.message);
-      setSubmitting(false);
+      setPublishing(false);
     }
+  }
+
+  function handleFinishEditing() {
+    onSuccess?.();
   }
 
   return (
@@ -168,35 +228,21 @@ export function PropertyWizard({ initialData = null, propertyId = null, onSucces
         <AnimatePresence mode="wait" custom={dir}>
           {step === 1 && (
             <motion.div key="s1" custom={dir} variants={slideVariants} initial="enter" animate="center" exit="exit">
-              <WizardStep title="פרטי הנכס">
+              <WizardStep title="פרטים בסיסיים">
                 <div className="wizard-field">
                   <label className="wizard-label">שם הנכס</label>
                   <input className={`wizard-input${nameError ? ' wizard-input--error' : ''}`} value={name} onChange={(e) => setName(e.target.value)} placeholder="למשל: צימר הגליל העליון" />
                   {nameError && <p className="wizard-error">{nameError}</p>}
                 </div>
-                <div className="wizard-grid-2">
-                  <div className="wizard-field">
-                    <label className="wizard-label">סוג נכס</label>
-                    <select className="wizard-input" value={propertyType} onChange={(e) => setPropertyType(e.target.value)}>
-                      {PROPERTY_TYPES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-                    </select>
-                  </div>
-                  <div className="wizard-field">
-                    <label className="wizard-label">אזור</label>
-                    <select className="wizard-input" value={region} onChange={(e) => setRegion(e.target.value)}>
-                      {REGIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-                    </select>
-                  </div>
+                <div className="wizard-field">
+                  <label className="wizard-label">סוג נכס</label>
+                  <select className="wizard-input" value={propertyType} onChange={(e) => setPropertyType(e.target.value)}>
+                    {PROPERTY_TYPES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+                  </select>
                 </div>
-                <div className="wizard-grid-2">
-                  <div className="wizard-field">
-                    <label className="wizard-label">עיר / יישוב</label>
-                    <input className="wizard-input" value={city} onChange={(e) => setCity(e.target.value)} />
-                  </div>
-                  <div className="wizard-field">
-                    <label className="wizard-label">כתובת</label>
-                    <input className="wizard-input" value={address} onChange={(e) => setAddress(e.target.value)} />
-                  </div>
+                <div className="wizard-field">
+                  <label className="wizard-label">תיאור</label>
+                  <textarea className="wizard-input wizard-input--textarea" rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="ספרו לאורחים על הנכס…" />
                 </div>
               </WizardStep>
             </motion.div>
@@ -204,27 +250,45 @@ export function PropertyWizard({ initialData = null, propertyId = null, onSucces
 
           {step === 2 && (
             <motion.div key="s2" custom={dir} variants={slideVariants} initial="enter" animate="center" exit="exit">
-              <WizardStep title="קיבולת ומתקנים">
+              <WizardStep title="מיקום">
                 <div className="wizard-grid-2">
                   <div className="wizard-field">
-                    <label className="wizard-label">מספר אורחים</label>
-                    <input className="wizard-input" type="number" min="1" value={guestCapacity} onChange={(e) => setGuestCapacity(e.target.value)} />
+                    <label className="wizard-label">אזור</label>
+                    <select className="wizard-input" value={region} onChange={(e) => setRegion(e.target.value)}>
+                      <option value="">בחרו אזור</option>
+                      {REGIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                    </select>
                   </div>
                   <div className="wizard-field">
-                    <label className="wizard-label">חדרי שינה</label>
-                    <input className="wizard-input" type="number" min="0" value={bedrooms} onChange={(e) => setBedrooms(e.target.value)} />
+                    <label className="wizard-label">עיר / יישוב</label>
+                    <input className="wizard-input" value={city} onChange={(e) => setCity(e.target.value)} />
                   </div>
                 </div>
-                <div className="wizard-grid-2">
-                  <div className="wizard-field">
-                    <label className="wizard-label">מיטות</label>
-                    <input className="wizard-input" type="number" min="0" value={beds} onChange={(e) => setBeds(e.target.value)} />
-                  </div>
-                  <div className="wizard-field">
-                    <label className="wizard-label">חדרי רחצה</label>
-                    <input className="wizard-input" type="number" min="0" value={bathrooms} onChange={(e) => setBathrooms(e.target.value)} />
-                  </div>
+                <div className="wizard-field">
+                  <label className="wizard-label">כתובת (אופציונלי)</label>
+                  <input className="wizard-input" value={address} onChange={(e) => setAddress(e.target.value)} />
                 </div>
+                {locationError && <p className="wizard-error">{locationError}</p>}
+                <PropertyLocationMap latitude={latitude} longitude={longitude} onPick={(lat, lng) => { setLatitude(lat); setLongitude(lng); }} />
+              </WizardStep>
+            </motion.div>
+          )}
+
+          {step === 3 && (
+            <motion.div key="s3" custom={dir} variants={slideVariants} initial="enter" animate="center" exit="exit">
+              <WizardStep title="יחידות במתחם">
+                {propertyId ? (
+                  <PropertyUnitsStep propertyId={propertyId} units={units} onUnitsChange={setUnits} />
+                ) : (
+                  <p className="agent-form__hint">השלימו את שלב המיקום כדי להמשיך</p>
+                )}
+              </WizardStep>
+            </motion.div>
+          )}
+
+          {step === 4 && (
+            <motion.div key="s4" custom={dir} variants={slideVariants} initial="enter" animate="center" exit="exit">
+              <WizardStep title="מתקנים משותפים וכשרות">
                 <div className="wizard-checkboxes">
                   {AMENITIES.map((a) => (
                     <label key={a.value} className="wizard-checkbox">
@@ -243,50 +307,22 @@ export function PropertyWizard({ initialData = null, propertyId = null, onSucces
             </motion.div>
           )}
 
-          {step === 3 && (
-            <motion.div key="s3" custom={dir} variants={slideVariants} initial="enter" animate="center" exit="exit">
-              <WizardStep title="תמחור">
-                <div className="wizard-grid-2">
-                  <div className="wizard-field">
-                    <label className="wizard-label">מחיר בסיס ללילה</label>
-                    <input className="wizard-input" type="number" min="0" value={basePrice} onChange={(e) => setBasePrice(e.target.value)} />
-                  </div>
-                  <div className="wizard-field">
-                    <label className="wizard-label">מחיר סופ"ש</label>
-                    <input className="wizard-input" type="number" min="0" value={weekendPrice} onChange={(e) => setWeekendPrice(e.target.value)} />
-                  </div>
-                </div>
-                <div className="wizard-grid-2">
-                  <div className="wizard-field">
-                    <label className="wizard-label">מחיר חג</label>
-                    <input className="wizard-input" type="number" min="0" value={holidayPrice} onChange={(e) => setHolidayPrice(e.target.value)} />
-                  </div>
-                  <div className="wizard-field">
-                    <label className="wizard-label">דמי ניקיון</label>
-                    <input className="wizard-input" type="number" min="0" value={cleaningFee} onChange={(e) => setCleaningFee(e.target.value)} />
-                  </div>
-                </div>
-                <div className="wizard-grid-2">
-                  <div className="wizard-field">
-                    <label className="wizard-label">מינימום לילות</label>
-                    <input className="wizard-input" type="number" min="1" value={minNights} onChange={(e) => setMinNights(e.target.value)} />
-                  </div>
-                  <div className="wizard-field">
-                    <label className="wizard-label">מטבע</label>
-                    <select className="wizard-input" value={currency} onChange={(e) => setCurrency(e.target.value)}>
-                      <option value="ILS">₪ ILS</option>
-                      <option value="USD">$ USD</option>
-                      <option value="EUR">€ EUR</option>
-                    </select>
-                  </div>
-                </div>
+          {step === 5 && (
+            <motion.div key="s5" custom={dir} variants={slideVariants} initial="enter" animate="center" exit="exit">
+              <WizardStep title="תמונות המתחם">
+                <PropertyPhotoUploader
+                  images={ownerImages}
+                  onChange={(images) => { setOwnerImages(images); persist({ owner_images: images }); }}
+                  label="תמונות המתחם (אזורים/מתקנים משותפים)"
+                  minRequired={3}
+                />
               </WizardStep>
             </motion.div>
           )}
 
-          {step === 4 && (
-            <motion.div key="s4" custom={dir} variants={slideVariants} initial="enter" animate="center" exit="exit">
-              <WizardStep title="יצירת קשר ותמונות">
+          {step === 6 && (
+            <motion.div key="s6" custom={dir} variants={slideVariants} initial="enter" animate="center" exit="exit">
+              <WizardStep title="פרטי קשר">
                 <div className="wizard-grid-2">
                   <div className="wizard-field">
                     <label className="wizard-label">טלפון</label>
@@ -301,14 +337,32 @@ export function PropertyWizard({ initialData = null, propertyId = null, onSucces
                   <label className="wizard-label">אתר אינטרנט (אופציונלי)</label>
                   <input className="wizard-input" type="url" value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://…" />
                 </div>
+                {apiError && <p className="wizard-error">{apiError}</p>}
+              </WizardStep>
+            </motion.div>
+          )}
+
+          {step === 7 && (
+            <motion.div key="s7" custom={dir} variants={slideVariants} initial="enter" animate="center" exit="exit">
+              <WizardStep title="תצוגה מקדימה ופרסום">
                 <div className="wizard-field">
-                  <label className="wizard-label">תמונות — קישור לכל תמונה בשורה נפרדת</label>
-                  <textarea className="wizard-input" rows={3} value={imagesText} onChange={(e) => setImagesText(e.target.value)} placeholder="https://…" />
+                  <label className="wizard-label">{name}</label>
+                  <p className="agent-form__hint">
+                    {PROPERTY_TYPES.find((p) => p.value === propertyType)?.label} · {REGIONS.find((r) => r.value === region)?.label}{city ? ` · ${city}` : ''}
+                  </p>
+                  <p className="agent-form__hint">{units.length} יחידות · {ownerImages.length} תמונות מתחם</p>
                 </div>
-                <div className="wizard-field">
-                  <label className="wizard-label">תיאור</label>
-                  <textarea className="wizard-input" rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="ספרו לאורחים על הנכס…" />
-                </div>
+
+                {checklist && (
+                  <div className="wpc">
+                    {Object.entries(CHECKLIST_LABELS).map(([key, label]) => (
+                      <div key={key} className={`wpc__item ${checklist.missing.includes(key) ? 'wpc__item--missing' : 'wpc__item--ok'}`}>
+                        {checklist.missing.includes(key) ? <Circle size={14} /> : <CheckCircle2 size={14} />}
+                        {label}
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {apiError && <p className="wizard-error">{apiError}</p>}
               </WizardStep>
             </motion.div>
@@ -324,12 +378,16 @@ export function PropertyWizard({ initialData = null, propertyId = null, onSucces
         )}
         <div style={{ flex: 1 }} />
         {step < TOTAL_STEPS ? (
-          <motion.button type="button" className="wizard-btn wizard-btn--primary" whileTap={{ scale: 0.97 }} onClick={validateAndNext}>
-            הבא →
+          <motion.button type="button" className="wizard-btn wizard-btn--primary" whileTap={{ scale: 0.97 }} onClick={handleNext} disabled={saving}>
+            {saving ? 'שומר…' : 'הבא →'}
+          </motion.button>
+        ) : isNewDraft ? (
+          <motion.button type="button" className="wizard-btn wizard-btn--primary" whileTap={{ scale: 0.97 }} onClick={handlePublish} disabled={publishing || (checklist && !checklist.ok)}>
+            {publishing ? 'מפרסם…' : 'פרסם נכס'}
           </motion.button>
         ) : (
-          <motion.button type="button" className="wizard-btn wizard-btn--primary" whileTap={{ scale: 0.97 }} onClick={handleSubmit} disabled={submitting}>
-            {submitting ? 'שולח…' : isEditing ? 'שמור שינויים' : 'פרסם נכס'}
+          <motion.button type="button" className="wizard-btn wizard-btn--primary" whileTap={{ scale: 0.97 }} onClick={handleFinishEditing}>
+            סיום עריכה
           </motion.button>
         )}
       </div>

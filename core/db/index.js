@@ -264,6 +264,24 @@ const MIGRATIONS = [
   (connection) => ensureUniqueKeyReplaced(connection, 'availability', 'uk_availability_property_date', 'uk_availability_unit_date', 'unit_id, date'),
   // Step 7.6 — soft delete for properties (recycle bin, 30-day restore window).
   (connection) => ensureColumn(connection, 'properties', 'deleted_at', 'DATETIME NULL'),
+  // Step 7.4 — an owner-created listing starts as 'draft' (incomplete, invisible to search)
+  // until it meets the publish checklist (photos, a priced unit, contact info) and the owner
+  // explicitly publishes it, at which point it becomes 'active'. Previously createProperty set
+  // 'claimed' directly on creation, which collided with 'claimed' meaning "came through the
+  // ownership-claim flow" for an auto-collected listing — 'active' was already reserved in the
+  // enum for exactly this "owner's own already-published listing" case but nothing set it yet.
+  async (connection) => {
+    const [rows] = await connection.query(
+      `SELECT COLUMN_TYPE FROM information_schema.columns
+       WHERE table_schema = DATABASE() AND table_name = 'properties' AND column_name = 'status'`
+    );
+    if (rows[0] && !rows[0].COLUMN_TYPE.includes("'draft'")) {
+      await connection.query(
+        "ALTER TABLE properties MODIFY COLUMN status ENUM('unclaimed','claimed','active','hidden','pending','draft') NOT NULL DEFAULT 'unclaimed'"
+      );
+      console.log('[deal-radar-pro] Migrated: properties.status enum widened to include \'draft\'');
+    }
+  },
 ];
 
 const SCHEMA_STATEMENTS = [
@@ -523,7 +541,7 @@ const SCHEMA_STATEMENTS = [
     whatsapp VARCHAR(32) NULL,
     email VARCHAR(255) NULL,
     website TEXT NULL,
-    status ENUM('unclaimed','claimed','active','hidden','pending') NOT NULL DEFAULT 'unclaimed',
+    status ENUM('unclaimed','claimed','active','hidden','pending','draft') NOT NULL DEFAULT 'unclaimed',
     source ENUM('manual','auto') NOT NULL DEFAULT 'manual',
     confidence TINYINT UNSIGNED NULL,
     collected_at DATETIME NULL,

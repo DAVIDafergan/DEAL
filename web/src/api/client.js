@@ -41,6 +41,28 @@ async function deleteReq(path, token = null) {
   return res.json();
 }
 
+/** XHR (not fetch) — fetch has no upload-progress event, and 7.4 wants a real progress bar. */
+function uploadFileWithProgress(path, file, token, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_BASE}${path}`);
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) onProgress(e.loaded / e.total);
+    };
+    xhr.onload = () => {
+      let body = {};
+      try { body = JSON.parse(xhr.responseText); } catch { /* ignore */ }
+      if (xhr.status >= 200 && xhr.status < 300) resolve(body);
+      else reject(new Error(body.error || `Upload failed with status ${xhr.status}`));
+    };
+    xhr.onerror = () => reject(new Error('Upload failed'));
+    const form = new FormData();
+    form.append('file', file);
+    xhr.send(form);
+  });
+}
+
 export function fetchDeals(lang, { sorted = false } = {}) {
   return getJson(`/deals?lang=${lang}${sorted ? '&sorted=true' : ''}`);
 }
@@ -150,6 +172,7 @@ export const propertyApi = {
   cities: (region) => getJson(`/properties/cities${buildQuery({ region })}`),
   get: (id) => getJson(`/properties/${id}`),
   getMine: (token) => getJson('/properties/mine', token),
+  getOneMine: (token, id) => getJson(`/properties/${id}/mine`, token),
   create: (token, data) => postJson('/properties', data, token),
   update: (token, id, data) => patchJson(`/properties/${id}`, data, token),
   getAvailability: (id, range = {}) => getJson(`/properties/${id}/availability${buildQuery(range)}`),
@@ -164,6 +187,12 @@ export const propertyApi = {
   duplicateUnit: (token, propertyId, unitId) => postJson(`/properties/${propertyId}/units/${unitId}/duplicate`, {}, token),
   deleteUnit: (token, propertyId, unitId) => deleteReq(`/properties/${propertyId}/units/${unitId}`, token),
   reorderUnits: (token, propertyId, orderedIds) => patchJson(`/properties/${propertyId}/units/reorder`, { orderedIds }, token),
+  getPublishChecklist: (token, id) => getJson(`/properties/${id}/publish-checklist`, token),
+  publish: (token, id) => postJson(`/properties/${id}/publish`, {}, token),
+};
+
+export const uploadApi = {
+  propertyImage: (token, file, onProgress) => uploadFileWithProgress('/uploads/property-image', file, token, onProgress),
 };
 
 export const removeApi = {

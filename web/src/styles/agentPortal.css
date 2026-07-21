@@ -1371,7 +1371,7 @@
 }
 .wizard-header__close {
   display: flex; align-items: center; justify-content: center;
-  width: 36px; height: 36px; border-radius: 10px;
+  width: 44px; height: 44px; border-radius: 10px;
   background: rgba(255,255,255,0.06); border: none;
   color: var(--color-text-secondary); cursor: pointer; flex-shrink: 0;
 }
@@ -1424,7 +1424,7 @@
 .wizard-input {
   width: 100%; padding: 12px 14px;
   background: var(--color-surface); border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm); color: var(--color-text-primary); font-size: 0.95rem;
+  border-radius: var(--radius-sm); color: var(--color-text-primary); font-size: 1rem;
   font-family: inherit;
 }
 .wizard-input:focus { outline: none; border-color: var(--color-accent-from); }
@@ -1956,6 +1956,7 @@ select.wizard-input { cursor: pointer; }
 .dash-page .dash-deal-card--approved { border-color: rgba(5,150,105,0.2); }
 .dash-page .dash-deal-card--rejected { border-color: rgba(239,68,68,0.18); opacity: 0.85; }
 .dash-page .dash-deal-card--expired  { border-color: rgba(100,116,139,0.15); opacity: 0.55; filter: grayscale(40%); }
+.dash-page .dash-deal-card--draft    { border-color: rgba(245,166,35,0.3); border-style: dashed; }
 
 .dash-page .dash-deal-card__dest { color: #1E293B; }
 .dash-page .dash-deal-card__meta { color: #64748B; }
@@ -1965,6 +1966,7 @@ select.wizard-input { cursor: pointer; }
 .dash-page .dash-deal-status--pending  { background: rgba(245,158,11,0.1); color: #d97706; }
 .dash-page .dash-deal-status--rejected { background: rgba(239,68,68,0.1);  color: #dc2626; }
 .dash-page .dash-deal-status--expired  { background: rgba(100,116,139,0.1); color: #64748b; }
+.dash-page .dash-deal-status--draft    { background: rgba(245,166,35,0.12); color: #b7791f; }
 
 .dash-page .dash-deal-clicks { color: #94A3B8; }
 .dash-page .dash-deal-delete { background: rgba(239,68,68,0.08); color: #dc2626; }

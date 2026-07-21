@@ -90,6 +90,7 @@ export function OwnerDashboardPage() {
   }
 
   const activeCount = properties.filter((p) => p.status === 'claimed' || p.status === 'active').length;
+  const draftCount = properties.filter((p) => p.status === 'draft').length;
   const greeting = getGreeting(agent?.business_name || agent?.contact_name || '');
 
   if (loading) return (
@@ -159,6 +160,9 @@ export function OwnerDashboardPage() {
       <div id="onb-kpis" className="dash-kpis container">
         <KpiCard icon={Home} label="נכסים" value={properties.length} iconColor="#2563EB" iconBg="rgba(37,99,235,0.12)" index={0} />
         <KpiCard icon={CheckCircle} label="פעילים" value={activeCount} iconColor="#059669" iconBg="rgba(5,150,105,0.12)" index={1} />
+        {draftCount > 0 && (
+          <KpiCard icon={Pencil} label="טיוטות" value={draftCount} iconColor="#f5a623" iconBg="rgba(245,166,35,0.12)" index={2} />
+        )}
       </div>
 
       <div className="dash-quick-actions container">
@@ -224,7 +228,7 @@ export function OwnerDashboardPage() {
           {properties.map((property, i) => (
             <motion.div
               key={property.id}
-              className={`dash-deal-card dash-deal-card--${property.status === 'active' ? 'approved' : 'pending'}`}
+              className={`dash-deal-card dash-deal-card--${property.status === 'draft' ? 'draft' : property.status === 'active' ? 'approved' : 'pending'}`}
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
@@ -240,21 +244,23 @@ export function OwnerDashboardPage() {
                   <span>{propertyTypeLabel(property.property_type)}</span>
                 </div>
                 <div className="dash-deal-card__price">
-                  {property.base_price_night ? `${Math.round(property.base_price_night)} ${property.currency} / לילה` : 'ללא מחיר בסיס'}
+                  {property.price_from ? `החל מ-${Math.round(property.price_from)} ${property.currency} / לילה` : 'ללא מחיר בסיס'}
                 </div>
               </div>
               <div className="dash-deal-card__right">
-                <span className={`dash-deal-status dash-deal-status--${property.status === 'active' ? 'approved' : 'pending'}`}>
-                  <CheckCircle size={13} /> {property.status === 'active' ? 'פעיל' : property.status === 'claimed' ? 'מאומת' : property.status}
+                <span className={`dash-deal-status dash-deal-status--${property.status === 'draft' ? 'draft' : property.status === 'active' ? 'approved' : 'pending'}`}>
+                  <CheckCircle size={13} /> {property.status === 'draft' ? 'טיוטה' : property.status === 'active' ? 'פעיל' : property.status === 'claimed' ? 'מאומת' : property.status}
                 </span>
                 {property.whatsapp && <span className="dash-deal-wa"><MessageCircle size={12} /></span>}
-                <motion.button className="dash-deal-edit" whileTap={{ scale: 0.9 }} onClick={(e) => { e.stopPropagation(); setAvailabilityProperty(property); }} title="לוח זמינות">
-                  <CalendarDays size={14} />
-                  <span className="dash-deal-btn-label">זמינות</span>
-                </motion.button>
-                <motion.button className="dash-deal-edit" whileTap={{ scale: 0.9 }} onClick={(e) => { e.stopPropagation(); setEditingProperty(property); }} title="ערוך נכס">
+                {property.status !== 'draft' && (
+                  <motion.button className="dash-deal-edit" whileTap={{ scale: 0.9 }} onClick={(e) => { e.stopPropagation(); setAvailabilityProperty(property); }} title="לוח זמינות">
+                    <CalendarDays size={14} />
+                    <span className="dash-deal-btn-label">זמינות</span>
+                  </motion.button>
+                )}
+                <motion.button className="dash-deal-edit" whileTap={{ scale: 0.9 }} onClick={(e) => { e.stopPropagation(); setEditingProperty(property); }} title={property.status === 'draft' ? 'השלימו את הפרסום' : 'ערוך נכס'}>
                   <Pencil size={14} />
-                  <span className="dash-deal-btn-label">ערוך</span>
+                  <span className="dash-deal-btn-label">{property.status === 'draft' ? 'השלם פרסום' : 'ערוך'}</span>
                 </motion.button>
               </div>
             </motion.div>

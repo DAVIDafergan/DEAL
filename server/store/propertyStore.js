@@ -344,7 +344,7 @@ const CONFIDENCE_PUBLISHABLE_SQL = `(confidence IS NULL OR confidence >= 60)`;
 /** GET /api/properties — public search. Never returns hidden, opted-out, blocklisted, or low-confidence-unreviewed rows. */
 export async function searchProperties(filters = {}) {
   const pool = getPool();
-  const where = [`status != 'hidden'`, 'opted_out = 0', 'deleted_at IS NULL', NOT_BLOCKLISTED_SQL, CONFIDENCE_PUBLISHABLE_SQL];
+  const where = [`status NOT IN ('hidden','draft')`, 'opted_out = 0', 'deleted_at IS NULL', NOT_BLOCKLISTED_SQL, CONFIDENCE_PUBLISHABLE_SQL];
   const vals = [];
 
   if (filters.region) { where.push('region = ?'); vals.push(filters.region); }
@@ -386,7 +386,7 @@ export async function searchProperties(filters = {}) {
  * guard as searchProperties so the count a traveler sees matches what they'll actually get. */
 export async function listCitiesForRegion(region) {
   const pool = getPool();
-  const where = [`status != 'hidden'`, 'opted_out = 0', NOT_BLOCKLISTED_SQL, CONFIDENCE_PUBLISHABLE_SQL, 'region = ?', 'city IS NOT NULL', "city != ''"];
+  const where = [`status NOT IN ('hidden','draft')`, 'opted_out = 0', NOT_BLOCKLISTED_SQL, CONFIDENCE_PUBLISHABLE_SQL, 'region = ?', 'city IS NOT NULL', "city != ''"];
   const [rows] = await pool.query(
     `SELECT city, COUNT(*) AS count FROM properties WHERE ${where.join(' AND ')} GROUP BY city ORDER BY count DESC`,
     [region]
@@ -408,7 +408,7 @@ export async function getPropertyById(id) {
   const [rows] = await pool.query(
     `SELECT properties.*, units_agg.price_from, units_agg.total_guest_capacity, units_agg.max_bedrooms, units_agg.unit_count
      FROM properties ${UNITS_AGG_JOIN}
-     WHERE properties.id = ? AND status != 'hidden' AND opted_out = 0 AND deleted_at IS NULL
+     WHERE properties.id = ? AND status NOT IN ('hidden','draft') AND opted_out = 0 AND deleted_at IS NULL
        AND ${NOT_BLOCKLISTED_SQL} AND ${CONFIDENCE_PUBLISHABLE_SQL} LIMIT 1`,
     [id]
   );
@@ -463,7 +463,7 @@ export async function createProperty(ownerId, fields) {
        status, source, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
        ${AMENITY_FIELDS.map(() => '?').join(', ')},
-       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'claimed', 'manual', ?, ?)`,
+       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', 'manual', ?, ?)`,
     [
       ownerId,
       fields.name,
@@ -524,7 +524,9 @@ export async function updateProperty(id, ownerId, fields) {
   const vals = [];
   for (const key of OWNER_EDITABLE_FIELDS) {
     if (!Object.hasOwn(fields, key)) continue;
-    if (key === 'status' && !['claimed', 'active'].includes(fields.status)) continue;
+    // 'active' only comes from the dedicated publishProperty() below (it validates the publish
+    // checklist first) — a plain PATCH can move a listing back to 'draft' but never publish it.
+    if (key === 'status' && fields.status !== 'draft') continue;
     let value = fields[key];
     if (key === 'owner_images' && value) value = JSON.stringify(value);
     if ((key === 'phone' || key === 'whatsapp') && value) value = normalizePhone(value) || value;
@@ -554,6 +556,41 @@ export async function updateProperty(id, ownerId, fields) {
       await updateUnit(units[0].id, ownerId, unitFields);
     }
   }
+}
+
+/** 7.4 publish gate: "לפחות 3 תמונות למתחם, ותמונה אחת לכל יחידה", "אזור, עיר, שם, סוג נכס,
+ * ולפחות יחידה אחת עם מחיר וקיבולת", "טלפון או וואטסאפ". Returns { ok, missing[] } — missing is
+ * a list of translation-ready keys so both the wizard and the dashboard checklist can render the
+ * same reasons without duplicating the rule set. */
+export function getPublishChecklist(property) {
+  const units = property.units || [];
+  const activeUnits = units.filter((u) => u.is_active);
+  const missing = [];
+  if (!property.region) missing.push('region');
+  if (!property.city) missing.push('city');
+  if (!property.name) missing.push('name');
+  if (!property.property_type) missing.push('property_type');
+  if (activeUnits.length === 0) missing.push('unit');
+  else if (!activeUnits.every((u) => u.base_price_night && u.max_guests)) missing.push('unit_price_capacity');
+  if ((property.owner_images?.length || 0) < 3) missing.push('complex_photos');
+  if (activeUnits.length > 0 && !activeUnits.every((u) => (u.images?.length || 0) >= 1)) missing.push('unit_photos');
+  if (!property.phone && !property.whatsapp) missing.push('contact');
+  return { ok: missing.length === 0, missing };
+}
+
+/** Flips a draft to 'active' — only if the checklist passes. Returns the checklist either way so
+ * the caller can show exactly what's still missing on failure. */
+export async function publishProperty(id, ownerId) {
+  const property = await getPropertyByIdForOwner(id, ownerId);
+  if (!property) return { ok: false, missing: ['not_found'] };
+  const checklist = getPublishChecklist(property);
+  if (!checklist.ok) return checklist;
+  const pool = getPool();
+  await pool.query(
+    `UPDATE properties SET status = 'active', updated_at = ? WHERE id = ? AND owner_id = ? AND status = 'draft'`,
+    [nowStr(), id, ownerId]
+  );
+  return checklist;
 }
 
 // Availability/booking still take a propertyId at the API surface (unchanged route shape) and

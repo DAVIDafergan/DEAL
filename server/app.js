@@ -20,6 +20,7 @@ import billingRouter from './routes/billing.js';
 import musicRouter from './routes/music.js';
 import usersRouter from './routes/users.js';
 import contactRouter from './routes/contact.js';
+import uploadsRouter from './routes/uploads.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WEB_DIST_DIR = path.join(__dirname, '..', 'web', 'dist');
@@ -753,6 +754,7 @@ export function createApp() {
   app.use('/api/music', musicRouter);
   app.use('/api/users', usersRouter);
   app.use('/api/contact', contactRouter);
+  app.use('/api/uploads', uploadsRouter);
 
   app.use('/api', (_req, res) => {
     res.status(404).json({ error: 'Not found' });

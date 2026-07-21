@@ -7,6 +7,7 @@ import {
   listPublicPropertiesByOwner, listCitiesForRegion,
   createClaimCode, verifyClaimCode,
   createUnit, updateUnit, deactivateUnit, duplicateUnit, reorderUnits,
+  getPublishChecklist, publishProperty,
 } from '../store/propertyStore.js';
 import { findAgentBySlug } from '../store/agentStore.js';
 import { requireAgentAuth } from '../middleware/agentAuth.js';
@@ -90,6 +91,19 @@ router.get('/mine', requireAgentAuth, async (req, res) => {
   }
 });
 
+/** GET /api/properties/:id/mine — owner-scoped single-property fetch (unlike the public GET
+ * /:id, this includes drafts and all units regardless of is_active) — used by the wizard to
+ * resume editing a draft, incl. after a page refresh. */
+router.get('/:id/mine', requireAgentAuth, async (req, res) => {
+  try {
+    const property = await getPropertyByIdForOwner(req.params.id, req.agentId);
+    if (!property) return res.status(404).json({ error: 'Not found' });
+    res.json({ property });
+  } catch (err) {
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
 /** POST /api/properties — create a new listing (owner auth required) */
 router.post('/', requireAgentAuth, async (req, res) => {
   try {
@@ -119,6 +133,30 @@ router.patch('/:id', requireAgentAuth, async (req, res) => {
   } catch (err) {
     console.error('[properties] update error:', err.message);
     res.status(500).json({ error: 'Update failed' });
+  }
+});
+
+/** GET /api/properties/:id/publish-checklist — what's still missing before this draft can go live */
+router.get('/:id/publish-checklist', requireAgentAuth, async (req, res) => {
+  try {
+    const property = await getPropertyByIdForOwner(req.params.id, req.agentId);
+    if (!property) return res.status(404).json({ error: 'Not found' });
+    res.json(getPublishChecklist(property));
+  } catch (err) {
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
+/** POST /api/properties/:id/publish — draft -> active, only if the checklist passes */
+router.post('/:id/publish', requireAgentAuth, async (req, res) => {
+  try {
+    const result = await publishProperty(req.params.id, req.agentId);
+    if (result.missing.includes('not_found')) return res.status(404).json({ error: 'Not found' });
+    if (!result.ok) return res.status(422).json(result);
+    res.json(result);
+  } catch (err) {
+    console.error('[properties] publish error:', err.message);
+    res.status(500).json({ error: 'Failed to publish' });
   }
 });
 
