@@ -1,229 +1,127 @@
-# Deal Radar Pro — Design System v2
-## Concept: "Midnight Souk"
+# Deal Radar Pro — Design System v3 "Golan Hearth"
 
-A platform where Tel Aviv's startup urgency meets the drama of an airport departure board at 2am.
-Not terracotta-on-cream. Not generic travel-blue-and-white. Not near-black with lime green.
+> Supersedes v2 "Midnight Souk" (dark radar/flight-deal identity). The flight-deals/agent-reel
+> world it was built for is retired and unrouted (see `AppShell.jsx`) — the live site is now
+> exclusively the צימרים (cabin/villa rental) marketplace. v2's content is kept below §8 for
+> historical reference only; do not extend it.
+
+## Concept
+
+A working weekend cabin in the Galilee or Golan: whitewashed stone, a wood fire, olive groves
+outside the window. Not a SaaS dashboard, not a generic "sun-and-sand" travel-blue site, not
+terracotta-on-cream (the AI-default rural cliché).
 
 **Why this palette is specific to this project:**
-- "Deal Radar" = scanning, finding, targeting. The teal (#17c3b2) echoes both radar screens
-  (classic phosphor-green shifted toward the Mediterranean) and the sea itself.
-- Prices in amber (#f5a623) = treasure. A deal is gold you found.
-- Coral (#ff4d6d) for urgency only — exclusive badges, destructive actions. Rationed carefully.
-- The deep void-navy base (#07080f) is a night flight: dark, calm, purposeful.
+- **Hearth copper** (`#C1592B`) — the fireplace every cabin listing photographs. Warm, not
+  aggressive-red like a sale banner. Used for every CTA and interactive accent, so it reads as
+  "the site's color," not "a promo color."
+- **Olive** (`#5B6B4E`) — the tree line outside. Reserved for trust signals only (verified
+  badges, success states, confirmed bookings) so it carries meaning, not decoration.
+- **Gold** (`#B8860B`) — used for money and only money (prices, "from ₪X"). A guest should be
+  able to scan a page and find the price by color alone.
+- **Wine** (`#8C2F39`) — urgency/danger only (delete, sold out, validation errors). Rationed.
+- **Warm linen** (`#FAF6EF`) base instead of white/gray — feels like paper/plaster, not a screen.
+  Cards sit on it in true white (`#FFFFFF`) so elevation is legible without heavy shadows.
+- Charcoal-brown ink (`#2A2118`) for text instead of pure black — softer, warmer reading color.
 
----
+## 1. Color tokens
 
-## 1. Color Palette
+| Token | Hex | Usage |
+|---|---|---|
+| `--ds-void` | `#FAF6EF` | Page background |
+| `--ds-ink` | `#FFFFFF` | Card/panel surfaces |
+| `--ds-slate` | `#F3ECE0` | Hover/elevated fill |
+| `--ds-bone` | `#2A2118` | Primary text |
+| `--ds-ash` | `#7A6C5B` | Secondary/muted text |
+| `--ds-hearth` | `#C1592B` | Primary — CTAs, links, active filters, focus accents |
+| `--ds-olive` | `#5B6B4E` | Verified/trust badges, success states |
+| `--ds-gold` | `#B8860B` | Prices — nowhere else |
+| `--ds-wine` | `#8C2F39` | Errors, delete, sold-out |
 
-| Token | Hex | Name | Usage |
-|---|---|---|---|
-| `--ds-void` | `#07080f` | Void | Deepest background |
-| `--ds-ink` | `#0e1120` | Ink | Surface: cards, panels |
-| `--ds-slate` | `#1a2038` | Slate | Elevated: modals, hover states |
-| `--ds-bone` | `#eff1f8` | Bone | Primary text (cool white, not warm) |
-| `--ds-ash` | `#6b7694` | Ash | Secondary / muted text |
-| `--ds-amber` | `#f5a623` | Amber | Prices, value scores — TREASURE |
-| `--ds-coral` | `#ff4d6d` | Coral | Urgency: exclusive badges, delete, errors |
-| `--ds-teal` | `#17c3b2` | Teal | SIGNATURE — see §5 |
-| `--ds-ghost` | `rgba(255,255,255,0.06)` | Ghost | Subtle borders, dividers |
-
-**Retained from v1 (deal heat system):**
-- `--color-accent-from: #f97316` (orange) — used in existing gradients, not replaced
-- `--color-accent-to: #ef4444` (red) — CTAs that already use gradient
-
----
+Never place hearth + olive + gold + wine all on one screen at equal visual weight — one accent
+leads per screen (hearth for marketing/booking flows, olive for dashboards).
 
 ## 2. Typography
 
-**Display face:** `Plus Jakarta Sans` (800 weight)
-- Character: slightly rounded, assertive, works at large sizes. NOT Poppins (too soft), NOT Inter (too neutral).
-- Used for: destination names on cards, page heroes, price display, logo wordmark.
+**Display:** `Fraunces` (a warm, slightly-serif display face with real character — used for
+H1s, hero headlines, property names on cards). Falls back to `Plus Jakarta Sans` 800 for Hebrew,
+since Fraunces has no Hebrew glyphs — Hebrew headlines use the Jakarta fallback directly, so no
+missing-glyph flash occurs.
 
-**Body face:** `Noto Sans Hebrew` / `Plus Jakarta Sans`
-- Inherits from system; Hebrew falls back to `Noto Sans Hebrew` (already loaded).
+**Body:** `Plus Jakarta Sans` (Latin) / `Noto Sans Hebrew` (Hebrew) — unchanged from v2, both
+already loaded and battle-tested for RTL.
 
-**Utility (data):** tabular numbers via `font-variant-numeric: tabular-nums`
-- Prices, dates, counts — feels like a departure board display.
+**Numbers:** `font-variant-numeric: tabular-nums` on all prices/counts/dates.
 
-### Type Scale
+### Scale
 ```
 --ts-hero:    clamp(2rem, 5vw, 3.5rem) / 800   — page heroes
---ts-display: 1.4rem / 700                     — card destination name overlay
+--ts-display: 1.4rem / 700                     — card title overlay
 --ts-title:   1.05rem / 700                    — card body title
---ts-price:   1.75rem / 800 / tabular-nums     — THE price
---ts-label:   0.72rem / 600 / letter-spacing 0.06em / uppercase — category chips
---ts-body:    0.875rem / 400                   — descriptions
---ts-micro:   0.7rem / 500                     — dates, muted info
+--ts-price:   1.75rem / 800 / tabular-nums / --ds-gold
+--ts-label:   0.72rem / 600 / uppercase / letter-spacing 0.06em
+--ts-body:    0.875rem / 400
+--ts-micro:   0.7rem / 500
 ```
+
+## 3. Spacing / radius / shadow
+
+- Spacing scale: `--sp-1` (4px) … `--sp-16` (64px), multiples of 4.
+- Radius: `--radius-sm` 10px (inputs, chips), `--radius-md` 16px (cards' inner elements),
+  `--radius-lg` 22px (outer cards, modals), `--radius-pill` 999px (badges, filter chips).
+- Shadows are warm-tinted (brown-based rgba, not pure black) — `--shadow-card`,
+  `--shadow-card-hover` (hearth-tinted lift on hover), `--shadow-popover`.
+
+## 4. Component rules
+
+- **Cards**: white on linen, `--radius-lg`, `--shadow-card` at rest, lift to
+  `--shadow-card-hover` + `translateY(-2px)` on hover — no color border flip (that was v2's
+  teal-left-border move; v3 uses shadow + lift only, calmer).
+- **Buttons**: primary = `--gradient-accent` (hearth → hearth-dark), white text, `--radius-sm`.
+  Secondary = ghost (1px `--ds-ghost` border, `--ds-ash` text). WhatsApp stays brand green
+  (`#25d366`, non-negotiable). Destructive = `--ds-wine`.
+  Dashboard/admin screens: flat `--ds-hearth` fill, no gradient — gradients are for
+  guest-facing marketing surfaces only (Home, property page, search).
+- **Badges**: "verified" = olive fill + checkmark. Price = gold text, never a filled badge.
+  Urgency ("2 units left") = wine text, no background — wine is a signal, not decoration.
+- **Focus ring**: `--ds-hearth`, 3px, offset 2px — replaces v2's blue `#2563EB` global ring.
+
+## 5. RTL as a first-class citizen
+
+All new layout uses logical properties (`inset-inline-start/end`, `margin-inline-*`,
+`padding-inline-*`) exclusively — never `left`/`right`. Hebrew (`dir="rtl"`) is the default and
+the layout every component is designed in first; English is verified afterward, not the other
+way around.
+
+## 6. What NOT to do
+
+- No terracotta-on-cream postcard look — hearth copper is warmer/darker, gold carries the
+  "treasure" role terracotta usually plays, so the two don't compete.
+- No sage-green-and-beige "wellness brand" pastel wash — olive here is deliberately muted/deep,
+  not minty.
+- No stark pure white/pure black anywhere — every neutral has warmth in it.
+- No teal, no blue — those belonged to v2's "radar" concept and have no place in a
+  hospitality/trust identity.
+- Gradients reserved for guest-facing CTAs only; dashboards stay flat and calm.
+
+## 7. Scope note (honest, see also `DECISIONS.md` §9.0)
+
+The retired flight-deals/agent-reel/vibe-feed UI (`vibeFeed.css`, `heatmap/*`, `DealCard`,
+`questionnaire/*`, etc.) is **not** re-themed to v3 — those routes are unmounted
+(`AppShell.jsx`), the components are dead code kept on disk, and re-theming ~4,500 lines of CSS
+that no user can ever reach is not a good use of effort under this step's deadline. Legacy
+`--color-*` aliases in `theme.css` keep those dead files non-broken (they still compile/render
+if ever re-mounted) without requiring a v3 pass over them.
 
 ---
 
-## 3. Layout Principles
+## 8. v2 "Midnight Souk" (retired — historical reference only)
 
-### 3.1 Carousel-First Discovery (travelnextlvl.de)
+<details>
+<summary>Original v2 content, kept for history</summary>
 
-All browsable collections — Top Value Deals, Agent Deals, Packages — render as **horizontal scroll carousels**, not static grids.
+A platform where Tel Aviv's startup urgency meets the drama of an airport departure board at 2am.
+Void-navy base, teal signature accent, amber prices, coral urgency. Built for the flight-deal
+radar concept before the pivot to cabin/villa rentals. See git history for the full v2 doc.
 
-**Rules:**
-- `scroll-snap-type: x mandatory` + `scroll-snap-align: start` on every track
-- Cards are `flex-shrink: 0` with a fixed pixel width (not `1fr`) so they never collapse
-- No scrollbar visible (`scrollbar-width: none`) — the clipped edge signals "drag to scroll"
-- Image is the star: **price + destination name live ON the image** as a bottom overlay, not below it
-- Discount badge is top-right corner only — no centered pulsing badge animations on top 5 cards
-
-**Card anatomy (image-first):**
-```
-┌────────────────────┐
-│  [-23%] ←top-right │
-│                    │
-│     [PHOTO]        │  ← full card height (280px)
-│                    │
-│  Barcelona         │  ← bottom overlay, font-weight 800
-│  ₪ 2,490          │  ← price bold white, ON the image
-└────────────────────┘
-│ ✓ Agent Name       │  ← teal text, below image (minimal)
-└────────────────────┘
-```
-
-### 3.2 Minimalism Over Decoration (app.sumit.co.il)
-
-Dashboard and admin screens are **serious work tools**. The visual language:
-- **Single accent color** — only `--ds-teal` in dashboards/admin; never amber + coral + green + orange together
-- **Generous spacing** — `padding: 22px 20px` on KPI cards, `gap: 14px` on lists (not `gap: 10px`)
-- **Flat buttons** — `background: var(--ds-teal)` not `var(--gradient-accent)` on dashboard actions
-- **No visual noise** — no gradient overlays on non-image elements, no multi-color icon sets, no redundant shadows
-- **Typography is enough** — weight hierarchy (900/800/600/400) creates contrast without extra decoration
-
----
-
-## 3. Layout Concept
-
-### Deal Card (grid)
-```
-┌─────────────────────────────────────┐
-│  [PHOTO — 200px tall]               │
-│                         [-23%] ←coral badge│
-│  ✓ Agency Name ← glass pill bottom-left   │
-│  🔥 EXCLUSIVE ← top-right if set    │
-├─────────────────────────────────────┤
-│  Barcelona, Spain          ← 700    │
-│  ─────────────────────────          │
-│  ✈ Arkia · 12.07 → 19.07  ← micro  │
-│  🏨 Hilton ★★★★ · ☕       ← micro  │
-├─────────────────────┬───────────────┤
-│  ₪ 2,490            │ [❤] [WA] [→] │
-│  ← amber 800        │  ← action row │
-└─────────────────────┴───────────────┘
-Hover: teal 3px left border + amber shadow lift
-```
-
-### Home page
-```
-[HEADER sticky: Logo | ❤ | 🌐 | Auth (hidden mobile)]
-──────────────────────────────────────────────────────
-[TOP 5 CAROUSEL → → → — 280px image, price ON image]
-──────────────────────────────────────────────────────
-[REELS STRIP — horizontal scroll]
-──────────────────────────────────────────────────────
-[PACKAGES STRIP — horizontal scroll]
-──────────────────────────────────────────────────────
-[AGENT DEALS CAROUSEL → → → — 300px wide cards]
-──────────────────────────────────────────────────────
-[FOOTER]
-```
-
-### Agent Dashboard
-```
-[TOPBAR: ← Home | Agent Name · status | ⚙ ⎋]
-─────────────────────────────────────────────
-[KPI: Deals Active] [KPI: Leads/Month]
-─────────────────────────────────────────────
-[Profile link →]
-[────── Deals Tab ──────]
-[+ הוסף דיל]
-[deal row] [deal row] [deal row]
-```
-
-### Admin Panel
-```
-[ADMIN TOPBAR: Logo | פאנל ניהול | refresh | logout]
-─────────────────────────────────────────────────────
-[KPI ROW: Pending Agents | Pending Deals | Total Agents | Active Deals]
-─────────────────────────────────────────────────────
-[TABS: Agents pending | All agents | Deals pending | Active deals]
-─────────────────────────────────────────────────────
-[ROWS: card-style rows, clean typography]
-```
-
----
-
-## 4. Component Rules
-
-### Cards
-- Border-radius: `--radius-lg (24px)` on outer card, `--radius-md (16px)` on inner elements
-- Image overlay: `linear-gradient(180deg, transparent 30%, rgba(7,8,15,0.9) 100%)`
-- Price: always `--ds-amber`, `font-variant-numeric: tabular-nums`, weight 800
-- Hover: 3px left border in `--ds-teal` + `box-shadow: 0 16px 40px rgba(23,195,178,0.12)`
-
-### Buttons
-- Primary CTA: `--gradient-accent` (orange→red), white text, 10px radius
-- Secondary: ghost (border only), `--ds-ash` text
-- WhatsApp: `#25d366` (WhatsApp green is non-negotiable brand color)
-- Danger/delete: `--ds-coral`
-
-### Badges
-- Value score: `--ds-coral` bg, white text, pill shape, weight 700
-- Exclusive: amber gradient bg
-- Agent verified: `rgba(255,255,255,0.15)` glass with checkmark
-
----
-
-## 5. Signature Element — The Radar Sweep
-
-**One thing. Done perfectly.**
-
-On every page load, the logo SVG draws its sweep arc (120° clockwise from 12 o'clock)
-via `stroke-dashoffset` animation, 0.7s duration, `cubic-bezier(0.6,0,0.4,1)`.
-
-Then the center dot pulses with a `--ds-teal` glow every 3.5 seconds — forever.
-
-This is the "Deal Radar" moment: the radar found your deal.
-Every other animation on the site should feel slower and calmer than this.
-
-**CSS:**
-```css
-.logo-sweep {
-  stroke-dasharray: 36;
-  stroke-dashoffset: 36;
-  animation: logo-draw 0.7s cubic-bezier(0.6,0,0.4,1) 0.2s forwards;
-}
-.logo-dot {
-  animation: logo-pulse 3.5s ease-in-out 1.1s infinite;
-}
-@keyframes logo-draw { to { stroke-dashoffset: 0; } }
-@keyframes logo-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); filter: drop-shadow(0 0 2px var(--ds-teal)); }
-  50%       { opacity: 0.75; transform: scale(1.35); filter: drop-shadow(0 0 7px var(--ds-teal)); }
-}
-```
-
----
-
-## 6. Content & Copy Principles
-
-- Write from the user's POV: "המועדפים שלי" not "ניהול favorites"
-- Empty states = invitation to act, not dead screens
-- Errors explain what happened AND how to fix it
-- Numbers: always with currency symbol, always `font-variant-numeric: tabular-nums`
-- Hebrew RTL is the primary language; all layout works RTL-first
-
----
-
-## 7. What NOT to do
-
-- No terracotta, no sage green, no warm beige — these are AI-default palettes
-- No gradient everywhere — gradients are reserved for the accent CTA and the price badge
-- No shadows on everything — only cards and modals get elevation shadows
-- No Inter or Poppins as display faces
-- Never use multiple accent colors side-by-side in dashboards — pick ONE (teal) and use it consistently
-- Never put amber + coral + green + orange all on the same screen — visual noise kills "serious tool" feel
+</details>
