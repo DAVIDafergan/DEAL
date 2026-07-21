@@ -437,6 +437,59 @@ export async function listPropertiesByOwner(ownerId) {
   return rows.map(parseProperty);
 }
 
+const TRASH_WINDOW_DAYS = 30;
+
+/** 7.6 recycle bin — deleted within the last 30 days, restorable. Older soft-deleted rows still
+ * exist (nothing purges them automatically — see DECISIONS.md) but drop out of this list, so the
+ * dashboard's trash view only ever offers a restore that will actually still work. */
+export async function listDeletedPropertiesByOwner(ownerId) {
+  const pool = getPool();
+  const [rows] = await pool.query(
+    `SELECT properties.*, units_agg.price_from, units_agg.total_guest_capacity, units_agg.max_bedrooms, units_agg.unit_count
+     FROM properties ${UNITS_AGG_JOIN}
+     WHERE owner_id = ? AND deleted_at IS NOT NULL AND deleted_at >= (UTC_TIMESTAMP() - INTERVAL ? DAY)
+     ORDER BY deleted_at DESC`,
+    [ownerId, TRASH_WINDOW_DAYS]
+  );
+  return rows.map(parseProperty);
+}
+
+/** Soft delete — 7.6: "הנכס נעלם מהאתר ומהחיפוש מיד, הנתונים נשמרים". Returns the count of
+ * still-pending booking requests so the caller can have already warned about them (the actual
+ * warning is a client-side confirmation dialog — deletion itself is never blocked by it, soft
+ * delete is reversible). */
+export async function softDeleteProperty(id, ownerId) {
+  const pool = getPool();
+  const owned = await getPropertyByIdForOwner(id, ownerId);
+  if (!owned) return null;
+  const [[{ pendingCount }]] = await pool.query(
+    `SELECT COUNT(*) AS pendingCount FROM booking_requests WHERE property_id = ? AND status = 'pending'`,
+    [id]
+  );
+  await pool.query('UPDATE properties SET deleted_at = ?, updated_at = ? WHERE id = ? AND owner_id = ?', [nowStr(), nowStr(), id, ownerId]);
+  return { pendingBookingCount: pendingCount };
+}
+
+/** Restore from the recycle bin — refuses (returns false) once past the 30-day window, even if
+ * the row is technically still there, so the API and the trash-list view agree on what's
+ * restorable. */
+export async function restoreProperty(id, ownerId) {
+  const pool = getPool();
+  const [result] = await pool.query(
+    `UPDATE properties SET deleted_at = NULL, updated_at = ? WHERE id = ? AND owner_id = ?
+       AND deleted_at IS NOT NULL AND deleted_at >= (UTC_TIMESTAMP() - INTERVAL ? DAY)`,
+    [nowStr(), id, ownerId, TRASH_WINDOW_DAYS]
+  );
+  return result.affectedRows > 0;
+}
+
+/** Admin-only hard delete (7.6: "באדמין: מחיקה קשיחה, נפרדת ומסומנת בבירור") — actually removes
+ * the row; property_units/availability/booking_requests cascade via their FK ON DELETE CASCADE. */
+export async function hardDeletePropertyAdmin(id) {
+  const pool = getPool();
+  await pool.query('DELETE FROM properties WHERE id = ?', [id]);
+}
+
 /** Public owner-profile listing — only claimed/active, never hidden/opted-out (mirrors searchProperties' guard). */
 export async function listPublicPropertiesByOwner(ownerId) {
   const pool = getPool();

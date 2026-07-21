@@ -9,6 +9,8 @@ import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { agentApi, propertyApi } from '../api/client.js';
 import { PropertyWizard } from '../components/property/PropertyWizard.jsx';
 import { AvailabilityCalendar } from '../components/property/AvailabilityCalendar.jsx';
+import { DeletePropertyModal } from '../components/property/DeletePropertyModal.jsx';
+import { PropertyTrashPanel } from '../components/property/PropertyTrashPanel.jsx';
 import { getGreeting } from '../utils/greeting.js';
 import { regionLabel, propertyTypeLabel } from '../data/propertyOptions.js';
 
@@ -36,12 +38,16 @@ export function OwnerDashboardPage() {
   const [properties, setProperties] = useState([]);
   const [propsLoading, setPropsLoading] = useState(true);
   const [pendingBookingCount, setPendingBookingCount] = useState(0);
+  const [pendingByProperty, setPendingByProperty] = useState({});
   const [notification, setNotification] = useState(null);
   const [showWizard, setShowWizard] = useState(false);
   const [editingProperty, setEditingProperty] = useState(null);
   const [availabilityProperty, setAvailabilityProperty] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deletingProperty, setDeletingProperty] = useState(null);
+  const [propertyDeleting, setPropertyDeleting] = useState(false);
+  const [showTrash, setShowTrash] = useState(false);
 
   useEffect(() => {
     if (!loading && !token) navigate('/owner/login', { replace: true });
@@ -59,7 +65,13 @@ export function OwnerDashboardPage() {
     refreshProperties();
     if (token) {
       propertyApi.getMyBookingRequests(token)
-        .then(({ requests }) => setPendingBookingCount((requests || []).filter((r) => r.status === 'pending').length))
+        .then(({ requests }) => {
+          const pending = (requests || []).filter((r) => r.status === 'pending');
+          setPendingBookingCount(pending.length);
+          const byProperty = {};
+          for (const r of pending) byProperty[r.property_id] = (byProperty[r.property_id] || 0) + 1;
+          setPendingByProperty(byProperty);
+        })
         .catch(() => {});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -80,6 +92,21 @@ export function OwnerDashboardPage() {
     setEditingProperty(null);
     notify('הנכס עודכן בהצלחה');
     refreshProperties();
+  }
+
+  async function handleDeleteProperty() {
+    if (!deletingProperty) return;
+    setPropertyDeleting(true);
+    try {
+      await propertyApi.delete(token, deletingProperty.id);
+      notify('הנכס נמחק — אפשר לשחזר תוך 30 יום מפח המיחזור');
+      setDeletingProperty(null);
+      refreshProperties();
+    } catch (err) {
+      notify(err.message || 'שגיאה במחיקת הנכס', 'error');
+    } finally {
+      setPropertyDeleting(false);
+    }
   }
 
   async function handleDeleteAccount() {
@@ -147,6 +174,24 @@ export function OwnerDashboardPage() {
       </AnimatePresence>
 
       <AnimatePresence>
+        {deletingProperty && (
+          <DeletePropertyModal
+            property={deletingProperty}
+            pendingBookingCount={pendingByProperty[deletingProperty.id] || 0}
+            deleting={propertyDeleting}
+            onConfirm={handleDeleteProperty}
+            onCancel={() => setDeletingProperty(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showTrash && (
+          <PropertyTrashPanel token={token} onClose={() => setShowTrash(false)} onRestored={refreshProperties} />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
         {notification && (
           <motion.div className={`dash-toast dash-toast--${notification.type}`} initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
             {notification.msg}
@@ -196,6 +241,10 @@ export function OwnerDashboardPage() {
             <span className="dash-quick-pill__dot"><Settings size={15} /></span>
             הגדרות
           </Link>
+          <motion.button className="dash-quick-pill" whileTap={{ scale: 0.97 }} onClick={() => setShowTrash(true)}>
+            <span className="dash-quick-pill__dot"><Trash2 size={15} /></span>
+            פח מיחזור
+          </motion.button>
           <motion.button className="dash-quick-pill dash-quick-pill--ghost" whileTap={{ scale: 0.97 }} onClick={() => { logout(); navigate('/'); }}>
             <span className="dash-quick-pill__dot"><LogOut size={15} /></span>
             התנתקות
@@ -275,6 +324,10 @@ export function OwnerDashboardPage() {
                 <motion.button className="dash-deal-edit" whileTap={{ scale: 0.9 }} onClick={(e) => { e.stopPropagation(); setEditingProperty(property); }} title={property.status === 'draft' ? 'השלימו את הפרסום' : 'ערוך נכס'}>
                   <Pencil size={14} />
                   <span className="dash-deal-btn-label">{property.status === 'draft' ? 'השלם פרסום' : 'ערוך'}</span>
+                </motion.button>
+                <motion.button className="dash-deal-edit" whileTap={{ scale: 0.9 }} style={{ color: '#dc2626' }} onClick={(e) => { e.stopPropagation(); setDeletingProperty(property); }} title="מחק נכס">
+                  <Trash2 size={14} />
+                  <span className="dash-deal-btn-label">מחק</span>
                 </motion.button>
               </div>
             </motion.div>

@@ -6,7 +6,7 @@ import { getAllUsers, deleteUserById } from '../store/userStore.js';
 import {
   listPendingClaims, approveClaim, rejectClaim,
   listPropertiesPendingReview, approveAutoProperty, rejectAutoProperty,
-  getPropertyStats,
+  getPropertyStats, hardDeletePropertyAdmin,
 } from '../store/propertyStore.js';
 import { listEngineRuns, getEngineRun, getLatestEngineRun } from '../store/engineRunStore.js';
 import { authRateLimiter } from '../middleware/rateLimiter.js';
@@ -133,6 +133,17 @@ router.get('/properties/stats', async (_req, res) => {
   try { res.json(await getPropertyStats()); }
   catch (err) {
     console.error('[admin] property stats error:', err.message);
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
+/** DELETE /api/admin/properties/:id — hard delete (7.6: "מחיקה קשיחה, נפרדת ומסומנת בבירור"),
+ * separate from the owner-facing soft delete in server/routes/properties.js. Actually removes
+ * the row — property_units/availability/booking_requests cascade via FK. */
+router.delete('/properties/:id', async (req, res) => {
+  try { await hardDeletePropertyAdmin(req.params.id); res.json({ ok: true }); }
+  catch (err) {
+    console.error('[admin] hard delete property error:', err.message);
     res.status(500).json({ error: 'Internal error' });
   }
 });

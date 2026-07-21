@@ -6,6 +6,7 @@ import {
   createBookingRequest, getBookingRequestById, listBookingRequestsForOwner,
   listBookingRequestsAcrossOwner, updateBookingRequestStatus, getUnitById,
   listPublicPropertiesByOwner, listCitiesForRegion,
+  listDeletedPropertiesByOwner, softDeleteProperty, restoreProperty,
   createClaimCode, verifyClaimCode,
   createUnit, updateUnit, deactivateUnit, duplicateUnit, reorderUnits,
   getPublishChecklist, publishProperty,
@@ -123,6 +124,17 @@ router.patch('/booking-requests/:bookingId/status', requireAgentAuth, async (req
   }
 });
 
+/** GET /api/properties/trash/mine — recycle bin (7.6), deleted within the last 30 days. Must be
+ * registered before /:id/mine for the same reason as booking-requests/mine above. */
+router.get('/trash/mine', requireAgentAuth, async (req, res) => {
+  try {
+    const properties = await listDeletedPropertiesByOwner(req.agentId);
+    res.json({ properties });
+  } catch (err) {
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
 /** GET /api/properties/:id/mine — owner-scoped single-property fetch (unlike the public GET
  * /:id, this includes drafts and all units regardless of is_active) — used by the wizard to
  * resume editing a draft, incl. after a page refresh. */
@@ -165,6 +177,31 @@ router.patch('/:id', requireAgentAuth, async (req, res) => {
   } catch (err) {
     console.error('[properties] update error:', err.message);
     res.status(500).json({ error: 'Update failed' });
+  }
+});
+
+/** DELETE /api/properties/:id — soft delete (7.6). Disappears from search/detail immediately;
+ * recoverable from the recycle bin for 30 days. */
+router.delete('/:id', requireAgentAuth, async (req, res) => {
+  try {
+    const result = await softDeleteProperty(req.params.id, req.agentId);
+    if (!result) return res.status(404).json({ error: 'Not found' });
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('[properties] delete error:', err.message);
+    res.status(500).json({ error: 'Failed to delete property' });
+  }
+});
+
+/** POST /api/properties/:id/restore — undo a soft delete, only within the 30-day window */
+router.post('/:id/restore', requireAgentAuth, async (req, res) => {
+  try {
+    const ok = await restoreProperty(req.params.id, req.agentId);
+    if (!ok) return res.status(404).json({ error: 'Not found or past the 30-day restore window' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[properties] restore error:', err.message);
+    res.status(500).json({ error: 'Failed to restore property' });
   }
 });
 

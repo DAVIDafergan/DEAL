@@ -191,6 +191,9 @@ export const propertyApi = {
   reorderUnits: (token, propertyId, orderedIds) => patchJson(`/properties/${propertyId}/units/reorder`, { orderedIds }, token),
   getPublishChecklist: (token, id) => getJson(`/properties/${id}/publish-checklist`, token),
   publish: (token, id) => postJson(`/properties/${id}/publish`, {}, token),
+  delete: (token, id) => deleteReq(`/properties/${id}`, token),
+  restore: (token, id) => postJson(`/properties/${id}/restore`, {}, token),
+  getTrash: (token) => getJson('/properties/trash/mine', token),
 };
 
 export const uploadApi = {
@@ -245,4 +248,5 @@ export const adminApi = {
   getUsers: (tok) => getJson('/admin/users', tok),
   deleteAgent: (tok, id) => deleteReq(`/admin/agents/${id}`, tok),
   deleteUser: (tok, id) => deleteReq(`/admin/users/${id}`, tok),
+  hardDeleteProperty: (tok, id) => deleteReq(`/admin/properties/${id}`, tok),
 };

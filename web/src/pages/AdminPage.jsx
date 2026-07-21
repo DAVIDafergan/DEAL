@@ -347,6 +347,7 @@ function PropertyReviewTab({ token, notify }) {
   const [queue, setQueue] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [deletePropertyConfirmId, setDeletePropertyConfirmId] = useState(null);
 
   async function load() {
     setLoading(true);
@@ -379,6 +380,15 @@ function PropertyReviewTab({ token, notify }) {
       await adminApi.rejectAutoProperty(token, id);
       notify('הנכס נדחה והוסתר');
       setQueue((prev) => prev.filter((p) => p.id !== id));
+    } catch (err) { notify(err.message, 'error'); }
+  }
+
+  async function hardDelete(id) {
+    try {
+      await adminApi.hardDeleteProperty(token, id);
+      notify('הנכס נמחק לצמיתות');
+      setQueue((prev) => prev.filter((p) => p.id !== id));
+      setDeletePropertyConfirmId(null);
     } catch (err) { notify(err.message, 'error'); }
   }
 
@@ -435,6 +445,21 @@ function PropertyReviewTab({ token, notify }) {
                 <motion.button className="adm-row__reject" whileTap={{ scale: 0.97 }} onClick={() => reject(p.id)}>
                   <XCircle size={16} /> דחה והסתר
                 </motion.button>
+                {deletePropertyConfirmId === p.id ? (
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.8rem', color: '#b91c1c' }}>מחיקה קשיחה — לצמיתות, לא ניתן לשחזור. בטוח?</span>
+                    <button className="adm-row__reject" onClick={() => hardDelete(p.id)}>כן, מחק לצמיתות</button>
+                    <button onClick={() => setDeletePropertyConfirmId(null)}>ביטול</button>
+                  </div>
+                ) : (
+                  <button
+                    className="adm-row__delete"
+                    style={{ color: '#b91c1c', borderColor: 'rgba(185,28,28,0.3)' }}
+                    onClick={() => setDeletePropertyConfirmId(p.id)}
+                  >
+                    <Trash2 size={14} /> מחק לצמיתות
+                  </button>
+                )}
               </div>
             </div>
           ))}
