@@ -190,9 +190,15 @@ export async function reorderUnits(propertyId, ownerId, orderedIds) {
 /** Engine-only write path (Step 3 Loader) — bypasses OWNER_EDITABLE_FIELDS since the engine
  * writes fields (source, confidence, collected_at, source_url, source_image_urls) that an
  * owner is never allowed to touch directly. Used only by server/engine/loader/loader.js. */
+// 8.6: "< 60 -> נדחה ונשמר בלוג בלבד" — only applied when ENGINE_AUTO_PUBLISH_ENABLED=true; in the
+// default force-manual-review mode every score (including <60) goes to the queue instead, per
+// the operator's explicit instruction for the first live run.
 export async function upsertAutoCollectedProperty(fields) {
   const pool = getPool();
   const ts = nowStr();
+  const autoReject = process.env.ENGINE_AUTO_PUBLISH_ENABLED === 'true' && (fields.confidence ?? 0) < 60;
+  const initialStatus = autoReject ? 'hidden' : 'unclaimed';
+  const initialReviewStatus = autoReject ? 'rejected' : 'pending';
   const [result] = await pool.query(
     `INSERT INTO properties (
        name, description, property_type, region, city, address, latitude, longitude,
@@ -200,10 +206,10 @@ export async function upsertAutoCollectedProperty(fields) {
        ${AMENITY_FIELDS.join(', ')},
        kosher_level, phone, whatsapp, email, website,
        source_image_urls, extraction_confidence,
-       status, source, confidence, collected_at, source_url, created_at, updated_at)
+       status, source, confidence, auto_review_status, collected_at, source_url, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
        ${AMENITY_FIELDS.map(() => '?').join(', ')},
-       ?, ?, ?, ?, ?, ?, ?, 'unclaimed', 'auto', ?, ?, ?, ?, ?)`,
+       ?, ?, ?, ?, ?, ?, ?, ?, 'auto', ?, ?, ?, ?, ?, ?)`,
     [
       fields.name,
       fields.description || null,
@@ -225,7 +231,9 @@ export async function upsertAutoCollectedProperty(fields) {
       fields.website || null,
       fields.source_image_urls ? JSON.stringify(fields.source_image_urls) : null,
       fields.extraction_confidence ? JSON.stringify(fields.extraction_confidence) : null,
+      initialStatus,
       fields.confidence ?? null,
+      initialReviewStatus,
       ts,
       fields.source_url || null,
       ts, ts,
@@ -305,25 +313,40 @@ export async function findAutoPropertyByPhoneOrDomain({ phone, domain }) {
   return null;
 }
 
-/** Admin review queue — auto-collected properties below the publish confidence gate. */
+// Step 8.6 publish gate — replaces the old confidence>=60-publishes-directly rule with a real
+// 3-tier one, PLUS an explicit override: while ENGINE_AUTO_PUBLISH_ENABLED is unset/false (the
+// default, and required for the first live run per the operator's explicit instruction), NO
+// auto-collected property ever goes public on confidence alone — every one of them, at any
+// score, sits in the manual queue until an admin approves it. Once the operator is confident in
+// extraction quality and flips ENGINE_AUTO_PUBLISH_ENABLED=true, the spec's normal thresholds
+// apply: confidence>=80 (with a usable phone) auto-publishes, 60-79 queues, <60 is auto-rejected.
+function isAutoPublishEnabled() {
+  return process.env.ENGINE_AUTO_PUBLISH_ENABLED === 'true';
+}
+
+/** Admin review queue. In force-manual-review mode (default) this is every 'pending' auto
+ * property regardless of score; once auto-publish is enabled it's just the 60-79 band plus any
+ * >=80 property still missing a usable phone (both spec'd exceptions to auto-publish). */
 export async function listPropertiesPendingReview() {
   const pool = getPool();
-  const [rows] = await pool.query(
-    `SELECT * FROM properties WHERE source = 'auto' AND confidence < 60 ORDER BY collected_at DESC`
-  );
+  const where = isAutoPublishEnabled()
+    ? `source = 'auto' AND auto_review_status = 'pending' AND (confidence BETWEEN 60 AND 79 OR (confidence >= 80 AND NOT (phone IS NOT NULL OR whatsapp IS NOT NULL)))`
+    : `source = 'auto' AND auto_review_status = 'pending'`;
+  const [rows] = await pool.query(`SELECT * FROM properties WHERE ${where} ORDER BY collected_at DESC`);
   return rows.map(parseProperty);
 }
 
 export async function approveAutoProperty(id) {
   const pool = getPool();
-  // Publish gate is confidence>=60 (see CONFIDENCE_PUBLISHABLE_SQL) — admin approval bumps the
-  // score itself rather than adding a parallel "approved" flag the gate would also need to check.
-  await pool.query(`UPDATE properties SET confidence = 100, updated_at = ? WHERE id = ? AND source = 'auto'`, [nowStr(), id]);
+  await pool.query(`UPDATE properties SET auto_review_status = 'approved', updated_at = ? WHERE id = ? AND source = 'auto'`, [nowStr(), id]);
 }
 
 export async function rejectAutoProperty(id) {
   const pool = getPool();
-  await pool.query(`UPDATE properties SET status = 'hidden', updated_at = ? WHERE id = ? AND source = 'auto'`, [nowStr(), id]);
+  await pool.query(
+    `UPDATE properties SET auto_review_status = 'rejected', status = 'hidden', updated_at = ? WHERE id = ? AND source = 'auto'`,
+    [nowStr(), id]
+  );
 }
 
 // Defense-in-depth beyond opted_out (which is set immediately at removal time): a property
@@ -335,16 +358,19 @@ const NOT_BLOCKLISTED_SQL = `
   AND NOT EXISTS (SELECT 1 FROM blocklist b WHERE b.type = 'domain' AND properties.source_url IS NOT NULL AND properties.source_url LIKE CONCAT('%', b.value, '%'))
 `;
 
-// Step 3 spec: "כל נכס שנאסף אוטומטית ומגיע לציון confidence נמוך מ-60 נכנס לתור אישור ידני ולא
-// מתפרסם" — gated here rather than via a separate status value, so it doesn't collide with
-// 'pending' (which already means "ownership claim awaiting admin review", a different thing).
-// Manually-created properties have confidence=NULL and are never affected by this gate.
-const CONFIDENCE_PUBLISHABLE_SQL = `(confidence IS NULL OR confidence >= 60)`;
+// Manually-created properties (confidence IS NULL, auto_review_status IS NULL) are never
+// affected by any of this — the gate only applies to source='auto' rows.
+function confidencePublishableSql() {
+  if (isAutoPublishEnabled()) {
+    return `(confidence IS NULL OR auto_review_status = 'approved' OR (auto_review_status != 'rejected' AND confidence >= 80 AND (phone IS NOT NULL OR whatsapp IS NOT NULL)))`;
+  }
+  return `(confidence IS NULL OR auto_review_status = 'approved')`;
+}
 
 /** GET /api/properties — public search. Never returns hidden, opted-out, blocklisted, or low-confidence-unreviewed rows. */
 export async function searchProperties(filters = {}) {
   const pool = getPool();
-  const where = [`status NOT IN ('hidden','draft')`, 'opted_out = 0', 'deleted_at IS NULL', NOT_BLOCKLISTED_SQL, CONFIDENCE_PUBLISHABLE_SQL];
+  const where = [`status NOT IN ('hidden','draft')`, 'opted_out = 0', 'deleted_at IS NULL', NOT_BLOCKLISTED_SQL, confidencePublishableSql()];
   const vals = [];
 
   if (filters.region) { where.push('region = ?'); vals.push(filters.region); }
@@ -386,7 +412,7 @@ export async function searchProperties(filters = {}) {
  * guard as searchProperties so the count a traveler sees matches what they'll actually get. */
 export async function listCitiesForRegion(region) {
   const pool = getPool();
-  const where = [`status NOT IN ('hidden','draft')`, 'opted_out = 0', NOT_BLOCKLISTED_SQL, CONFIDENCE_PUBLISHABLE_SQL, 'region = ?', 'city IS NOT NULL', "city != ''"];
+  const where = [`status NOT IN ('hidden','draft')`, 'opted_out = 0', NOT_BLOCKLISTED_SQL, confidencePublishableSql(), 'region = ?', 'city IS NOT NULL', "city != ''"];
   const [rows] = await pool.query(
     `SELECT city, COUNT(*) AS count FROM properties WHERE ${where.join(' AND ')} GROUP BY city ORDER BY count DESC`,
     [region]
@@ -425,7 +451,7 @@ export async function getPropertyById(id) {
     `SELECT properties.*, units_agg.price_from, units_agg.total_guest_capacity, units_agg.max_bedrooms, units_agg.unit_count
      FROM properties ${UNITS_AGG_JOIN}
      WHERE properties.id = ? AND status NOT IN ('hidden','draft') AND opted_out = 0 AND deleted_at IS NULL
-       AND ${NOT_BLOCKLISTED_SQL} AND ${CONFIDENCE_PUBLISHABLE_SQL} LIMIT 1`,
+       AND ${NOT_BLOCKLISTED_SQL} AND ${confidencePublishableSql()} LIMIT 1`,
     [id]
   );
   if (!rows[0]) return null;

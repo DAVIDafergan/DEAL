@@ -36,9 +36,11 @@ export async function runDiscovery(queries, searchProvider) {
   const sites = new Map(); // siteKey -> { url, domain }
   const portalDomains = new Set();
   let totalResults = 0;
+  const perQueryResults = new Map(); // query text -> result count (Step 8.2 query-productivity tracking)
 
   for (const query of queries) {
     const results = await searchProvider.search(query);
+    perQueryResults.set(query, results.length);
     totalResults += results.length;
     for (const result of results) {
       const parsed = parseSite(result.url);
@@ -53,6 +55,7 @@ export async function runDiscovery(queries, searchProvider) {
     totalResults,
     sites: [...sites.entries()].map(([siteKey, v]) => ({ siteKey, ...v })),
     portalDomains: [...portalDomains],
+    perQueryResults,
   };
 }
 

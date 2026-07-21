@@ -231,6 +231,8 @@ function EngineTab({ token, notify }) {
   const [status, setStatus] = useState(null);
   const [runs, setRuns] = useState([]);
   const [starting, setStarting] = useState(false);
+  const [stopping, setStopping] = useState(false);
+  const [queryStats, setQueryStats] = useState(null);
   const pollRef = useRef(null);
 
   async function loadStatus() {
@@ -245,26 +247,35 @@ function EngineTab({ token, notify }) {
     try { const { runs: r } = await adminApi.getEngineRuns(token); setRuns(r || []); } catch {}
   }
 
+  async function loadQueryStats() {
+    try { const { stats } = await adminApi.getEngineQueries(token); setQueryStats(stats); } catch {}
+  }
+
   useEffect(() => {
     loadStatus();
     loadRuns();
+    loadQueryStats();
     return () => clearInterval(pollRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+
+  function pollUntilDone(successMsg) {
+    pollRef.current = setInterval(async () => {
+      const s = await loadStatus();
+      if (s && !s.running) {
+        clearInterval(pollRef.current);
+        loadRuns();
+        notify(successMsg);
+      }
+    }, 2000);
+  }
 
   async function handleRun() {
     setStarting(true);
     try {
       await adminApi.runEngine(token);
       notify('הריצה החלה — מריץ על אתרי בדיקה מקומיים בלבד');
-      pollRef.current = setInterval(async () => {
-        const s = await loadStatus();
-        if (s && !s.running) {
-          clearInterval(pollRef.current);
-          loadRuns();
-          notify('הריצה הסתיימה ✓');
-        }
-      }, 2000);
+      pollUntilDone('הריצה הסתיימה ✓');
     } catch (err) {
       notify(err.message || 'שגיאה בהפעלת המנוע', 'error');
     } finally {
@@ -272,11 +283,34 @@ function EngineTab({ token, notify }) {
     }
   }
 
+  async function handleEmergencyStop() {
+    setStopping(true);
+    try {
+      await adminApi.emergencyStopEngine(token);
+      notify('עצירת חירום נשלחה — הריצה תיעצר לפני הבקשה הבאה');
+      loadStatus();
+    } catch (err) {
+      notify(err.message || 'שגיאה בעצירה', 'error');
+    } finally {
+      setStopping(false);
+    }
+  }
+
+  async function handleSyncQueries() {
+    try {
+      const res = await adminApi.syncEngineQueries(token);
+      notify(`מטריצת שאילתות סונכרנה — ${res.total} שאילתות`);
+      loadQueryStats();
+    } catch (err) {
+      notify(err.message || 'שגיאה בסנכרון', 'error');
+    }
+  }
+
   const latest = status?.latestRun;
 
   return (
     <div dir="rtl">
-      <div className="adm-quick-actions" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px' }}>
+      <div className="adm-quick-actions" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', flexWrap: 'wrap' }}>
         <motion.button
           className="adm-row__approve"
           whileTap={{ scale: 0.97 }}
@@ -285,10 +319,39 @@ function EngineTab({ token, notify }) {
         >
           <PlayCircle size={16} /> {status?.running ? 'רץ כרגע…' : starting ? 'מפעיל…' : 'הרץ מנוע (dry-run, אתרי בדיקה בלבד)'}
         </motion.button>
+        {status?.running && (
+          <motion.button
+            className="adm-row__reject"
+            whileTap={{ scale: 0.97 }}
+            onClick={handleEmergencyStop}
+            disabled={stopping || status?.emergencyStopped}
+          >
+            <AlertTriangle size={16} /> {status?.emergencyStopped ? 'עצירה נשלחה…' : stopping ? 'עוצר…' : 'עצירת חירום'}
+          </motion.button>
+        )}
         <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-          תמיד רץ מול אתרי בדיקה מקומיים — לעולם לא סורק אתרים אמיתיים
+          כפתור dry-run תמיד רץ מול אתרי בדיקה מקומיים — לעולם לא סורק אתרים אמיתיים. הרצה חיה
+          זמינה רק דרך ה-API (POST /admin/engine/run-live) ומסורבת ללא SEARCH_API_KEY.
         </span>
       </div>
+
+      {status?.running && status?.liveCost && (
+        <div style={{ padding: '0 20px 12px', fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
+          עלות מצטברת בזמן אמת: ${status.liveCost.costUsd} ({status.liveCost.callCount} קריאות LLM)
+        </div>
+      )}
+
+      {queryStats && (
+        <div style={{ padding: '0 20px 16px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.85rem' }}>
+            מטריצת שאילתות: {queryStats.total} סה"כ · {queryStats.productive || 0} פרודוקטיביות ·
+            {' '}{queryStats.unproductive || 0} ריקות · {queryStats.pending || 0} טרם רצו
+          </span>
+          <button className="adm-row__delete" onClick={handleSyncQueries} style={{ fontSize: '0.78rem' }}>
+            סנכרן מטריצה
+          </button>
+        </div>
+      )}
 
       {latest && (
         <>
@@ -313,7 +376,7 @@ function EngineTab({ token, notify }) {
             <div className="adm-analytics-kpi">
               <div className="adm-analytics-kpi__icon" style={{ color: '#8b5cf6', background: 'rgba(139,92,246,0.12)' }}><AlertTriangle size={26} /></div>
               <div className="adm-analytics-kpi__value">{latest.properties_queued_for_review}</div>
-              <div className="adm-analytics-kpi__label">ממתינים לאישור (confidence&lt;60)</div>
+              <div className="adm-analytics-kpi__label">ממתינים לאישור ידני</div>
             </div>
           </div>
           <div style={{ padding: '4px 20px 20px' }}>
@@ -785,7 +848,10 @@ export function AdminPage() {
       {/* Analytics */}
       {tab === 'analytics' && <AnalyticsTab token={token} />}
 
-      {/* Property review queue (auto-collected, confidence < 60) */}
+      {/* Property review queue — auto-collected properties awaiting manual approval. While
+          ENGINE_AUTO_PUBLISH_ENABLED is off (the default), this is every auto-collected property
+          regardless of confidence (8.6); once enabled, only the 60-79 band plus >=80 without a
+          usable phone. See propertyStore.listPropertiesPendingReview. */}
       {tab === 'property-review' && <PropertyReviewTab token={token} notify={notify} />}
 
       {/* Collection engine (Step 3/4) */}

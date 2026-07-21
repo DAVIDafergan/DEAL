@@ -2,11 +2,24 @@ import { chromium } from 'playwright';
 import { runDiscovery } from './discovery/discoveryEngine.js';
 import { fetchPage, FetchSkippedError } from './fetcher/pageFetcher.js';
 import { pruneExpiredCache } from './fetcher/htmlCache.js';
+import { pruneExpiredSearchCache } from './discovery/searchResultCache.js';
 import { extractProperty } from './extractor/extractProperty.js';
 import { hasCopiedPhrase } from './extractor/descriptionCheck.js';
 import { loadProperty } from './loader/loader.js';
 import { getSessionCost, resetSessionCost } from './extractor/costLogger.js';
 import { startEngineRun, finishEngineRun } from '../server/store/engineRunStore.js';
+import { recordQueryResult } from '../server/store/engineQueryStore.js';
+import { isEmergencyStopped } from '../server/store/engineSettingsStore.js';
+
+// Step 8.5 cost/safety ceilings — checked every loop iteration so a run that blows past its
+// budget stops immediately instead of finishing the whole discovered site list regardless.
+// Both no-op during dry-run: fixture pages cost ~0 (no ANTHROPIC_API_KEY -> mock extractor) and
+// there are only ever a handful of them, so neither ceiling is ever reached.
+function readCeiling(envVar, fallback) {
+  const raw = process.env[envVar];
+  const n = raw ? Number(raw) : NaN;
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
 
 /**
  * Proves (doesn't just assert) that known OTA/platform domains are refused before any network
@@ -36,10 +49,12 @@ async function verifyHardBlockSample() {
  * (no key, mock extractor), the mock can't understand Hebrew prose, so hints stand in for what
  * a real LLM would have inferred — see engine/dryRun.js and SESSION-REPORT.md.
  */
-export async function runPipeline({ queries, searchProvider, siteHints = {}, mode = 'dry_run' }) {
+export async function runPipeline({ queries, searchProvider, siteHints = {}, mode = 'dry_run', preDiscoveredSites = null }) {
   resetSessionCost();
-  const prunedCacheFiles = pruneExpiredCache();
+  const prunedCacheFiles = pruneExpiredCache() + pruneExpiredSearchCache();
   const runId = await startEngineRun(mode);
+  const maxCostUsd = readCeiling('ENGINE_MAX_COST_USD', Infinity);
+  const maxPages = readCeiling('ENGINE_MAX_PAGES', Infinity);
 
   const stats = {
     domainsDiscovered: 0, pagesFetched: 0, pagesExtracted: 0, pagesRejected: 0,
@@ -54,6 +69,7 @@ export async function runPipeline({ queries, searchProvider, siteHints = {}, mod
     domainsSkippedHardBlocked: [],
     hardBlockedDomainsVerified: [],
     cacheFilesPruned: prunedCacheFiles,
+    stoppedEarly: null, // 'max_cost' | 'max_pages' | 'emergency_stop' | null
   };
   const loadedThisRun = [];
   const rejectedPages = [];
@@ -61,12 +77,27 @@ export async function runPipeline({ queries, searchProvider, siteHints = {}, mod
 
   let browser;
   try {
-    const discovery = await runDiscovery(queries, searchProvider);
+    // Step 8.3 live runs classify+filter sites (single_property/portal/irrelevant) *before*
+    // calling this function — see server/routes/admin.js's live-run route — and pass the
+    // pre-filtered list in via `preDiscoveredSites` instead of letting this function's own
+    // (heuristic-only) runDiscovery decide. Dry-run keeps using runDiscovery exactly as before.
+    const discovery = preDiscoveredSites
+      ? { sites: preDiscoveredSites, perQueryResults: new Map() }
+      : await runDiscovery(queries, searchProvider);
     stats.domainsDiscovered = discovery.sites.length;
+    for (const [queryText, count] of discovery.perQueryResults || []) {
+      await recordQueryResult(queryText, count).catch(() => {}); // no-op if this query isn't in engine_queries (e.g. dry-run fixtures)
+    }
 
     browser = await chromium.launch({ args: ['--no-sandbox'] });
 
     for (const site of discovery.sites) {
+      // Step 8.5 — checked before every single fetch, not just once per run, so "stop now"
+      // actually means now and a cost/page overage can't sneak past on the same iteration.
+      if (getSessionCost().costUsd >= maxCostUsd) { complianceReport.stoppedEarly = 'max_cost'; break; }
+      if (stats.pagesFetched >= maxPages) { complianceReport.stoppedEarly = 'max_pages'; break; }
+      if (await isEmergencyStopped()) { complianceReport.stoppedEarly = 'emergency_stop'; break; }
+
       let fetched;
       try {
         fetched = await fetchPage(site.url, { browser });

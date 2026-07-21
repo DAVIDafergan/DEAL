@@ -9,6 +9,9 @@ import {
   getPropertyStats, hardDeletePropertyAdmin,
 } from '../store/propertyStore.js';
 import { listEngineRuns, getEngineRun, getLatestEngineRun } from '../store/engineRunStore.js';
+import { getQueryStats, listQueries } from '../store/engineQueryStore.js';
+import { isEmergencyStopped, setEmergencyStop } from '../store/engineSettingsStore.js';
+import { getSessionCost } from '../../engine/extractor/costLogger.js';
 import { authRateLimiter } from '../middleware/rateLimiter.js';
 
 const router = Router();
@@ -183,6 +186,8 @@ router.post('/engine/run', async (_req, res) => {
       'וילה': [{ url: byName('sparse-page').url, title: '', snippet: '' }, { url: byName('robots-blocked-site').url, title: '', snippet: '' }],
     });
 
+    await setEmergencyStop(false); // clear any stale stop flag from a previous run before starting a new one
+
     currentRun = runPipeline({ queries: buildQueryMatrix(), searchProvider, siteHints, mode: 'dry_run' })
       .then(async (result) => { await stopFixtureServers(servers); return result; })
       .catch(async (err) => { await stopFixtureServers(servers); throw err; })
@@ -196,11 +201,91 @@ router.post('/engine/run', async (_req, res) => {
   }
 });
 
+/**
+ * Step 8 — the ONLY route in this codebase that can touch real, live websites, and only once
+ * SEARCH_API_KEY is set. Refuses to start otherwise — this is the literal enforcement of
+ * "הרצה בפועל על אתרים אמיתיים תמתין ל-SEARCH_API_KEY". `roundSize` implements the staged
+ * calibration in 8.4 (20 -> 200 -> full): caps how many *sites* (post-classification) get
+ * fetched this run, not how many queries run (queries are cheap/free; fetching+extracting a real
+ * page is the expensive, rate-limited, "touching someone else's server" part).
+ */
+router.post('/engine/run-live', async (req, res) => {
+  if (currentRun) return res.status(409).json({ error: 'A run is already in progress' });
+  const apiKey = process.env.SEARCH_API_KEY;
+  if (!apiKey) {
+    return res.status(503).json({
+      error: 'SEARCH_API_KEY is not configured — live runs are refused until it is set. See ENGINE-RUNBOOK.md.',
+    });
+  }
+  try {
+    const { createCommercialSearchProvider } = await import('../../engine/discovery/commercialSearchProvider.js');
+    const { classifySources } = await import('../../engine/discovery/sourceClassifier.js');
+    const { runDiscovery } = await import('../../engine/discovery/discoveryEngine.js');
+    const { buildQueryMatrix } = await import('../../engine/discovery/queryMatrix.js');
+    const { runPipeline } = await import('../../engine/pipeline.js');
+    const { listQueries } = await import('../store/engineQueryStore.js');
+
+    const searchProvider = createCommercialSearchProvider();
+    if (!searchProvider) {
+      return res.status(503).json({ error: 'SEARCH_API_KEY is set but no valid provider could be created — check SEARCH_PROVIDER.' });
+    }
+
+    const roundSize = Number(req.body?.roundSize) || null; // 20 | 200 | null (full run)
+
+    // Prefer the persisted matrix (has run history — see 8.2) if it's been synced at least once;
+    // otherwise fall back to generating fresh so this route still works without a prior sync call.
+    const persisted = await listQueries();
+    const queries = persisted.length > 0 ? persisted.map((q) => q.query_text) : buildQueryMatrix();
+
+    await setEmergencyStop(false);
+
+    currentRun = (async () => {
+      const discovery = await runDiscovery(queries, searchProvider);
+      const classifications = await classifySources(discovery.sites);
+      let approvedSites = discovery.sites.filter((_, i) => classifications[i].classification === 'single_property');
+      if (roundSize) approvedSites = approvedSites.slice(0, roundSize);
+
+      return runPipeline({ queries, searchProvider, mode: 'live', preDiscoveredSites: approvedSites });
+    })().finally(() => { currentRun = null; });
+
+    res.status(202).json({
+      ok: true,
+      message: `Live run started (round size: ${roundSize || 'full'}) — poll /admin/engine/status`,
+    });
+  } catch (err) {
+    currentRun = null;
+    console.error('[admin] live engine run error:', err.message);
+    res.status(500).json({ error: 'Failed to start live run' });
+  }
+});
+
 router.get('/engine/status', async (_req, res) => {
   try {
     const latest = await getLatestEngineRun();
-    res.json({ running: currentRun !== null, latestRun: latest });
+    // Live cost log (8.5: "לוג עלות מצטבר בזמן אמת בפאנל") — costLogger's session counters are
+    // process-global and update in real time as the running pipeline calls the LLM, so reading
+    // them here needs no extra plumbing between the pipeline and this endpoint.
+    res.json({
+      running: currentRun !== null,
+      latestRun: latest,
+      liveCost: currentRun !== null ? getSessionCost() : null,
+      emergencyStopped: await isEmergencyStopped(),
+    });
   } catch { res.status(500).json({ error: 'Internal error' }); }
+});
+
+/** Step 8.5 emergency stop — the running pipeline checks this before every single site fetch
+ * (see engine/pipeline.js), so pressing this actually halts a run within one page-fetch, not at
+ * the next natural checkpoint. Resets back to false automatically once a run actually finishes
+ * (finishEngineRun doesn't touch it, so it must be reset explicitly — done here on start). */
+router.post('/engine/emergency-stop', async (_req, res) => {
+  try { await setEmergencyStop(true); res.json({ ok: true, emergencyStopped: true }); }
+  catch { res.status(500).json({ error: 'Internal error' }); }
+});
+
+router.post('/engine/emergency-stop/clear', async (_req, res) => {
+  try { await setEmergencyStop(false); res.json({ ok: true, emergencyStopped: false }); }
+  catch { res.status(500).json({ error: 'Internal error' }); }
 });
 
 router.get('/engine/runs', async (_req, res) => {
@@ -214,6 +299,45 @@ router.get('/engine/runs/:id', async (req, res) => {
     if (!run) return res.status(404).json({ error: 'Not found' });
     res.json(run);
   } catch { res.status(500).json({ error: 'Internal error' }); }
+});
+
+/** Step 8.2 query-matrix visibility — which queries are productive vs. wasted so a future run
+ * can prioritize/skip accordingly. */
+router.get('/engine/queries', async (req, res) => {
+  try {
+    const [stats, queries] = await Promise.all([getQueryStats(), listQueries({ status: req.query.status })]);
+    res.json({ stats, queries });
+  } catch { res.status(500).json({ error: 'Internal error' }); }
+});
+
+/** Step 8.7 — read-only preview of what a periodic refresh would touch (no network calls, no
+ * cost). Actually running a refresh re-fetches real external sites, so — same as the live-run
+ * route — there's no "run refresh now" trigger here; see engine/refresh.js and
+ * ENGINE-RUNBOOK.md. */
+router.get('/engine/refresh-candidates', async (req, res) => {
+  try {
+    const { listRefreshCandidates } = await import('../../engine/refresh.js');
+    const candidates = await listRefreshCandidates(Number(req.query.limit) || 500);
+    res.json({ candidates, count: candidates.length });
+  } catch (err) {
+    console.error('[admin] refresh candidates error:', err.message);
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
+/** (Re)generates the query matrix into engine_queries — no network call, no cost, safe to run
+ * any time; existing rows keep their run history (see upsertQueryMatrix). */
+router.post('/engine/queries/sync', async (_req, res) => {
+  try {
+    const { buildQueryMatrixDetailed, queryMatrixSize } = await import('../../engine/discovery/queryMatrix.js');
+    const { upsertQueryMatrix } = await import('../store/engineQueryStore.js');
+    const matrix = buildQueryMatrixDetailed();
+    await upsertQueryMatrix(matrix);
+    res.json({ ok: true, total: matrix.length, expectedTotal: queryMatrixSize() });
+  } catch (err) {
+    console.error('[admin] query matrix sync error:', err.message);
+    res.status(500).json({ error: 'Internal error' });
+  }
 });
 
 router.get('/analytics', async (req, res) => {

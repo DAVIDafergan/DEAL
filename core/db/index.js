@@ -289,6 +289,29 @@ const MIGRATIONS = [
   (connection) => ensureColumn(connection, 'agents', 'instagram_url', 'TEXT NULL'),
   (connection) => ensureColumn(connection, 'agents', 'tiktok_url', 'TEXT NULL'),
   (connection) => ensureColumn(connection, 'agents', 'youtube_url', 'TEXT NULL'),
+  // Step 8.6 — explicit admin approval state for auto-collected properties, separate from the
+  // LLM's own `confidence` score (previously approveAutoProperty hacked confidence=100 as a
+  // stand-in for "approved", which conflated "the model is sure" with "a human signed off").
+  // NULL for manually-created properties (source='manual'), where this column means nothing.
+  (connection) => ensureColumn(connection, 'properties', "auto_review_status", "ENUM('pending','approved','rejected') NULL"),
+  // Step 8.7 periodic refresh — tracks re-fetch attempts so a domain that's stopped resolving/
+  // responding can be marked inactive after 3 consecutive failures, per spec.
+  (connection) => ensureColumn(connection, 'properties', 'refresh_fail_count', 'TINYINT UNSIGNED NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'last_refresh_attempt_at', 'DATETIME NULL'),
+  // Backfill: rows that were already publicly visible under the old 2-tier gate
+  // (confidence>=60, no explicit auto_review_status yet) keep working exactly as before instead
+  // of vanishing from search the moment this migration runs. Anything still under the old
+  // review-queue threshold (<60) just starts 'pending', which is where it already effectively was.
+  async (connection) => {
+    await connection.query(
+      `UPDATE properties SET auto_review_status = 'approved'
+       WHERE source = 'auto' AND auto_review_status IS NULL AND confidence >= 60`
+    );
+    await connection.query(
+      `UPDATE properties SET auto_review_status = 'pending'
+       WHERE source = 'auto' AND auto_review_status IS NULL`
+    );
+  },
 ];
 
 const SCHEMA_STATEMENTS = [
@@ -671,6 +694,40 @@ const SCHEMA_STATEMENTS = [
     started_at DATETIME NOT NULL,
     finished_at DATETIME NULL,
     INDEX idx_engine_runs_started (started_at)
+  ) ENGINE=InnoDB`,
+  // Step 8.2 — query matrix, persisted so productive vs. wasteful queries can be told apart
+  // across runs instead of regenerated blind every time.
+  `CREATE TABLE IF NOT EXISTS engine_queries (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    query_text VARCHAR(255) NOT NULL,
+    property_type VARCHAR(32) NULL,
+    region VARCHAR(64) NULL,
+    amenity VARCHAR(64) NULL,
+    status ENUM('pending','run','productive','unproductive') NOT NULL DEFAULT 'pending',
+    result_count INT NOT NULL DEFAULT 0,
+    last_run_at DATETIME NULL,
+    created_at DATETIME NOT NULL,
+    UNIQUE KEY uk_engine_queries_text (query_text),
+    INDEX idx_engine_queries_status (status)
+  ) ENGINE=InnoDB`,
+  // Step 8.3 — one row per normalized domain ever classified, so a domain is never re-sent to
+  // the LLM classifier twice (8.3: "שמור את הסיווג כדי לא לסווג שוב").
+  `CREATE TABLE IF NOT EXISTS engine_sources (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    domain VARCHAR(255) NOT NULL,
+    classification ENUM('single_property','portal','irrelevant') NOT NULL,
+    classified_via ENUM('llm','heuristic') NOT NULL DEFAULT 'heuristic',
+    reason TEXT NULL,
+    created_at DATETIME NOT NULL,
+    UNIQUE KEY uk_engine_sources_domain (domain)
+  ) ENGINE=InnoDB`,
+  // Step 8.5 — emergency stop + any other small engine-wide toggles. Single-row-per-key,
+  // DB-backed (not just in-memory) so the stop button works even against a different process
+  // than the one running the pipeline, and survives a restart mid-run.
+  `CREATE TABLE IF NOT EXISTS engine_settings (
+    setting_key VARCHAR(64) PRIMARY KEY,
+    setting_value VARCHAR(255) NOT NULL,
+    updated_at DATETIME NOT NULL
   ) ENGINE=InnoDB`,
 ];
 

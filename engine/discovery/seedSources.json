@@ -1,0 +1,4 @@
+{
+  "_readme": "Step 8.1 SeedSourceProvider input — regional tourism/council/kibbutz-moshav accommodation directory pages that publish outbound links to independent zimmer/villa owner sites of their own free will. Deliberately shipped EMPTY: every URL here gets fetched for real once a live run starts, so each one needs a human to verify it's a real, current, appropriate public directory page before it's added — not guessed or generated. Add entries as {\"url\": \"https://...\", \"region\": \"north\", \"note\": \"why this is a good seed\"} and this provider picks them up automatically, no code change needed.",
+  "seeds": []
+}
