@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   PlusCircle, Settings, LogOut, CheckCircle, AlertTriangle, MessageCircle,
-  LayoutDashboard, Trash2, Home, Pencil, MapPin, CalendarDays, ClipboardList,
+  LayoutDashboard, Trash2, Home, Pencil, MapPin, CalendarDays, ClipboardList, Check, X, Users, Calendar,
 } from 'lucide-react';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { agentApi, propertyApi } from '../api/client.js';
@@ -12,8 +12,16 @@ import { AvailabilityCalendar } from '../components/property/AvailabilityCalenda
 import { DeletePropertyModal } from '../components/property/DeletePropertyModal.jsx';
 import { PropertyTrashPanel } from '../components/property/PropertyTrashPanel.jsx';
 import { DashListSkeleton } from '../components/DashListSkeleton.jsx';
+import { OwnerProfileProgress } from '../components/OwnerProfileProgress.jsx';
 import { getGreeting } from '../utils/greeting.js';
 import { regionLabel, propertyTypeLabel } from '../data/propertyOptions.js';
+
+function buildWhatsAppUrl(phone, customerName, propertyName) {
+  const text = `שלום ${customerName}, בנוגע לבקשת ההזמנה שלך ל${propertyName} ב-Dealim`;
+  let clean = (phone || '').replace(/[^0-9]/g, '');
+  if (clean.startsWith('0') && clean.length === 10) clean = '972' + clean.slice(1);
+  return `https://wa.me/${clean}?text=${encodeURIComponent(text)}`;
+}
 
 const cardAnim = {
   hidden: { opacity: 0, y: 16 },
@@ -40,6 +48,8 @@ export function OwnerDashboardPage() {
   const [propsLoading, setPropsLoading] = useState(true);
   const [pendingBookingCount, setPendingBookingCount] = useState(0);
   const [pendingByProperty, setPendingByProperty] = useState({});
+  const [pendingRequests, setPendingRequests] = useState([]);
+  const [updatingRequestId, setUpdatingRequestId] = useState(null);
   const [notification, setNotification] = useState(null);
   const [showWizard, setShowWizard] = useState(false);
   const [editingProperty, setEditingProperty] = useState(null);
@@ -62,21 +72,36 @@ export function OwnerDashboardPage() {
       .finally(() => setPropsLoading(false));
   }
 
+  function refreshBookingRequests() {
+    if (!token) return;
+    propertyApi.getMyBookingRequests(token)
+      .then(({ requests }) => {
+        const pending = (requests || []).filter((r) => r.status === 'pending');
+        setPendingBookingCount(pending.length);
+        setPendingRequests(pending);
+        const byProperty = {};
+        for (const r of pending) byProperty[r.property_id] = (byProperty[r.property_id] || 0) + 1;
+        setPendingByProperty(byProperty);
+      })
+      .catch(() => {});
+  }
+
   useEffect(() => {
     refreshProperties();
-    if (token) {
-      propertyApi.getMyBookingRequests(token)
-        .then(({ requests }) => {
-          const pending = (requests || []).filter((r) => r.status === 'pending');
-          setPendingBookingCount(pending.length);
-          const byProperty = {};
-          for (const r of pending) byProperty[r.property_id] = (byProperty[r.property_id] || 0) + 1;
-          setPendingByProperty(byProperty);
-        })
-        .catch(() => {});
-    }
+    refreshBookingRequests();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+
+  async function handleRequestStatus(bookingId, status) {
+    setUpdatingRequestId(bookingId);
+    try {
+      await propertyApi.setBookingRequestStatus(token, bookingId, status);
+      setPendingRequests((prev) => prev.filter((r) => r.id !== bookingId));
+      setPendingBookingCount((prev) => Math.max(0, prev - 1));
+    } finally {
+      setUpdatingRequestId(null);
+    }
+  }
 
   function notify(msg, type = 'success') {
     setNotification({ msg, type });
@@ -209,16 +234,57 @@ export function OwnerDashboardPage() {
         </div>
       </div>
 
+      <OwnerProfileProgress agent={agent} properties={properties} />
+
       <div id="onb-kpis" className="dash-kpis container">
-        <KpiCard icon={Home} label="נכסים" value={properties.length} iconColor="#2563EB" iconBg="rgba(37,99,235,0.12)" index={0} />
-        <KpiCard icon={CheckCircle} label="פעילים" value={activeCount} iconColor="#059669" iconBg="rgba(5,150,105,0.12)" index={1} />
+        <KpiCard icon={Home} label="נכסים" value={properties.length} iconColor="var(--ds-hearth)" iconBg="rgba(193,89,43,0.12)" index={0} />
+        <KpiCard icon={CheckCircle} label="פעילים" value={activeCount} iconColor="var(--ds-olive)" iconBg="rgba(91,107,78,0.12)" index={1} />
         {draftCount > 0 && (
-          <KpiCard icon={Pencil} label="טיוטות" value={draftCount} iconColor="#f5a623" iconBg="rgba(245,166,35,0.12)" index={2} />
+          <KpiCard icon={Pencil} label="טיוטות" value={draftCount} iconColor="var(--ds-ash)" iconBg="var(--ds-slate)" index={2} />
         )}
         {pendingBookingCount > 0 && (
-          <KpiCard icon={ClipboardList} label="בקשות הזמנה חדשות" value={pendingBookingCount} iconColor="#dc2626" iconBg="rgba(220,38,38,0.12)" index={3} />
+          <KpiCard icon={ClipboardList} label="בקשות הזמנה חדשות" value={pendingBookingCount} iconColor="var(--ds-wine)" iconBg="rgba(140,47,57,0.12)" index={3} />
         )}
       </div>
+
+      {pendingRequests.length > 0 && (
+        <div className="dash-urgent container">
+          <h3 className="dash-section-title dash-section-title--urgent">
+            <ClipboardList size={16} /> בקשות הזמנה שדורשות טיפול ({pendingRequests.length})
+          </h3>
+          <div className="dash-deals-list">
+            {pendingRequests.slice(0, 3).map((r) => (
+              <motion.div key={r.id} className="dash-deal-card dash-deal-card--pending" layout>
+                <div className="dash-deal-card__body">
+                  <div className="dash-deal-card__dest">{r.property_name}{r.unit_name ? ` — ${r.unit_name}` : ''}</div>
+                  <div className="dash-deal-card__meta">
+                    <span><Calendar size={12} style={{ verticalAlign: 'middle' }} /> {String(r.check_in).slice(0, 10)} – {String(r.check_out).slice(0, 10)}</span>
+                    <span><Users size={12} style={{ verticalAlign: 'middle' }} /> {r.guest_count} אורחים</span>
+                  </div>
+                  <div className="dash-deal-card__meta"><span>{r.customer_name} · {r.customer_phone}</span></div>
+                </div>
+                <div className="dash-deal-card__right">
+                  <a className="dash-deal-edit" href={buildWhatsAppUrl(r.customer_phone, r.customer_name, r.property_name)} target="_blank" rel="noopener noreferrer" title="וואטסאפ ללקוח">
+                    <MessageCircle size={14} />
+                    <span className="dash-deal-btn-label">וואטסאפ</span>
+                  </a>
+                  <motion.button className="dash-deal-edit" whileTap={{ scale: 0.9 }} disabled={updatingRequestId === r.id} onClick={() => handleRequestStatus(r.id, 'approved')} title="אשר">
+                    <Check size={14} />
+                    <span className="dash-deal-btn-label">אשר</span>
+                  </motion.button>
+                  <motion.button className="dash-deal-edit" whileTap={{ scale: 0.9 }} disabled={updatingRequestId === r.id} onClick={() => handleRequestStatus(r.id, 'rejected')} title="דחה">
+                    <X size={14} />
+                    <span className="dash-deal-btn-label">דחה</span>
+                  </motion.button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+          {pendingRequests.length > 3 && (
+            <Link to="/owner/dashboard/bookings" className="dash-urgent__more">כל {pendingRequests.length} הבקשות ←</Link>
+          )}
+        </div>
+      )}
 
       <div className="dash-quick-actions container">
         <h3 className="dash-section-title">פעולות מהירות</h3>

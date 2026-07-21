@@ -7,6 +7,7 @@ import { REGIONS, PROPERTY_TYPES, KOSHER_LEVELS, AMENITIES } from '../../data/pr
 import { townsForRegion } from '../../data/israeliTowns.js';
 import { PropertyUnitsStep } from './PropertyUnitsStep.jsx';
 import { PropertyPhotoUploader } from './PropertyPhotoUploader.jsx';
+import { PropertyCard } from '../PropertyCard.jsx';
 
 const TOTAL_STEPS = 7;
 const STEP_TITLES = ['פרטים בסיסיים', 'מיקום', 'יחידות במתחם', 'מתקנים משותפים וכשרות', 'תמונות המתחם', 'פרטי קשר', 'תצוגה מקדימה ופרסום'];
@@ -17,6 +18,27 @@ const CHECKLIST_LABELS = {
   complex_photos: 'לפחות 3 תמונות למתחם', unit_photos: 'תמונה אחת לפחות לכל יחידה',
   contact: 'טלפון או וואטסאפ',
 };
+
+/** 9.5: builds a PropertyCard-shaped object straight from wizard state (no fetch — the wizard
+ * already has everything in memory) for the step-7 live preview. */
+function buildPreviewProperty({ name, region, city, ownerImages, units, amenities }) {
+  const activeUnits = units.filter((u) => u.is_active !== false);
+  const pricedUnits = activeUnits.filter((u) => u.base_price_night);
+  return {
+    id: 'preview',
+    name: name || 'שם הנכס',
+    region,
+    city,
+    status: 'claimed',
+    owner_images: ownerImages,
+    price_from: pricedUnits.length ? Math.min(...pricedUnits.map((u) => Number(u.base_price_night))) : null,
+    total_guest_capacity: activeUnits.reduce((sum, u) => sum + (Number(u.max_guests) || 0), 0) || null,
+    max_bedrooms: Math.max(0, ...activeUnits.map((u) => Number(u.bedrooms) || 0)) || null,
+    unit_count: activeUnits.length,
+    currency: 'ILS',
+    ...amenities,
+  };
+}
 
 const slideVariants = {
   enter: (dir) => ({ x: dir > 0 ? '100%' : '-100%', opacity: 0 }),
@@ -355,13 +377,17 @@ export function PropertyWizard({ initialData = null, propertyId: initialProperty
           {step === 7 && (
             <motion.div key="s7" custom={dir} variants={slideVariants} initial="enter" animate="center" exit="exit">
               <WizardStep title="תצוגה מקדימה ופרסום">
-                <div className="wizard-field">
-                  <label className="wizard-label">{name}</label>
-                  <p className="agent-form__hint">
-                    {PROPERTY_TYPES.find((p) => p.value === propertyType)?.label} · {REGIONS.find((r) => r.value === region)?.label}{city ? ` · ${city}` : ''}
-                  </p>
-                  <p className="agent-form__hint">{units.length} יחידות · {ownerImages.length} תמונות מתחם</p>
+                <p className="agent-form__hint" style={{ marginBottom: 10 }}>ככה הנכס ייראה בתוצאות חיפוש:</p>
+                {/* Reuses the real search-result card so the preview is pixel-accurate, not a
+                    text summary. onClickCapture blocks the card's internal <Link> navigation
+                    (preventDefault runs before Link's own click handler, in the capture phase). */}
+                <div
+                  onClickCapture={(e) => e.preventDefault()}
+                  style={{ maxWidth: 300, margin: '0 auto 8px', cursor: 'default' }}
+                >
+                  <PropertyCard property={buildPreviewProperty({ name, region, city, ownerImages, units, amenities })} />
                 </div>
+                <p className="agent-form__hint">{units.length} יחידות · {ownerImages.length} תמונות מתחם</p>
 
                 {checklist && (
                   <div className="wpc">

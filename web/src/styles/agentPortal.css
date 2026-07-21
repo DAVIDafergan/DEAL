@@ -1853,6 +1853,32 @@ select.wizard-input { cursor: pointer; }
   margin: 0 0 14px;
 }
 
+/* ── 9.5: owner profile-completeness progress bar ────────────────────────── */
+.opp { padding-top: 20px; }
+.opp__head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+.opp__title { font-weight: 700; font-size: 0.92rem; color: var(--ds-bone); }
+.opp__count { font-size: 0.76rem; color: var(--ds-ash); font-variant-numeric: tabular-nums; }
+.opp__track { height: 6px; border-radius: 999px; background: var(--ds-ghost); overflow: hidden; }
+.opp__fill { height: 100%; background: var(--gradient-accent); transition: width 0.4s ease; }
+.opp__items { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.opp__item {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.78rem; padding: 6px 12px; border-radius: 999px;
+  background: var(--ds-slate); color: var(--ds-ash);
+  text-decoration: none;
+}
+.opp__item--static { cursor: default; }
+a.opp__item:hover { background: rgba(193,89,43,0.1); color: var(--ds-hearth); }
+.opp__item--done { background: rgba(91,107,78,0.1); color: var(--ds-olive); }
+
+/* ── 9.5: pending booking requests requiring attention (top of dashboard) ── */
+.dash-urgent { padding-top: 22px; }
+.dash-section-title--urgent { display: flex; align-items: center; gap: 7px; color: var(--ds-wine); }
+.dash-urgent__more {
+  display: inline-block; margin-top: 10px;
+  font-size: 0.82rem; font-weight: 700; color: var(--ds-hearth); text-decoration: none;
+}
+
 /* ── Quick actions ────────────────────────────────────────────────────────── */
 .dash-quick-actions { padding-top: 24px; }
 

@@ -101,7 +101,7 @@ export function PropertyCard({ property }) {
       </div>
 
       <div className="adc__body">
-        {(capacity || bedrooms) && (
+        {Boolean(capacity || bedrooms) && (
           <div className="adc__info-row">
             <span className="icon-draw icon-draw--once adc__info-icon">
               <Users size={12} strokeWidth={1.8} />

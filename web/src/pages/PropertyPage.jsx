@@ -409,7 +409,7 @@ export function PropertyPage() {
           <PropertyAmenitiesBar property={property} />
 
           <motion.div className="deal-modal__details" initial="hidden" animate="visible">
-            {(capacity || bedrooms || property.bathrooms) && (
+            {Boolean(capacity || bedrooms || property.bathrooms) && (
               <div className="deal-modal__detail-row">
                 <Users size={15} />
                 <span>
