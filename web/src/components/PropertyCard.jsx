@@ -42,7 +42,7 @@ export function PropertyCard({ property }) {
         <div className="adc__media-gradient" />
 
         {isClaimed ? (
-          <span className="adc__value-badge" style={{ background: 'var(--ds-teal)' }}>
+          <span className="adc__value-badge" style={{ background: 'var(--ds-olive)', boxShadow: 'none' }}>
             <CheckCircle size={11} /> מאומת
           </span>
         ) : (

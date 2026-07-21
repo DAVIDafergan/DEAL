@@ -24,12 +24,12 @@ export function Logo({ size = 36 }) {
       >
         <defs>
           <linearGradient id="lg-main" x1="0" y1="0" x2="44" y2="44" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#2563EB" />
-            <stop offset="100%" stopColor="#17c3b2" />
+            <stop offset="0%" stopColor="#C1592B" />
+            <stop offset="100%" stopColor="#B8860B" />
           </linearGradient>
           <linearGradient id="lg-slash" x1="30" y1="6" x2="16" y2="38" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#17c3b2" stopOpacity="0.9" />
-            <stop offset="100%" stopColor="#2563EB" stopOpacity="0.5" />
+            <stop offset="0%" stopColor="#B8860B" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="#C1592B" stopOpacity="0.5" />
           </linearGradient>
         </defs>
 

@@ -28,6 +28,15 @@
   --ds-gold:   #B8860B;  /* price only */
   --ds-wine:   #8C2F39;  /* urgency: delete, errors, sold-out */
 
+  /* Legacy v2 token names (teal/coral/amber) — dozens of live surfaces (admin panel, owner
+     dashboard, availability calendar, unit pricing) still reference these directly, not via
+     --color-*. Aliased onto their nearest v3 semantic equivalent rather than hunting down every
+     call site in this pass — see DESIGN_SYSTEM.md / DECISIONS.md 9.2. New code should use
+     --ds-hearth/--ds-olive/--ds-gold/--ds-wine directly, never these aliases. */
+  --ds-teal: var(--ds-hearth);
+  --ds-coral: var(--ds-wine);
+  --ds-amber: var(--ds-gold);
+
   /* ── Legacy vars (retained so untouched/dead flight-world CSS still renders,
      mapped onto the new palette where a live component still reads them) ── */
   --color-bg: var(--ds-void);
