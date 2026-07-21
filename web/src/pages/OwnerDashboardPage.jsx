@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   PlusCircle, Settings, LogOut, CheckCircle, AlertTriangle, MessageCircle,
-  LayoutDashboard, Trash2, Home, Pencil, MapPin, CalendarDays,
+  LayoutDashboard, Trash2, Home, Pencil, MapPin, CalendarDays, ClipboardList,
 } from 'lucide-react';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { agentApi, propertyApi } from '../api/client.js';
@@ -35,6 +35,7 @@ export function OwnerDashboardPage() {
   const navigate = useNavigate();
   const [properties, setProperties] = useState([]);
   const [propsLoading, setPropsLoading] = useState(true);
+  const [pendingBookingCount, setPendingBookingCount] = useState(0);
   const [notification, setNotification] = useState(null);
   const [showWizard, setShowWizard] = useState(false);
   const [editingProperty, setEditingProperty] = useState(null);
@@ -56,6 +57,11 @@ export function OwnerDashboardPage() {
 
   useEffect(() => {
     refreshProperties();
+    if (token) {
+      propertyApi.getMyBookingRequests(token)
+        .then(({ requests }) => setPendingBookingCount((requests || []).filter((r) => r.status === 'pending').length))
+        .catch(() => {});
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
@@ -163,6 +169,9 @@ export function OwnerDashboardPage() {
         {draftCount > 0 && (
           <KpiCard icon={Pencil} label="טיוטות" value={draftCount} iconColor="#f5a623" iconBg="rgba(245,166,35,0.12)" index={2} />
         )}
+        {pendingBookingCount > 0 && (
+          <KpiCard icon={ClipboardList} label="בקשות הזמנה חדשות" value={pendingBookingCount} iconColor="#dc2626" iconBg="rgba(220,38,38,0.12)" index={3} />
+        )}
       </div>
 
       <div className="dash-quick-actions container">
@@ -172,6 +181,11 @@ export function OwnerDashboardPage() {
             <span className="dash-quick-pill__dot"><PlusCircle size={15} /></span>
             הוסף נכס
           </motion.button>
+          <Link to="/owner/dashboard/bookings" className="dash-quick-pill">
+            <span className="dash-quick-pill__dot"><ClipboardList size={15} /></span>
+            בקשות הזמנה
+            {pendingBookingCount > 0 && <span className="dash-tab__badge">{pendingBookingCount}</span>}
+          </Link>
           {agent?.slug && (
             <Link to={`/owner/${agent.slug}`} className="dash-quick-pill">
               <span className="dash-quick-pill__dot"><LayoutDashboard size={15} /></span>

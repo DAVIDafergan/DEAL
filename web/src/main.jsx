@@ -11,6 +11,7 @@ import { OwnerRegisterPage } from './pages/OwnerRegisterPage.jsx';
 import { OwnerLoginPage } from './pages/OwnerLoginPage.jsx';
 import { OwnerDashboardPage } from './pages/OwnerDashboardPage.jsx';
 import { OwnerSettingsPage } from './pages/OwnerSettingsPage.jsx';
+import { OwnerBookingsPage } from './pages/OwnerBookingsPage.jsx';
 import { OwnerPublicProfilePage } from './pages/OwnerPublicProfilePage.jsx';
 import { PropertyPage } from './pages/PropertyPage.jsx';
 import { RemovePage } from './pages/RemovePage.jsx';
@@ -42,6 +43,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               <Route path="/owner/register" element={<OwnerRegisterPage />} />
               <Route path="/owner/login" element={<OwnerLoginPage />} />
               <Route path="/owner/dashboard/settings" element={<OwnerSettingsPage />} />
+              <Route path="/owner/dashboard/bookings" element={<OwnerBookingsPage />} />
               <Route path="/owner/dashboard" element={<OwnerDashboardPage />} />
               <Route path="/owner/:slug" element={<OwnerPublicProfilePage />} />
               <Route path="/property/:id" element={<PropertyPage />} />

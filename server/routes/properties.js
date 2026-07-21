@@ -4,14 +4,16 @@ import {
   createProperty, updateProperty,
   getAvailability, setAvailability,
   createBookingRequest, getBookingRequestById, listBookingRequestsForOwner,
+  listBookingRequestsAcrossOwner, updateBookingRequestStatus, getUnitById,
   listPublicPropertiesByOwner, listCitiesForRegion,
   createClaimCode, verifyClaimCode,
   createUnit, updateUnit, deactivateUnit, duplicateUnit, reorderUnits,
   getPublishChecklist, publishProperty,
 } from '../store/propertyStore.js';
-import { findAgentBySlug } from '../store/agentStore.js';
+import { findAgentBySlug, findAgentById } from '../store/agentStore.js';
 import { requireAgentAuth } from '../middleware/agentAuth.js';
 import { sendVerificationCode, notifyOwnerOfBookingRequest } from '../services/complianceMessaging.js';
+import { notifyCustomerBookingReceived, notifyOwnerNewBooking, notifyCustomerStatusChanged, estimateBookingPrice } from '../services/bookingNotifications.js';
 import { authRateLimiter } from '../middleware/rateLimiter.js';
 
 function publicOwner(a) {
@@ -88,6 +90,36 @@ router.get('/mine', requireAgentAuth, async (req, res) => {
     res.json({ properties });
   } catch (err) {
     res.status(500).json({ error: 'Internal error' });
+  }
+});
+
+/** GET /api/properties/booking-requests/mine — every booking request across all of the
+ * authenticated owner's properties (7.5 dashboard "בקשות הזמנה" screen). Must be registered
+ * before /:id/mine below — otherwise "booking-requests" would be captured as :id there. */
+router.get('/booking-requests/mine', requireAgentAuth, async (req, res) => {
+  try {
+    const requests = await listBookingRequestsAcrossOwner(req.agentId);
+    res.json({ requests });
+  } catch (err) {
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
+/** PATCH /api/properties/booking-requests/:bookingId/status — approve/reject; emails the
+ * customer either way (7.5: "שינוי סטטוס שולח מייל ללקוח"). */
+router.patch('/booking-requests/:bookingId/status', requireAgentAuth, async (req, res) => {
+  try {
+    const { status } = req.body || {};
+    if (!['approved', 'rejected'].includes(status)) return res.status(400).json({ error: 'status must be approved or rejected' });
+    const result = await updateBookingRequestStatus(req.params.bookingId, req.agentId, status);
+    if (!result) return res.status(404).json({ error: 'Not found' });
+    notifyCustomerStatusChanged({ ...result, status }).catch((err) =>
+      console.error('[properties] status-change email failed:', err.message)
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[properties] booking status update error:', err.message);
+    res.status(500).json({ error: 'Failed to update status' });
   }
 });
 
@@ -256,9 +288,13 @@ router.patch('/:id/availability', requireAgentAuth, async (req, res) => {
 
 // ── Booking requests ─────────────────────────────────────────────────────────
 
-/** POST /api/properties/:id/booking-requests — public: a customer requests to book. For
- * unclaimed properties (no owner account to see a dashboard), this is their first real contact
- * with the platform — notify once via WhatsApp (server/services/complianceMessaging.js). */
+/** POST /api/properties/:id/booking-requests — public: a customer requests to book.
+ * - Claimed/active property (has a registered owner): the owner is emailed immediately — this is
+ *   transactional to a user who registered to receive bookings, not subject to
+ *   PROPERTY_MESSAGING_ENABLED (7.5).
+ * - Unclaimed property (auto-collected, no owner account): unchanged existing behavior — a single
+ *   WhatsApp notification gated behind PROPERTY_MESSAGING_ENABLED (server/services/complianceMessaging.js).
+ * The customer gets an email confirmation either way, if they gave an email address. */
 router.post('/:id/booking-requests', async (req, res) => {
   try {
     const property = await getPropertyById(req.params.id);
@@ -269,13 +305,24 @@ router.post('/:id/booking-requests', async (req, res) => {
     }
     const id = await createBookingRequest(req.params.id, req.body);
     if (!id) return res.status(400).json({ error: 'Invalid unit for this property' });
-    if (!property.owner_id) {
-      const booking = await getBookingRequestById(id);
+    const booking = await getBookingRequestById(id);
+    const unit = await getUnitById(booking.unit_id);
+
+    notifyCustomerBookingReceived({ property, unit, booking }).catch((err) =>
+      console.error('[properties] customer confirmation email failed:', err.message)
+    );
+    if (property.owner_id) {
+      findAgentById(property.owner_id).then((owner) => {
+        if (owner) return notifyOwnerNewBooking({ owner, property, unit, booking });
+      }).catch((err) => console.error('[properties] owner booking email failed:', err.message));
+    } else {
       notifyOwnerOfBookingRequest(property, booking).catch((err) =>
         console.error('[properties] booking notification failed:', err.message)
       );
     }
-    res.status(201).json({ id });
+
+    const priceEstimate = estimateBookingPrice({ unit, currency: property.currency, checkIn: check_in, checkOut: check_out });
+    res.status(201).json({ id, priceEstimate });
   } catch (err) {
     console.error('[properties] booking request error:', err.message);
     res.status(500).json({ error: 'Failed to submit booking request' });

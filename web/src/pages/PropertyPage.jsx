@@ -93,19 +93,41 @@ function ClaimFlow({ propertyId }) {
   );
 }
 
-function BookingRequestForm({ propertyId, unitId, unitName }) {
-  const [form, setForm] = useState({ check_in: '', check_out: '', guest_count: 2, customer_name: '', customer_phone: '', message: '' });
+// Mirrors server/services/bookingNotifications.js estimateBookingPrice — client-side so the
+// estimate shows live before submission (7.5: "חישוב והצגת המחיר המשוער לפני שליחה").
+function estimatePrice(unit, checkIn, checkOut) {
+  if (!unit?.base_price_night || !checkIn || !checkOut) return null;
+  const start = new Date(checkIn);
+  const end = new Date(checkOut);
+  const nights = Math.round((end - start) / (24 * 60 * 60 * 1000));
+  if (nights <= 0) return null;
+  let total = 0;
+  const d = new Date(start);
+  for (let i = 0; i < nights; i++) {
+    const isWeekend = d.getDay() === 5 || d.getDay() === 6; // Friday/Saturday
+    total += (isWeekend && unit.weekend_price) ? Number(unit.weekend_price) : Number(unit.base_price_night);
+    d.setDate(d.getDate() + 1);
+  }
+  return { nights, total };
+}
+
+function BookingRequestForm({ propertyId, unit, unitName, currency }) {
+  const [form, setForm] = useState({ check_in: '', check_out: '', guest_count: 2, customer_name: '', customer_phone: '', customer_email: '', message: '' });
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null); // 'success' | 'error' | null
+  const [confirmation, setConfirmation] = useState(null); // { id, priceEstimate }
 
   function set(key) { return (e) => setForm((f) => ({ ...f, [key]: e.target.value })); }
+
+  const priceEstimate = estimatePrice(unit, form.check_in, form.check_out);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setSubmitting(true);
     setResult(null);
     try {
-      await propertyApi.requestBooking(propertyId, { ...form, unit_id: unitId });
+      const res = await propertyApi.requestBooking(propertyId, { ...form, unit_id: unit?.id });
+      setConfirmation(res);
       setResult('success');
     } catch {
       setResult('error');
@@ -116,10 +138,35 @@ function BookingRequestForm({ propertyId, unitId, unitName }) {
 
   if (result === 'success') {
     return (
-      <p className="deal-modal__desc">
-        <CheckCircle size={15} style={{ verticalAlign: 'middle', marginInlineEnd: 4 }} />
-        הבקשה נשלחה! בעל הנכס יקבל את הפרטים ויחזור אליכם.
-      </p>
+      <div className="settings-card" style={{ marginTop: 16 }}>
+        <p className="deal-modal__desc">
+          <CheckCircle size={15} style={{ verticalAlign: 'middle', marginInlineEnd: 4 }} />
+          בקשתך הועברה לבעל הנכס. הוא יחזור אליך לאישור ההזמנה.
+        </p>
+        <div className="deal-modal__details" style={{ marginTop: 8 }}>
+          <div className="deal-modal__detail-row">
+            <span className="deal-modal__detail-label">מספר בקשה</span>
+            <span>#{confirmation?.id}</span>
+          </div>
+          <div className="deal-modal__detail-row">
+            <span className="deal-modal__detail-label">תאריכים</span>
+            <span>{form.check_in} – {form.check_out}</span>
+          </div>
+          {unitName && (
+            <div className="deal-modal__detail-row">
+              <span className="deal-modal__detail-label">יחידה</span>
+              <span>{unitName}</span>
+            </div>
+          )}
+          {confirmation?.priceEstimate && (
+            <div className="deal-modal__detail-row">
+              <span className="deal-modal__detail-label">מחיר משוער</span>
+              <span>{Math.round(confirmation.priceEstimate.total)} {confirmation.priceEstimate.currencySymbol} ({confirmation.priceEstimate.nights} לילות)</span>
+            </div>
+          )}
+        </div>
+        {form.customer_email && <p className="agent-form__hint" style={{ marginTop: 8 }}>אישור נשלח גם לאימייל שלך.</p>}
+      </div>
     );
   }
 
@@ -147,9 +194,19 @@ function BookingRequestForm({ propertyId, unitId, unitName }) {
         <input className="agent-form__input" type="tel" required value={form.customer_phone} onChange={set('customer_phone')} />
       </div>
       <div className="agent-form__field">
+        <label className="agent-form__label">אימייל (אופציונלי — לקבלת אישור)</label>
+        <input className="agent-form__input" type="email" value={form.customer_email} onChange={set('customer_email')} />
+      </div>
+      <div className="agent-form__field">
         <label className="agent-form__label">הודעה (אופציונלי)</label>
         <input className="agent-form__input" value={form.message} onChange={set('message')} />
       </div>
+      {priceEstimate && (
+        <div className="deal-modal__detail-row" style={{ background: 'var(--color-surface-elevated)', borderRadius: 'var(--radius-sm)', padding: '10px 12px' }}>
+          <span className="deal-modal__detail-label">מחיר משוער</span>
+          <span>{Math.round(priceEstimate.total)} {getCurrencySymbol(currency)} · {priceEstimate.nights} לילות</span>
+        </div>
+      )}
       {result === 'error' && <p className="agent-form__error-msg">שגיאה בשליחת הבקשה, נסו שוב</p>}
       <motion.button type="submit" className="deal-modal__btn deal-modal__btn--book" whileTap={{ scale: 0.97 }} disabled={submitting}>
         <Send size={16} /> {submitting ? 'שולח…' : 'שלח בקשת הזמנה'}
@@ -339,8 +396,9 @@ export function PropertyPage() {
           {selectedUnit && (
             <BookingRequestForm
               propertyId={property.id}
-              unitId={selectedUnit.id}
+              unit={selectedUnit}
               unitName={isMultiUnit ? selectedUnit.name : null}
+              currency={property.currency}
             />
           )}
         </div>

@@ -673,6 +673,49 @@ export async function getBookingRequestById(id) {
   return rows[0] || null;
 }
 
+/** Plain unit lookup, no ownership check — used server-side to compose notification emails
+ * after a booking is created (the property/ownership check already happened upstream). */
+export async function getUnitById(unitId) {
+  if (!unitId) return null;
+  const pool = getPool();
+  const [rows] = await pool.query('SELECT * FROM property_units WHERE id = ? LIMIT 1', [unitId]);
+  return rows[0] ? parseUnit(rows[0]) : null;
+}
+
+/** 7.5 owner dashboard "בקשות הזמנה" — every booking request across all of this owner's
+ * properties, newest first, joined with just enough property/unit context to render without
+ * N+1 lookups on the client. */
+export async function listBookingRequestsAcrossOwner(ownerId) {
+  const pool = getPool();
+  const [rows] = await pool.query(
+    `SELECT br.*, p.name AS property_name, p.whatsapp AS property_whatsapp, pu.name AS unit_name
+     FROM booking_requests br
+     JOIN properties p ON p.id = br.property_id
+     LEFT JOIN property_units pu ON pu.id = br.unit_id
+     WHERE p.owner_id = ?
+     ORDER BY br.created_at DESC`,
+    [ownerId]
+  );
+  return rows;
+}
+
+/** Approve/reject — returns { booking, property, unit } for the caller to email the customer,
+ * or null if this booking doesn't belong to one of ownerId's properties. */
+export async function updateBookingRequestStatus(bookingId, ownerId, status) {
+  const pool = getPool();
+  const [rows] = await pool.query(
+    `SELECT br.*, p.owner_id FROM booking_requests br JOIN properties p ON p.id = br.property_id
+     WHERE br.id = ? AND p.owner_id = ? LIMIT 1`,
+    [bookingId, ownerId]
+  );
+  if (!rows[0]) return null;
+  await pool.query('UPDATE booking_requests SET status = ?, updated_at = ? WHERE id = ?', [status, nowStr(), bookingId]);
+  const booking = await getBookingRequestById(bookingId);
+  const property = await getPropertyByIdForOwner(booking.property_id, ownerId);
+  const unit = await getUnitById(booking.unit_id);
+  return { booking, property, unit };
+}
+
 /** Returns null (not []) if the property isn't owned by ownerId, so the route can 404. */
 export async function listBookingRequestsForOwner(propertyId, ownerId) {
   const owned = await getPropertyByIdForOwner(propertyId, ownerId);
