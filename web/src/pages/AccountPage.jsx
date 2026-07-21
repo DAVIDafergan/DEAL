@@ -32,7 +32,7 @@ export function AccountPage() {
   const isTraveler = !isAgent && !!traveler;
 
   if (!loading && !isAgent && !isTraveler) {
-    navigate('/agent/login', { replace: true });
+    navigate('/owner/login', { replace: true });
     return null;
   }
 
@@ -93,7 +93,7 @@ export function AccountPage() {
           <h1 className="account-profile-name">{displayName || '...'}</h1>
           <p className="account-profile-email">{displayEmail}</p>
           {isTraveler && <span className="account-profile-badge">מטייל</span>}
-          {isAgent && <span className="account-profile-badge account-profile-badge--agent">סוכן</span>}
+          {isAgent && <span className="account-profile-badge account-profile-badge--agent">{agent.account_type === 'property_owner' ? 'בעל נכס' : 'סוכן'}</span>}
         </div>
       </motion.div>
 
@@ -113,13 +113,13 @@ export function AccountPage() {
 
         {isAgent && (
           <motion.div variants={cardIn}>
-            <Link to="/agent/dashboard" className="account-card account-card--action">
+            <Link to="/owner/dashboard" className="account-card account-card--action">
               <div className="account-card__icon account-card__icon--dash">
                 <LayoutDashboard size={22} />
               </div>
               <div className="account-card__text">
-                <span className="account-card__label">{t.dashboardLink || 'דשבורד סוכן'}</span>
-                <span className="account-card__sub">{t.manageDealsSub || 'ניהול דילים ופרופיל'}</span>
+                <span className="account-card__label">{t.dashboardLink || 'לוח בקרה'}</span>
+                <span className="account-card__sub">{t.manageDealsSub || 'ניהול נכסים ובקשות הזמנה'}</span>
               </div>
             </Link>
           </motion.div>
@@ -127,7 +127,7 @@ export function AccountPage() {
 
         {isAgent && (
           <motion.div variants={cardIn}>
-            <Link to="/agent/dashboard/settings" className="account-card account-card--action">
+            <Link to="/owner/dashboard/settings" className="account-card account-card--action">
               <div className="account-card__icon account-card__icon--settings">
                 <Settings size={22} />
               </div>

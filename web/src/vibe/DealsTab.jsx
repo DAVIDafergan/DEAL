@@ -105,13 +105,13 @@ export function DealsTab({ vibe = ALL_VIBES_KEY, onChangeVibe, isActive }) {
       {!authLoading && (
         <div className="vibe-feed-page__auth-bar">
           {token && agent ? (
-            <Link to="/agent/dashboard" className="vibe-auth-btn vibe-auth-btn--agent">
+            <Link to="/owner/dashboard" className="vibe-auth-btn vibe-auth-btn--agent">
               <LayoutDashboard size={14} />
               <span className="vibe-auth-btn__name">{agent.business_name}</span>
             </Link>
           ) : (
             <>
-              <button type="button" className="vibe-auth-btn vibe-auth-btn--ghost" onClick={() => navigate('/agent/login')}>
+              <button type="button" className="vibe-auth-btn vibe-auth-btn--ghost" onClick={() => navigate('/owner/login')}>
                 {t.headerLoginButton || 'Login'}
               </button>
               <button type="button" className="vibe-auth-btn vibe-auth-btn--primary" onClick={() => navigate('/register')}>
