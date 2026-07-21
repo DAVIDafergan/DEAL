@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Send, CheckCircle } from 'lucide-react';
@@ -11,6 +11,7 @@ export function ContactPage() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [apiError, setApiError] = useState('');
+  const fieldRefs = useRef({});
 
   function set(key) {
     return e => { setForm(p => ({ ...p, [key]: e.target.value })); setErrors(p => ({ ...p, [key]: '' })); };
@@ -29,7 +30,13 @@ export function ContactPage() {
   async function handleSubmit(e) {
     e.preventDefault();
     const errs = validate();
-    if (Object.keys(errs).length) { setErrors(errs); return; }
+    if (Object.keys(errs).length) {
+      setErrors(errs);
+      const firstKey = Object.keys(errs)[0];
+      fieldRefs.current[firstKey]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      fieldRefs.current[firstKey]?.focus();
+      return;
+    }
     setSubmitting(true);
     setApiError('');
     try {
@@ -80,6 +87,7 @@ export function ContactPage() {
                 <label className="contact-form__label" htmlFor="cf-name">שם מלא *</label>
                 <input
                   id="cf-name"
+                  ref={(el) => (fieldRefs.current.name = el)}
                   className={`contact-form__input${errors.name ? ' is-error' : ''}`}
                   type="text"
                   value={form.name}
@@ -95,6 +103,7 @@ export function ContactPage() {
                 <label className="contact-form__label" htmlFor="cf-email">אימייל *</label>
                 <input
                   id="cf-email"
+                  ref={(el) => (fieldRefs.current.email = el)}
                   className={`contact-form__input${errors.email ? ' is-error' : ''}`}
                   type="email"
                   inputMode="email"
@@ -124,6 +133,7 @@ export function ContactPage() {
                 <label className="contact-form__label" htmlFor="cf-message">הודעה *</label>
                 <textarea
                   id="cf-message"
+                  ref={(el) => (fieldRefs.current.message = el)}
                   className={`contact-form__input contact-form__textarea${errors.message ? ' is-error' : ''}`}
                   rows={5}
                   value={form.message}

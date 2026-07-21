@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Check, X, MessageCircle, Users, Calendar } from 'lucide-react';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { propertyApi } from '../api/client.js';
+import { DashListSkeleton } from '../components/DashListSkeleton.jsx';
 
 const STATUS_LABELS = { pending: 'חדשה', approved: 'אושרה', rejected: 'נדחתה' };
 
@@ -79,7 +80,7 @@ export function OwnerBookingsPage() {
       </div>
 
       <div className="dash-deals-panel container">
-        {requestsLoading && <p className="dash-empty">טוען…</p>}
+        {requestsLoading && <DashListSkeleton />}
         {!requestsLoading && filtered.length === 0 && (
           <div className="dash-empty-state">
             <Calendar size={40} strokeWidth={1.2} />

@@ -36,7 +36,7 @@ export function PropertyCard({ property }) {
     <Link to={`/property/${property.id}`} className="adc" aria-label={property.name}>
       <div className="adc__media">
         {image
-          ? <img src={image} alt={property.name} className="adc__img" />
+          ? <img src={image} alt={property.name} className="adc__img" loading="lazy" />
           : <div className="adc__img-placeholder" />}
 
         <div className="adc__media-gradient" />

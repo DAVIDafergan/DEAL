@@ -20,7 +20,7 @@ export function OwnerCard({ owner }) {
   return (
     <div className="owner-card">
       {owner.logo_url
-        ? <img src={owner.logo_url} alt={owner.business_name} className="owner-card__avatar" />
+        ? <img src={owner.logo_url} alt={owner.business_name} className="owner-card__avatar" loading="lazy" />
         : <div className="owner-card__avatar-placeholder">{owner.business_name?.[0] || '?'}</div>}
 
       <div className="owner-card__body">

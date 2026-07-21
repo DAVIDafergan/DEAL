@@ -15,7 +15,7 @@ export function PropertyUnitCard({ unit, currency, isSelected, onBook }) {
   return (
     <div className={`puc ${isSelected ? 'puc--selected' : ''}`}>
       <div className="puc__media">
-        {image ? <img src={image} alt={unit.name} className="puc__img" /> : <div className="puc__img-placeholder" />}
+        {image ? <img src={image} alt={unit.name} className="puc__img" loading="lazy" /> : <div className="puc__img-placeholder" />}
       </div>
       <div className="puc__body">
         <h3 className="puc__name">{unit.name}</h3>

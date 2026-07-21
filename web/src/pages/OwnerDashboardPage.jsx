@@ -11,6 +11,7 @@ import { PropertyWizard } from '../components/property/PropertyWizard.jsx';
 import { AvailabilityCalendar } from '../components/property/AvailabilityCalendar.jsx';
 import { DeletePropertyModal } from '../components/property/DeletePropertyModal.jsx';
 import { PropertyTrashPanel } from '../components/property/PropertyTrashPanel.jsx';
+import { DashListSkeleton } from '../components/DashListSkeleton.jsx';
 import { getGreeting } from '../utils/greeting.js';
 import { regionLabel, propertyTypeLabel } from '../data/propertyOptions.js';
 
@@ -279,7 +280,7 @@ export function OwnerDashboardPage() {
           </h3>
         </div>
 
-        {propsLoading && <p className="dash-empty">טוען…</p>}
+        {propsLoading && <DashListSkeleton />}
         {!propsLoading && properties.length === 0 && (
           <div className="dash-empty-state">
             <PlusCircle size={40} strokeWidth={1.2} />
