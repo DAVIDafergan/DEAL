@@ -1,15 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, ChevronLeft, MessageCircle, CheckCircle, ExternalLink, Users, BedDouble, Bath, ShieldAlert, Send, Clock } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, MessageCircle, CheckCircle, ExternalLink, Users, Bath, ShieldAlert, Send, Clock, Heart, Share2, CalendarClock, Info } from 'lucide-react';
 import { propertyApi } from '../api/client.js';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
+import { useFavorites } from '../hooks/useFavorites.js';
 import { getCurrencySymbol } from '../utils/currency.js';
-import { regionLabel, propertyTypeLabel, kosherLabel, AMENITIES } from '../data/propertyOptions.js';
-import { PropertyImageCarousel } from '../components/PropertyImageCarousel.jsx';
-import { PropertyUnitCard } from '../components/PropertyUnitCard.jsx';
+import { regionLabel, propertyTypeLabel, kosherLabel } from '../data/propertyOptions.js';
+import { PropertyGallery } from '../components/property/PropertyGallery.jsx';
+import { PropertyAmenitiesBar } from '../components/property/PropertyAmenitiesBar.jsx';
+import { PropertyUnitsTable } from '../components/property/PropertyUnitsTable.jsx';
+import { PublicAvailabilityCalendar } from '../components/property/PublicAvailabilityCalendar.jsx';
 import { OwnerCard } from '../components/property/OwnerCard.jsx';
 import { PropertyPageSkeleton } from '../components/property/PropertyPageSkeleton.jsx';
+import { PropertyGrid } from '../components/PropertyGrid.jsx';
 
 /** BackLink — 7.8: "כפתור חזרה ששומר על מצב החיפוש והגלילה". Going back in browser history
  * (rather than a hard Link to "/") preserves the previous page's URL query params (7.2's filter
@@ -23,10 +27,6 @@ function BackLink({ className, children }) {
     return <button type="button" className={className} onClick={() => navigate(-1)}>{children}</button>;
   }
   return <Link to="/" className={className}>{children}</Link>;
-}
-
-function activeAmenityLabels(property) {
-  return AMENITIES.filter((a) => property[a.value]).map((a) => a.label);
 }
 
 /** ClaimFlow — the "אני בעל הנכס" flow: request code (owner auth required) → enter code → pending. */
@@ -295,17 +295,35 @@ export function PropertyPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedUnitId, setSelectedUnitId] = useState(null);
+  const [similar, setSimilar] = useState([]);
+  const [shareCopied, setShareCopied] = useState(false);
   const bookingRef = useRef(null);
+  const { toggleFavorite, isFavorite } = useFavorites();
 
   useEffect(() => {
     propertyApi.get(id)
       .then(({ property: p }) => {
         setProperty(p);
         setSelectedUnitId(p.units?.[0]?.id ?? null);
+        propertyApi.search({ region: p.region, limit: 5 })
+          .then(({ properties: list }) => setSimilar((list || []).filter((x) => x.id !== p.id).slice(0, 4)))
+          .catch(() => setSimilar([]));
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [id]);
+
+  async function handleShare() {
+    const url = window.location.href;
+    if (navigator.share) {
+      try { await navigator.share({ title: property.name, url }); return; } catch { /* fall through to clipboard */ }
+    }
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    }
+  }
 
   if (loading) return <div dir="rtl"><PropertyPageSkeleton /></div>;
   if (error || !property) {
@@ -319,7 +337,6 @@ export function PropertyPage() {
 
   const isClaimed = property.status === 'claimed' || property.status === 'active';
   const isPendingClaim = property.status === 'pending';
-  const amenities = activeAmenityLabels(property);
   const units = property.units || [];
   const isMultiUnit = units.length > 1;
   const selectedUnit = units.find((u) => u.id === selectedUnitId) || units[0] || null;
@@ -332,9 +349,11 @@ export function PropertyPage() {
     bookingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+  const favKey = { id: property.id, deal_source: 'property', name: property.name, image: property.owner_images?.[0] };
+
   return (
-    <div className="agent-social-profile" dir="rtl">
-      <div className="agent-social-profile__topbar container">
+    <div className="pp" dir="rtl">
+      <div className="pp__topbar container">
         <BackLink className="agent-social-profile__back-clean">
           <ArrowLeft size={14} /> חזרה
         </BackLink>
@@ -348,36 +367,46 @@ export function PropertyPage() {
         <span aria-current="page">{property.name}</span>
       </nav>
 
-      <div className="container" style={{ maxWidth: 640 }}>
-        {isClaimed ? (
-          <PropertyImageCarousel images={property.owner_images || []} alt={property.name} />
-        ) : (
-          <div className="deal-modal__media" style={{ borderRadius: 'var(--radius-lg)', height: 280 }}>
-            <div className="deal-modal__media-placeholder" />
-            <div className="deal-modal__media-gradient" />
-            <div className="deal-modal__price-overlay">
-              <span className="adc__exclusive-badge" style={{ position: 'static' }}>
-                <ShieldAlert size={12} /> בעל הנכס טרם אימת את העמוד
-              </span>
-            </div>
-          </div>
-        )}
-
-        <div className="deal-modal__body" style={{ padding: '20px 4px' }}>
-          <h1 className="deal-modal__title">{property.name}</h1>
-          <p className="deal-modal__country">
-            {propertyTypeLabel(property.property_type)} · {regionLabel(property.region)}{property.city ? ` · ${property.city}` : ''}
-          </p>
-
-          {isClaimed && property.owner_id && (
-            <div className="deal-modal__agent-row">
-              <span className="deal-modal__agent-badge">
-                <CheckCircle size={13} /> מאומת ע"י הבעלים
-              </span>
+      <div className="container pp__layout">
+        <div className="pp__main">
+          {isClaimed ? (
+            <PropertyGallery images={property.owner_images || []} alt={property.name} />
+          ) : (
+            <div className="deal-modal__media" style={{ borderRadius: 'var(--radius-lg)', height: 320 }}>
+              <div className="deal-modal__media-placeholder" />
+              <div className="deal-modal__media-gradient" />
+              <div className="deal-modal__price-overlay">
+                <span className="adc__exclusive-badge" style={{ position: 'static' }}>
+                  <ShieldAlert size={12} /> בעל הנכס טרם אימת את העמוד
+                </span>
+              </div>
             </div>
           )}
 
-          {isClaimed && <OwnerCard owner={property.owner} />}
+          <div className="pp__header">
+            <div>
+              <h1 className="pp__title">{property.name}</h1>
+              <p className="pp__subtitle">
+                {propertyTypeLabel(property.property_type)} · {regionLabel(property.region)}{property.city ? ` · ${property.city}` : ''}
+              </p>
+              {isClaimed && property.owner_id && (
+                <span className="pp__verified-badge">
+                  <CheckCircle size={13} /> מאומת ע"י הבעלים
+                </span>
+              )}
+            </div>
+            <div className="pp__header-actions">
+              <button type="button" className={`pp__icon-btn${isFavorite(favKey) ? ' is-fav' : ''}`} onClick={() => toggleFavorite(favKey)} aria-label="הוסף למועדפים">
+                <Heart size={18} />
+              </button>
+              <button type="button" className="pp__icon-btn" onClick={handleShare} aria-label="שתף">
+                <Share2 size={18} />
+              </button>
+              {shareCopied && <span className="pp__share-toast">הקישור הועתק!</span>}
+            </div>
+          </div>
+
+          <PropertyAmenitiesBar property={property} />
 
           <motion.div className="deal-modal__details" initial="hidden" animate="visible">
             {(capacity || bedrooms || property.bathrooms) && (
@@ -390,15 +419,6 @@ export function PropertyPage() {
                     property.bathrooms ? `${property.bathrooms} חדרי רחצה` : null,
                   ].filter(Boolean).join(' · ')}
                 </span>
-              </div>
-            )}
-            {amenities.length > 0 && (
-              <div className="deal-modal__detail-row">
-                <BedDouble size={15} />
-                <div className="deal-modal__detail-block">
-                  <span className="deal-modal__detail-label">מתקנים משותפים</span>
-                  <span>{amenities.join(' · ')}</span>
-                </div>
               </div>
             )}
             {property.kosher_level !== 'not_applicable' && (
@@ -418,22 +438,38 @@ export function PropertyPage() {
           {property.description && <p className="deal-modal__desc">{property.description}</p>}
 
           {isMultiUnit && (
-            <div style={{ marginTop: 20 }}>
-              <h2 className="settings-card__title" style={{ marginBottom: 10 }}>יחידות במתחם</h2>
-              {units.map((unit) => (
-                <PropertyUnitCard
-                  key={unit.id}
-                  unit={unit}
-                  currency={property.currency}
-                  isSelected={unit.id === selectedUnitId}
-                  onBook={handleBookUnit}
-                />
-              ))}
-            </div>
+            <section className="pp__section">
+              <h2 className="pp__section-title">יחידות במתחם</h2>
+              <PropertyUnitsTable
+                units={units}
+                currency={property.currency}
+                selectedUnitId={selectedUnitId}
+                onSelectUnit={setSelectedUnitId}
+                onBook={() => bookingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              />
+            </section>
           )}
 
+          {isClaimed && selectedUnit && (
+            <section className="pp__section">
+              <h2 className="pp__section-title"><CalendarClock size={17} /> לוח זמינות</h2>
+              <PublicAvailabilityCalendar propertyId={property.id} unitId={isMultiUnit ? selectedUnit.id : undefined} />
+            </section>
+          )}
+
+          {isClaimed && <OwnerCard owner={property.owner} />}
+
+          <section className="pp__section pp__policies">
+            <h2 className="pp__section-title"><Info size={17} /> מדיניות</h2>
+            <ul className="pp__policies-list">
+              <li>שעות צ׳ק אין/אאוט — לתיאום ישיר מול בעל הנכס</li>
+              <li>מינימום לילות: {selectedUnit?.min_nights || property.min_nights || 1}</li>
+              <li>מדיניות ביטולים — לבירור מול בעל הנכס לפני אישור ההזמנה</li>
+            </ul>
+          </section>
+
           {!isClaimed && (
-            <>
+            <section className="pp__section">
               <p className="deal-modal__desc" style={{ fontSize: '0.8rem', opacity: 0.75 }}>
                 המידע בעמוד זה נאסף ממקורות פומביים ועשוי להיות לא מעודכן.
                 {property.source_url && (
@@ -459,7 +495,7 @@ export function PropertyPage() {
               {!isPendingClaim && (
                 <ClaimFlow propertyId={property.id} />
               )}
-            </>
+            </section>
           )}
 
           {isClaimed && property.whatsapp && (
@@ -474,9 +510,16 @@ export function PropertyPage() {
               </a>
             </div>
           )}
+
+          {similar.length > 0 && (
+            <section className="pp__section pp__similar">
+              <h2 className="pp__section-title">נכסים דומים באזור</h2>
+              <PropertyGrid properties={similar} isLoading={false} />
+            </section>
+          )}
         </div>
 
-        <div ref={bookingRef}>
+        <div className="pp__booking" ref={bookingRef}>
           {selectedUnit && (
             <BookingRequestForm
               propertyId={property.id}
@@ -487,6 +530,19 @@ export function PropertyPage() {
           )}
         </div>
       </div>
+
+      {/* 9.4 mobile sticky bar — price + CTA only; taps scroll to the real form above */}
+      {priceFrom && (
+        <div className="pp__mobile-bar">
+          <div>
+            <strong>{Math.round(priceFrom)} {getCurrencySymbol(property.currency)}</strong>
+            <span>ללילה</span>
+          </div>
+          <button type="button" onClick={() => bookingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+            הזמן עכשיו
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -68,6 +68,26 @@ export const UNIT_AMENITIES = [
   { value: 'kitchenette', label: 'מטבחון' },
 ];
 
+// 9.4: icon per amenity for the property page's amenities bar. Names are lucide-react exports,
+// resolved to components where the icon bar renders (data files stay framework-agnostic here).
+export const AMENITY_ICON_NAMES = {
+  has_private_jacuzzi: 'Sparkles',
+  has_private_pool: 'Waves',
+  has_heated_pool: 'Waves',
+  has_sauna: 'Flame',
+  has_view: 'Mountain',
+  has_garden: 'Trees',
+  has_bbq: 'Utensils',
+  has_outdoor_jacuzzi: 'Sparkles',
+  has_parking: 'ParkingCircle',
+  has_air_conditioning: 'Wind',
+  has_equipped_kitchen: 'UtensilsCrossed',
+  has_wifi: 'Wifi',
+  is_kid_friendly: 'Baby',
+  is_pet_friendly: 'Dog',
+  is_accessible: 'Accessibility',
+};
+
 export function unitAmenityLabel(value) {
   return UNIT_AMENITIES.find((a) => a.value === value)?.label || value;
 }
