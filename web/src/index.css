@@ -470,56 +470,7 @@ select:focus-visible {
   transform: translateY(-1px);
 }
 
-/* ---------- heatmap hero ---------- */
-
-.heatmap-hero {
-  position: relative;
-  width: 100%;
-  min-height: 78vh;
-  background: var(--color-heatmap-bg-gradient);
-  overflow: hidden;
-  border-bottom: 1px solid var(--color-border-subtle);
-}
-
-.world-heatmap {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
-
-.world-heatmap__svg {
-  width: 100%;
-  height: 100%;
-  max-width: 1500px;
-  cursor: grab;
-}
-
-.world-heatmap__zoom-controls {
-  position: absolute;
-  bottom: 20px;
-  inset-inline-end: 20px;
-  z-index: 4;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.world-heatmap__zoom-button {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(16, 20, 34, 0.65);
-  backdrop-filter: blur(10px);
-  color: var(--color-text-primary);
-  font-size: 1.2rem;
-  font-weight: 700;
-  line-height: 1;
-  cursor: pointer;
-}
+/* ---------- glass panel (shared utility — modals) ---------- */
 
 .glass-panel {
   background: rgba(16, 20, 34, 0.6);
@@ -530,396 +481,109 @@ select:focus-visible {
   box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.55);
 }
 
-.heatmap-hero__overlay {
-  position: absolute;
-  z-index: 4;
-}
+/* ---------- carousel nav button (PropertyImageCarousel prev/next) ---------- */
 
-.heatmap-hero__overlay--top {
-  top: 20px;
-  inset-inline-start: 20px;
-}
-
-.heatmap-hero__sidebar {
-  position: absolute;
-  top: 76px;
-  bottom: 20px;
-  inset-inline-end: 20px;
-  width: 290px;
-  z-index: 4;
-  display: flex;
-}
-
-@media (max-width: 860px) {
-  .heatmap-hero {
-    min-height: auto;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .world-heatmap {
-    position: relative;
-    inset: auto;
-    height: 48vh;
-    min-height: 300px;
-    padding: 10px;
-  }
-
-  .heatmap-hero__sidebar {
-    position: static;
-    width: 100%;
-    max-width: none;
-    height: 360px;
-    padding: 0 16px 24px;
-  }
-
-  .heatmap-hero__overlay--top {
-    top: 14px;
-    inset-inline-start: 14px;
-  }
-}
-
-/* ---------- live counter ---------- */
-
-.live-counter {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 9px 16px;
-  border-radius: 999px;
-  font-size: 0.82rem;
-  font-weight: 600;
-}
-
-.live-counter__dot {
-  width: 8px;
-  height: 8px;
+.carousel-nav-btn {
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: var(--color-heat-blazing);
-  animation: live-dot-pulse 1.6s ease-in-out infinite;
-}
-
-@keyframes live-dot-pulse {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55);
-  }
-  50% {
-    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
-  }
-}
-
-/* ---------- deal markers ---------- */
-
-.deal-marker {
-  cursor: pointer;
-}
-
-.deal-marker__ripple {
-  pointer-events: none;
-  transform-box: fill-box;
-  transform-origin: center;
-}
-
-.deal-marker__glow {
-  pointer-events: none;
-  opacity: 0.4;
-  transform-box: fill-box;
-  transform-origin: center;
-  animation-name: marker-pulse-glow;
-  animation-timing-function: ease-in-out;
-  animation-iteration-count: infinite;
-}
-
-.deal-marker__pulse-ring {
-  pointer-events: none;
-  opacity: 0.85;
-  transform-box: fill-box;
-  transform-origin: center;
-  stroke-width: 2;
-  animation-name: marker-pulse-ring;
-  animation-timing-function: ease-out;
-  animation-iteration-count: infinite;
-}
-
-.deal-marker__core {
-  filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.6));
-}
-
-@keyframes marker-pulse-glow {
-  0%,
-  100% {
-    opacity: 0.3;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.6;
-    transform: scale(1.18);
-  }
-}
-
-@keyframes marker-pulse-ring {
-  0% {
-    transform: scale(1);
-    opacity: 0.9;
-  }
-  100% {
-    transform: scale(2.4);
-    opacity: 0;
-  }
-}
-
-/* ---------- deal tooltip ---------- */
-
-.deal-tooltip {
-  position: fixed;
-  z-index: 50;
-  min-width: 200px;
-  padding: 14px 16px;
-  color: var(--color-text-primary);
-}
-
-.deal-tooltip__route {
-  font-weight: 700;
-  font-size: 0.95rem;
-  margin-bottom: 8px;
-}
-
-.deal-tooltip__row {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: 0.8rem;
-  color: var(--color-text-secondary);
-  margin-bottom: 4px;
-}
-
-.deal-tooltip__discount {
-  color: var(--color-heat-blazing);
-}
-
-.deal-tooltip__cta {
-  margin-top: 10px;
-  width: 100%;
-  border: none;
-  border-radius: 999px;
-  padding: 9px 0;
-  font-size: 0.78rem;
-  font-weight: 700;
-  background: var(--gradient-accent);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(42, 33, 24, 0.55);
+  backdrop-filter: blur(8px);
   color: #fff;
-}
-
-/* ---------- deals feed sidebar ---------- */
-
-.deals-feed {
-  width: 100%;
-  max-height: 100%;
-  display: flex;
-  flex-direction: column;
-  padding: 16px;
-  overflow: hidden;
-}
-
-.deals-feed__title {
-  font-size: 0.78rem;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--color-text-muted);
-  margin: 0 0 12px;
-}
-
-.deals-feed__list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.deals-feed__item {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
-  padding: 10px 12px;
-}
-
-.deals-feed__item-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-
-.deals-feed__route {
-  font-weight: 700;
-  font-size: 0.84rem;
-}
-
-.deals-feed__item-bottom {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  font-size: 0.8rem;
-}
-
-.deals-feed__price {
-  font-weight: 700;
-}
-
-.deals-feed__discount {
-  color: var(--color-heat-hot);
-  font-weight: 700;
-}
-
-.deals-feed__live-tag {
-  font-size: 0.62rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  color: var(--color-text-muted);
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 999px;
-  padding: 2px 8px;
-  flex-shrink: 0;
-}
-
-.deals-feed__empty {
-  font-size: 0.82rem;
-  color: var(--color-text-muted);
-}
-
-/* ---------- new badge ---------- */
-
-.new-badge {
-  font-size: 0.6rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  padding: 2px 7px;
-  border-radius: 999px;
-  background: var(--color-heat-blazing);
-  color: #fff;
-  animation: new-badge-blink 1.4s ease-in-out infinite;
-  flex-shrink: 0;
-}
-
-@keyframes new-badge-blink {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.35;
-  }
-}
-
-/* ---------- countdown timer ---------- */
-
-.countdown-timer {
-  margin-top: 6px;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.countdown-timer__value {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-}
-
-.countdown-timer__note {
-  font-size: 0.6rem;
-  color: var(--color-text-muted);
-  opacity: 0.8;
-}
-
-/* ---------- radar sweep (idle state) ---------- */
-
-.radar-overlay {
-  position: absolute;
-  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-direction: column;
-  gap: 28px;
-  z-index: 2;
+  cursor: pointer;
+  transition: background var(--transition-base);
 }
 
-.radar-overlay__rings {
+.carousel-nav-btn:hover {
+  background: rgba(42, 33, 24, 0.75);
+}
+
+/* ---------- region picker (9.1: replaces the Israel pin-map on the homepage) ---------- */
+
+.region-picker-section {
+  padding: 8px 20px 12px;
+}
+
+.region-picker {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .region-picker {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 960px) {
+  .region-picker {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px;
+  }
+}
+
+.region-card {
   position: relative;
-  width: 180px;
-  height: 180px;
-  border-radius: 50%;
-  pointer-events: none;
+  border: none;
+  border-radius: var(--radius-lg);
+  padding: 22px 16px;
+  min-height: 132px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 4px;
+  color: #fff;
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
 }
 
-.radar-overlay__ring {
+.region-card::before {
+  content: '';
   position: absolute;
   inset: 0;
-  border-radius: 50%;
-  border: 1px solid rgba(249, 115, 22, 0.4);
-  animation: radar-ping 2.6s ease-out infinite;
+  background: linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.35) 100%);
 }
 
-.radar-overlay__ring:nth-child(2) {
-  animation-delay: 0.9s;
+.region-card:hover,
+.region-card:focus-visible {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-card-hover);
 }
 
-.radar-overlay__ring:nth-child(3) {
-  animation-delay: 1.8s;
+.region-card--active {
+  outline: 3px solid var(--ds-hearth);
+  outline-offset: 2px;
 }
 
-@keyframes radar-ping {
-  0% {
-    transform: scale(0.3);
-    opacity: 0.9;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 0;
-  }
+.region-card__icon {
+  position: relative;
+  z-index: 1;
+  opacity: 0.9;
+  margin-bottom: 6px;
 }
 
-.radar-overlay__sweep {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: conic-gradient(from 0deg, rgba(249, 115, 22, 0.35), transparent 35%);
-  animation: radar-spin 3.2s linear infinite;
+.region-card__name {
+  position: relative;
+  z-index: 1;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.05rem;
 }
 
-@keyframes radar-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.radar-overlay__caption {
-  text-align: center;
-  padding: 16px 26px;
-  max-width: 320px;
-}
-
-.radar-overlay__caption h2 {
-  font-size: 1.1rem;
-  margin: 0 0 6px;
-}
-
-.radar-overlay__caption p {
-  font-size: 0.85rem;
-  color: var(--color-text-secondary);
-  margin: 0;
-}
-
-@media (max-width: 720px) {
-  .heatmap-hero {
-    min-height: 52vh;
-  }
+.region-card__count {
+  position: relative;
+  z-index: 1;
+  font-size: 0.76rem;
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---------- filter bar (mobile-first: horizontal scroll, big tap targets) ---------- */

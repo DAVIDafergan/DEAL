@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { NowProvider } from './context/NowContext.jsx';
 import { propertyApi } from './api/client.js';
 import { HowItWorks } from './components/HowItWorks.jsx';
-import { IsraelMap } from './components/heatmap/IsraelMap.jsx';
+import { RegionPicker } from './components/RegionPicker.jsx';
 import { PropertyFilterPanel } from './components/PropertyFilterPanel.jsx';
 import { PropertyFilterSheet } from './components/PropertyFilterSheet.jsx';
 import { PropertyActiveChips } from './components/PropertyActiveChips.jsx';
@@ -38,8 +38,8 @@ export function App() {
     resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  function handleSelectRegionFromMap(regionValue) {
-    setFilter({ region: regionValue });
+  function handleSelectRegion(regionValue) {
+    setFilter({ region: filters.region === regionValue ? '' : regionValue });
     scrollToResults();
   }
 
@@ -60,9 +60,9 @@ export function App() {
           <p className="dsh__sub">בחרו אזור על המפה או פתחו את הסינון — רק נכסים אמיתיים בישראל</p>
         </motion.section>
 
-        {/* ── Region map — quick region pick, feeds the same filter state as the panel below ── */}
-        <section className="heatmap-hero">
-          <IsraelMap propertiesByRegion={propertiesByRegion} onSelectRegion={handleSelectRegionFromMap} />
+        {/* ── Region picker — quick region pick, feeds the same filter state as the panel below ── */}
+        <section className="region-picker-section container">
+          <RegionPicker propertiesByRegion={propertiesByRegion} onSelectRegion={handleSelectRegion} activeRegion={filters.region} />
         </section>
 
         {/* ── Results + staged filters (7.2) ── */}

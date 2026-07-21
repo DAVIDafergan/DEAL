@@ -16,6 +16,7 @@ import { requireAgentAuth } from '../middleware/agentAuth.js';
 import { sendVerificationCode, notifyOwnerOfBookingRequest } from '../services/complianceMessaging.js';
 import { notifyCustomerBookingReceived, notifyOwnerNewBooking, notifyCustomerStatusChanged, estimateBookingPrice } from '../services/bookingNotifications.js';
 import { authRateLimiter } from '../middleware/rateLimiter.js';
+import { geocodePropertyInBackground } from '../services/geocode.js';
 
 function publicOwner(a) {
   const { password_hash, email, phone, stripe_customer_id, stripe_subscription_id, rejection_reason, account_type, ...rest } = a;
@@ -161,6 +162,9 @@ router.post('/', requireAgentAuth, async (req, res) => {
     const id = await createProperty(req.agentId, req.body);
     const property = await getPropertyByIdForOwner(id, req.agentId);
     res.status(201).json({ property });
+    if (!req.body.latitude && !req.body.longitude) {
+      geocodePropertyInBackground(id, { city: req.body.city, region: req.body.region, address: req.body.address });
+    }
   } catch (err) {
     console.error('[properties] create error:', err.message);
     res.status(500).json({ error: 'Failed to create property' });
@@ -174,6 +178,9 @@ router.patch('/:id', requireAgentAuth, async (req, res) => {
     const property = await getPropertyByIdForOwner(req.params.id, req.agentId);
     if (!property) return res.status(404).json({ error: 'Not found' });
     res.json({ property });
+    if ((req.body || {}).city || (req.body || {}).address) {
+      geocodePropertyInBackground(req.params.id, { city: property.city, region: property.region, address: property.address });
+    }
   } catch (err) {
     console.error('[properties] update error:', err.message);
     res.status(500).json({ error: 'Update failed' });

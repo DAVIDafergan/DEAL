@@ -655,6 +655,18 @@ export async function updateProperty(id, ownerId, fields) {
   }
 }
 
+/** 9.1: background-geocoding write path — sets lat/lng only, without an owner_id check (called
+ * from a fire-and-forget server job after create/update, never from a client request), and only
+ * when the row hasn't already got coordinates (never overwrites a value the owner explicitly
+ * placed via an older client, or a previous geocode). */
+export async function setPropertyCoordinatesIfMissing(id, latitude, longitude) {
+  const pool = getPool();
+  await pool.query(
+    'UPDATE properties SET latitude = ?, longitude = ?, updated_at = ? WHERE id = ? AND latitude IS NULL AND longitude IS NULL',
+    [latitude, longitude, nowStr(), id]
+  );
+}
+
 /** 7.4 publish gate: "לפחות 3 תמונות למתחם, ותמונה אחת לכל יחידה", "אזור, עיר, שם, סוג נכס,
  * ולפחות יחידה אחת עם מחיר וקיבולת", "טלפון או וואטסאפ". Returns { ok, missing[] } — missing is
  * a list of translation-ready keys so both the wizard and the dashboard checklist can render the

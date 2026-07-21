@@ -4,7 +4,7 @@ import { X, CheckCircle2, Circle } from 'lucide-react';
 import { useAgentAuth } from '../../context/AgentAuthContext.jsx';
 import { propertyApi } from '../../api/client.js';
 import { REGIONS, PROPERTY_TYPES, KOSHER_LEVELS, AMENITIES } from '../../data/propertyOptions.js';
-import { PropertyLocationMap } from './PropertyLocationMap.jsx';
+import { townsForRegion } from '../../data/israeliTowns.js';
 import { PropertyUnitsStep } from './PropertyUnitsStep.jsx';
 import { PropertyPhotoUploader } from './PropertyPhotoUploader.jsx';
 
@@ -261,15 +261,25 @@ export function PropertyWizard({ initialData = null, propertyId: initialProperty
                   </div>
                   <div className="wizard-field">
                     <label className="wizard-label">עיר / יישוב</label>
-                    <input className="wizard-input" value={city} onChange={(e) => setCity(e.target.value)} />
+                    <input
+                      className="wizard-input"
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      list="wizard-city-options"
+                      placeholder="התחילו להקליד…"
+                      autoComplete="off"
+                    />
+                    <datalist id="wizard-city-options">
+                      {townsForRegion(region).map((town) => <option key={town} value={town} />)}
+                    </datalist>
                   </div>
                 </div>
                 <div className="wizard-field">
                   <label className="wizard-label">כתובת (אופציונלי)</label>
-                  <input className="wizard-input" value={address} onChange={(e) => setAddress(e.target.value)} />
+                  <input className="wizard-input" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="רחוב ומספר" />
                 </div>
                 {locationError && <p className="wizard-error">{locationError}</p>}
-                <PropertyLocationMap latitude={latitude} longitude={longitude} onPick={(lat, lng) => { setLatitude(lat); setLongitude(lng); }} />
+                <p className="wizard-hint">מיקום מדויק על המפה יושלם אוטומטית ברקע מהכתובת שהזנתם — לא צריך לסמן דבר.</p>
               </WizardStep>
             </motion.div>
           )}

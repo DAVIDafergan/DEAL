@@ -2,9 +2,8 @@ import { useState } from 'react';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 
 /**
- * PropertyImageCarousel — no new global CSS: the frame reuses .deal-modal__media exactly (same
- * as the single-image version it replaces), and prev/next reuse .world-heatmap__zoom-button
- * (the existing glass circular button already used for map controls) rather than a new class.
+ * PropertyImageCarousel — the frame reuses .deal-modal__media exactly (same as the single-image
+ * version it replaces); prev/next use the shared .carousel-nav-btn glass circular button.
  * Only the thumbnail strip/dots are new markup, styled entirely via var(--ds-*) inline styles —
  * same tokens as theme.css, no new stylesheet rules.
  */
@@ -34,7 +33,7 @@ export function PropertyImageCarousel({ images, alt }) {
           <>
             <button
               type="button"
-              className="world-heatmap__zoom-button"
+              className="carousel-nav-btn"
               style={{ position: 'absolute', top: '50%', insetInlineStart: 12, transform: 'translateY(-50%)', zIndex: 2 }}
               onClick={prev}
               aria-label="תמונה קודמת"
@@ -43,7 +42,7 @@ export function PropertyImageCarousel({ images, alt }) {
             </button>
             <button
               type="button"
-              className="world-heatmap__zoom-button"
+              className="carousel-nav-btn"
               style={{ position: 'absolute', top: '50%', insetInlineEnd: 12, transform: 'translateY(-50%)', zIndex: 2 }}
               onClick={next}
               aria-label="תמונה הבאה"
@@ -56,7 +55,7 @@ export function PropertyImageCarousel({ images, alt }) {
                   key={i}
                   style={{
                     width: 6, height: 6, borderRadius: '50%',
-                    background: i === index ? 'var(--ds-teal)' : 'rgba(255,255,255,0.5)',
+                    background: i === index ? 'var(--ds-hearth)' : 'rgba(255,255,255,0.5)',
                     transition: 'background 0.2s ease',
                   }}
                 />
@@ -76,7 +75,7 @@ export function PropertyImageCarousel({ images, alt }) {
               style={{
                 flexShrink: 0, width: 64, height: 48, padding: 0, cursor: 'pointer',
                 borderRadius: 'var(--radius-sm)', overflow: 'hidden',
-                border: i === index ? '2px solid var(--ds-teal)' : '2px solid transparent',
+                border: i === index ? '2px solid var(--ds-hearth)' : '2px solid transparent',
                 opacity: i === index ? 1 : 0.7,
               }}
               aria-label={`תמונה ${i + 1}`}
