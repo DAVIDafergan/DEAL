@@ -1,7 +1,9 @@
+import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { MessageCircle, CheckCircle, Users, BedDouble, Waves } from 'lucide-react';
+import { MessageCircle, CheckCircle, Users, BedDouble, Waves, Heart } from 'lucide-react';
 import { getCurrencySymbol } from '../utils/currency.js';
 import { regionLabel } from '../data/propertyOptions.js';
+import { useFavorites } from '../hooks/useFavorites.js';
 
 function buildWhatsAppUrl(number, propertyName) {
   const text = `שלום, ראיתי את ${propertyName} ב-Dealim ואני מתעניין/ת`;
@@ -23,8 +25,14 @@ function topAmenities(property) {
  * Price/capacity come from the units aggregate (7.3: "החל מ-" the cheapest active unit, capacity
  * = sum of active units) — falls back to the legacy property-level columns for any row that
  * somehow has neither (shouldn't happen post-migration, but cheap to guard). */
+const HOVER_INTERVAL_MS = 1100;
+
 export function PropertyCard({ property }) {
-  const image = property.owner_images?.[0] || null;
+  const images = property.owner_images?.length ? property.owner_images : [];
+  const [hoverIndex, setHoverIndex] = useState(0);
+  const intervalRef = useRef(null);
+  const { toggleFavorite, isFavorite } = useFavorites();
+  const favKey = { id: property.id, deal_source: 'property', name: property.name, image: images[0] };
   const isClaimed = property.status === 'claimed' || property.status === 'active';
   const amenities = topAmenities(property);
   const price = property.price_from ?? property.base_price_night;
@@ -32,12 +40,47 @@ export function PropertyCard({ property }) {
   const bedrooms = property.max_bedrooms ?? property.bedrooms;
   const isMultiUnit = (property.unit_count ?? 1) > 1;
 
+  function startHoverCarousel() {
+    if (images.length < 2) return;
+    intervalRef.current = setInterval(() => {
+      setHoverIndex((i) => (i + 1) % images.length);
+    }, HOVER_INTERVAL_MS);
+  }
+
+  function stopHoverCarousel() {
+    clearInterval(intervalRef.current);
+    setHoverIndex(0);
+  }
+
   return (
-    <Link to={`/property/${property.id}`} className="adc" aria-label={property.name}>
+    <Link
+      to={`/property/${property.id}`}
+      className="adc"
+      aria-label={property.name}
+      onMouseEnter={startHoverCarousel}
+      onMouseLeave={stopHoverCarousel}
+    >
       <div className="adc__media">
-        {image
-          ? <img src={image} alt={property.name} className="adc__img" loading="lazy" />
+        {images.length > 0
+          ? <img src={images[hoverIndex]} alt={property.name} className="adc__img" loading="lazy" />
           : <div className="adc__img-placeholder" />}
+
+        {images.length > 1 && (
+          <div className="adc__media-dots">
+            {images.map((_, i) => (
+              <span key={i} className={`adc__media-dot${i === hoverIndex ? ' is-active' : ''}`} />
+            ))}
+          </div>
+        )}
+
+        <button
+          type="button"
+          className={`adc__fav-btn${isFavorite(favKey) ? ' is-fav' : ''}`}
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(favKey); }}
+          aria-label="הוסף למועדפים"
+        >
+          <Heart size={15} strokeWidth={2} />
+        </button>
 
         <div className="adc__media-gradient" />
 

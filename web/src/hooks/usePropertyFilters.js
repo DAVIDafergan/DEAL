@@ -5,13 +5,13 @@ import { useSearchParams } from 'react-router-dom';
 const KEYS = {
   region: 'region', city: 'city', checkIn: 'checkin', checkOut: 'checkout',
   guests: 'guests', bedrooms: 'bedrooms', minPrice: 'minprice', maxPrice: 'maxprice',
-  propertyType: 'type', kosherLevel: 'kosher', amenities: 'amenities',
+  propertyType: 'type', kosherLevel: 'kosher', amenities: 'amenities', sort: 'sort',
 };
 
 const EMPTY = {
   region: '', city: '', checkIn: '', checkOut: '',
   guests: '', bedrooms: '', minPrice: '', maxPrice: '',
-  propertyType: '', kosherLevel: '', amenities: [],
+  propertyType: '', kosherLevel: '', amenities: [], sort: 'recommended',
 };
 
 /** Filter state lives entirely in the URL query string (7.2: "מצב הסינון נשמר ב-query params")
@@ -33,6 +33,7 @@ export function usePropertyFilters() {
       propertyType: searchParams.get(KEYS.propertyType) || '',
       kosherLevel: searchParams.get(KEYS.kosherLevel) || '',
       amenities: amenitiesRaw ? amenitiesRaw.split(',').filter(Boolean) : [],
+      sort: searchParams.get(KEYS.sort) || 'recommended',
     };
   }, [searchParams]);
 
@@ -92,6 +93,7 @@ export function usePropertyFilters() {
     amenities: filters.amenities,
     check_in: filters.checkIn && filters.checkOut ? filters.checkIn : undefined,
     check_out: filters.checkIn && filters.checkOut ? filters.checkOut : undefined,
+    sort: filters.sort && filters.sort !== 'recommended' ? filters.sort : undefined,
   }), [filters]);
 
   return { filters, setFilter, toggleAmenity, clearAll, clearField, activeCount, apiFilters, hasActiveFilters: activeCount > 0 };

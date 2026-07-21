@@ -399,12 +399,103 @@ export async function searchProperties(filters = {}) {
   }
 
   const limit = Math.min(Number(filters.limit) || 40, 100);
+  // 9.3: sort — "recommended" keeps the original default (most recently touched first); price
+  // sorts push properties with no priced unit yet to the end either way, not the top.
+  const orderBy = {
+    price_asc: 'units_agg.price_from IS NULL, units_agg.price_from ASC',
+    price_desc: 'units_agg.price_from DESC',
+    new: 'properties.created_at DESC',
+  }[filters.sort] || 'properties.updated_at DESC';
   const [rows] = await pool.query(
     `SELECT properties.*, units_agg.price_from, units_agg.total_guest_capacity, units_agg.max_bedrooms, units_agg.unit_count
-     FROM properties ${UNITS_AGG_JOIN} WHERE ${where.join(' AND ')} ORDER BY properties.updated_at DESC LIMIT ?`,
+     FROM properties ${UNITS_AGG_JOIN} WHERE ${where.join(' AND ')} ORDER BY ${orderBy} LIMIT ?`,
     [...vals, limit]
   );
   return rows.map(parseProperty);
+}
+
+/** 9.3: "live count per option" (Booking-style) for the staged filter panel. For each facet
+ * group, counts are computed against every OTHER active filter (so a traveler sees "how many
+ * results if I also pick this"), but not against that group's own current selection — same
+ * standard faceted-search convention Booking/Airbnb use. Returns four small maps; the panel
+ * renders "(N)" next to each chip. Kept as a separate function (not refactored into
+ * searchProperties) to avoid risking the existing, already-tested search path — see
+ * DECISIONS.md 9.3. */
+export async function getFacetCounts(filters = {}) {
+  const pool = getPool();
+
+  function commonWhere({ skipRegion, skipKosher, skipType } = {}) {
+    const where = [`status NOT IN ('hidden','draft')`, 'opted_out = 0', 'deleted_at IS NULL', NOT_BLOCKLISTED_SQL, confidencePublishableSql()];
+    const vals = [];
+    if (!skipRegion && filters.region) { where.push('region = ?'); vals.push(filters.region); }
+    if (filters.city) { where.push('city = ?'); vals.push(filters.city); }
+    if (!skipType && filters.propertyType) { where.push('property_type = ?'); vals.push(filters.propertyType); }
+    if (filters.minGuests) { where.push('units_agg.total_guest_capacity >= ?'); vals.push(Number(filters.minGuests)); }
+    if (filters.bedrooms) { where.push('units_agg.max_bedrooms >= ?'); vals.push(Number(filters.bedrooms)); }
+    if (filters.minPrice) { where.push('units_agg.price_from >= ?'); vals.push(Number(filters.minPrice)); }
+    if (filters.maxPrice) { where.push('units_agg.price_from <= ?'); vals.push(Number(filters.maxPrice)); }
+    if (!skipKosher && filters.kosherLevel) { where.push('kosher_level = ?'); vals.push(filters.kosherLevel); }
+    if (filters.checkIn && filters.checkOut) {
+      where.push(`EXISTS (
+        SELECT 1 FROM property_units pu2 WHERE pu2.property_id = properties.id AND pu2.is_active = 1
+        AND NOT EXISTS (
+          SELECT 1 FROM availability av WHERE av.unit_id = pu2.id AND av.date >= ? AND av.date < ? AND av.is_available = 0
+        )
+      )`);
+      vals.push(filters.checkIn, filters.checkOut);
+    }
+    return { where, vals };
+  }
+
+  // Amenities: count includes every currently-active amenity plus the one being counted.
+  const activeAmenities = (filters.amenities || []).filter((a) => AMENITY_FIELDS.includes(a));
+  const amenityCounts = {};
+  {
+    const { where, vals } = commonWhere();
+    const selects = AMENITY_FIELDS.map((f) => {
+      const extra = activeAmenities.filter((a) => a !== f).map((a) => `${a} = 1`);
+      const cond = [`${f} = 1`, ...extra].join(' AND ');
+      return `SUM(CASE WHEN ${cond} THEN 1 ELSE 0 END) AS ${f}`;
+    });
+    const [rows] = await pool.query(
+      `SELECT ${selects.join(', ')} FROM properties ${UNITS_AGG_JOIN} WHERE ${where.join(' AND ')}`,
+      vals
+    );
+    for (const f of AMENITY_FIELDS) amenityCounts[f] = Number(rows[0]?.[f] || 0);
+  }
+
+  // Kosher level + property type: single-select groups, own filter excluded from the base.
+  const kosherCounts = {};
+  {
+    const { where, vals } = commonWhere({ skipKosher: true });
+    const [rows] = await pool.query(
+      `SELECT kosher_level, COUNT(*) AS count FROM properties ${UNITS_AGG_JOIN} WHERE ${where.join(' AND ')} GROUP BY kosher_level`,
+      vals
+    );
+    for (const row of rows) kosherCounts[row.kosher_level] = Number(row.count);
+  }
+
+  const typeCounts = {};
+  {
+    const { where, vals } = commonWhere({ skipType: true });
+    const [rows] = await pool.query(
+      `SELECT property_type, COUNT(*) AS count FROM properties ${UNITS_AGG_JOIN} WHERE ${where.join(' AND ')} GROUP BY property_type`,
+      vals
+    );
+    for (const row of rows) typeCounts[row.property_type] = Number(row.count);
+  }
+
+  const regionCounts = {};
+  {
+    const { where, vals } = commonWhere({ skipRegion: true });
+    const [rows] = await pool.query(
+      `SELECT region, COUNT(*) AS count FROM properties ${UNITS_AGG_JOIN} WHERE ${where.join(' AND ')} GROUP BY region`,
+      vals
+    );
+    for (const row of rows) regionCounts[row.region] = Number(row.count);
+  }
+
+  return { amenities: amenityCounts, kosherLevel: kosherCounts, propertyType: typeCounts, region: regionCounts };
 }
 
 /** GET /api/properties/cities?region= — distinct cities with a listed property in that region,

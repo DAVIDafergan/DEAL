@@ -170,6 +170,7 @@ function buildQuery(params) {
 
 export const propertyApi = {
   search: (filters = {}) => getJson(`/properties${buildQuery(filters)}`),
+  facetCounts: (filters = {}) => getJson(`/properties/facet-counts${buildQuery(filters)}`),
   cities: (region) => getJson(`/properties/cities${buildQuery({ region })}`),
   get: (id) => getJson(`/properties/${id}`),
   getMine: (token) => getJson('/properties/mine', token),

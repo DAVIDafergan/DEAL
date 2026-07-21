@@ -5,7 +5,7 @@ import {
   getAvailability, setAvailability,
   createBookingRequest, getBookingRequestById, listBookingRequestsForOwner,
   listBookingRequestsAcrossOwner, updateBookingRequestStatus, getUnitById,
-  listPublicPropertiesByOwner, listCitiesForRegion,
+  listPublicPropertiesByOwner, listCitiesForRegion, getFacetCounts,
   listDeletedPropertiesByOwner, softDeleteProperty, restoreProperty,
   createClaimCode, verifyClaimCode,
   createUnit, updateUnit, deactivateUnit, duplicateUnit, reorderUnits,
@@ -34,7 +34,7 @@ const KOSHER_LEVELS = ['kosher', 'shomer_shabbat', 'kosher_kitchen', 'not_applic
 /** GET /api/properties?region=&property_type=&min_guests=&max_price=&kosher_level=&amenities=a,b — public search */
 router.get('/', async (req, res) => {
   try {
-    const { region, city, property_type, min_guests, bedrooms, min_price, max_price, kosher_level, amenities, check_in, check_out, limit } = req.query;
+    const { region, city, property_type, min_guests, bedrooms, min_price, max_price, kosher_level, amenities, check_in, check_out, limit, sort } = req.query;
     const properties = await searchProperties({
       region: REGIONS.includes(region) ? region : undefined,
       city: city || undefined,
@@ -47,6 +47,7 @@ router.get('/', async (req, res) => {
       amenities: amenities ? String(amenities).split(',') : [],
       checkIn: check_in && check_out ? check_in : undefined,
       checkOut: check_in && check_out ? check_out : undefined,
+      sort: ['price_asc', 'price_desc', 'new'].includes(sort) ? sort : undefined,
       limit,
     });
     res.json({ properties });
@@ -65,6 +66,31 @@ router.get('/cities', async (req, res) => {
     const cities = await listCitiesForRegion(region);
     res.json({ cities });
   } catch (err) {
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
+/** GET /api/properties/facet-counts — 9.3: live per-option result counts for the filter panel,
+ * same query shape as GET / (search). */
+router.get('/facet-counts', async (req, res) => {
+  try {
+    const { region, city, property_type, min_guests, bedrooms, min_price, max_price, kosher_level, amenities, check_in, check_out } = req.query;
+    const counts = await getFacetCounts({
+      region: REGIONS.includes(region) ? region : undefined,
+      city: city || undefined,
+      propertyType: PROPERTY_TYPES.includes(property_type) ? property_type : undefined,
+      minGuests: min_guests,
+      bedrooms,
+      minPrice: min_price,
+      maxPrice: max_price,
+      kosherLevel: KOSHER_LEVELS.includes(kosher_level) ? kosher_level : undefined,
+      amenities: amenities ? String(amenities).split(',') : [],
+      checkIn: check_in && check_out ? check_in : undefined,
+      checkOut: check_in && check_out ? check_out : undefined,
+    });
+    res.json(counts);
+  } catch (err) {
+    console.error('[properties] facet-counts error:', err.message);
     res.status(500).json({ error: 'Internal error' });
   }
 });

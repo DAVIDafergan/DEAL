@@ -47,9 +47,12 @@ function Section({ id, title, icon, summary, isOpen, onToggle, children }) {
  * collapsible on both mobile (inside the bottom sheet) and desktop (inline side panel). Shared so
  * the two surfaces never drift out of sync.
  */
+const EMPTY_FACETS = { amenities: {}, kosherLevel: {}, propertyType: {}, region: {} };
+
 export function PropertyFilterPanel({ filters, setFilter, toggleAmenity, resultCount, isLoading }) {
   const [openSection, setOpenSection] = useState('where');
   const [cities, setCities] = useState([]);
+  const [facets, setFacets] = useState(EMPTY_FACETS);
 
   function toggleSection(id) {
     setOpenSection((cur) => (cur === id ? null : id));
@@ -63,6 +66,27 @@ export function PropertyFilterPanel({ filters, setFilter, toggleAmenity, resultC
       .catch(() => { if (!cancelled) setCities([]); });
     return () => { cancelled = true; };
   }, [filters.region]);
+
+  // 9.3: live per-option counts (Booking-style) — refetched whenever any filter changes.
+  useEffect(() => {
+    let cancelled = false;
+    propertyApi.facetCounts({
+      region: filters.region || undefined,
+      city: filters.city || undefined,
+      property_type: filters.propertyType || undefined,
+      min_guests: filters.guests || undefined,
+      bedrooms: filters.bedrooms || undefined,
+      min_price: filters.minPrice || undefined,
+      max_price: filters.maxPrice || undefined,
+      kosher_level: filters.kosherLevel || undefined,
+      amenities: filters.amenities,
+      check_in: filters.checkIn && filters.checkOut ? filters.checkIn : undefined,
+      check_out: filters.checkIn && filters.checkOut ? filters.checkOut : undefined,
+    })
+      .then((data) => { if (!cancelled) setFacets(data); })
+      .catch(() => { if (!cancelled) setFacets(EMPTY_FACETS); });
+    return () => { cancelled = true; };
+  }, [filters.region, filters.city, filters.propertyType, filters.guests, filters.bedrooms, filters.minPrice, filters.maxPrice, filters.kosherLevel, filters.checkIn, filters.checkOut, filters.amenities]);
 
   const whereSummary = [
     filters.region && REGIONS.find((r) => r.value === filters.region)?.label,
@@ -90,7 +114,12 @@ export function PropertyFilterPanel({ filters, setFilter, toggleAmenity, resultC
       <Section id="where" title="איפה" icon={<MapPin size={16} />} summary={whereSummary} isOpen={openSection === 'where'} onToggle={toggleSection}>
         <div className="pfp__chip-row">
           {REGIONS.map((r) => (
-            <ToggleChip key={r.value} label={r.label} isActive={filters.region === r.value} onClick={() => setFilter({ region: filters.region === r.value ? '' : r.value })} />
+            <ToggleChip
+              key={r.value}
+              label={`${r.label} (${facets.region[r.value] ?? 0})`}
+              isActive={filters.region === r.value}
+              onClick={() => setFilter({ region: filters.region === r.value ? '' : r.value })}
+            />
           ))}
         </div>
         {filters.region && cities.length > 0 && (
@@ -148,19 +177,34 @@ export function PropertyFilterPanel({ filters, setFilter, toggleAmenity, resultC
         <p className="pfp__sub-label">סוג נכס</p>
         <div className="pfp__chip-row">
           {PROPERTY_TYPES.map((p) => (
-            <ToggleChip key={p.value} label={p.label} isActive={filters.propertyType === p.value} onClick={() => setFilter({ propertyType: filters.propertyType === p.value ? '' : p.value })} />
+            <ToggleChip
+              key={p.value}
+              label={`${p.label} (${facets.propertyType[p.value] ?? 0})`}
+              isActive={filters.propertyType === p.value}
+              onClick={() => setFilter({ propertyType: filters.propertyType === p.value ? '' : p.value })}
+            />
           ))}
         </div>
         <p className="pfp__sub-label">מתקנים</p>
         <div className="pfp__chip-row">
           {AMENITIES.map((a) => (
-            <ToggleChip key={a.value} label={a.label} isActive={filters.amenities.includes(a.value)} onClick={() => toggleAmenity(a.value)} />
+            <ToggleChip
+              key={a.value}
+              label={`${a.label} (${facets.amenities[a.value] ?? 0})`}
+              isActive={filters.amenities.includes(a.value)}
+              onClick={() => toggleAmenity(a.value)}
+            />
           ))}
         </div>
         <p className="pfp__sub-label">כשרות</p>
         <div className="pfp__chip-row">
           {KOSHER_LEVELS.filter((k) => k.value !== 'not_applicable').map((k) => (
-            <ToggleChip key={k.value} label={k.label} isActive={filters.kosherLevel === k.value} onClick={() => setFilter({ kosherLevel: filters.kosherLevel === k.value ? '' : k.value })} />
+            <ToggleChip
+              key={k.value}
+              label={`${k.label} (${facets.kosherLevel[k.value] ?? 0})`}
+              isActive={filters.kosherLevel === k.value}
+              onClick={() => setFilter({ kosherLevel: filters.kosherLevel === k.value ? '' : k.value })}
+            />
           ))}
         </div>
       </Section>

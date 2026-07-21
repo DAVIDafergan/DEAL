@@ -21,14 +21,25 @@ export function App() {
   const { filters, setFilter, toggleAmenity, clearAll, activeCount, apiFilters, hasActiveFilters } = usePropertyFilters();
   const [properties, setProperties] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const RESULTS_PAGE_SIZE = 12;
+  const [resultsLimit, setResultsLimit] = useState(RESULTS_PAGE_SIZE);
+
+  // Any real filter change resets pagination back to page 1 — only "load more" grows the limit.
+  useEffect(() => {
+    setResultsLimit(RESULTS_PAGE_SIZE);
+  }, [apiFilters]);
 
   useEffect(() => {
-    setIsLoading(true);
-    propertyApi.search(apiFilters)
+    const isLoadMore = resultsLimit > RESULTS_PAGE_SIZE;
+    if (isLoadMore) setIsLoadingMore(true); else setIsLoading(true);
+    propertyApi.search({ ...apiFilters, limit: resultsLimit })
       .then(({ properties: p }) => setProperties(p || []))
       .catch(() => setProperties([]))
-      .finally(() => setIsLoading(false));
-  }, [apiFilters]);
+      .finally(() => { setIsLoading(false); setIsLoadingMore(false); });
+  }, [apiFilters, resultsLimit]);
+
+  const canLoadMore = !isLoading && properties.length === resultsLimit && resultsLimit < 100;
 
   const propertiesByRegion = useMemo(() => {
     const counts = {};
@@ -91,12 +102,25 @@ export function App() {
 
         {/* ── 4. Results / featured properties + staged filters (7.2) ── */}
         <section className="agent-deals-section container" ref={resultsRef}>
-          <h2 className="agent-deals-section__title">
-            {hasActiveFilters ? 'תוצאות החיפוש שלך' : 'נכסים מומלצים'}
-          </h2>
-          <p className="agent-deals-section__subtitle">
-            נכסים ישירות מבעלים — חלקם מאומתים, חלקם עדיין ממתינים לאימות הבעלים
-          </p>
+          <div className="agent-deals-section__head">
+            <div>
+              <h2 className="agent-deals-section__title">
+                {hasActiveFilters ? 'תוצאות החיפוש שלך' : 'נכסים מומלצים'}
+              </h2>
+              <p className="agent-deals-section__subtitle">
+                נכסים ישירות מבעלים — חלקם מאומתים, חלקם עדיין ממתינים לאימות הבעלים
+              </p>
+            </div>
+            <label className="sort-select">
+              <span className="sort-select__label">מיון</span>
+              <select className="sort-select__input" value={filters.sort} onChange={(e) => setFilter({ sort: e.target.value })}>
+                <option value="recommended">מומלצים</option>
+                <option value="price_asc">מחיר: מהזול ליקר</option>
+                <option value="price_desc">מחיר: מהיקר לזול</option>
+                <option value="new">חדשים באתר</option>
+              </select>
+            </label>
+          </div>
 
           <div className="property-search-layout">
             <aside className="pfp--aside">
@@ -118,7 +142,19 @@ export function App() {
               {!isLoading && properties.length === 0 ? (
                 <PropertyEmptyState filters={filters} setFilter={setFilter} toggleAmenity={toggleAmenity} onClearAll={clearAll} hasActiveFilters={hasActiveFilters} />
               ) : (
-                <PropertyGrid properties={properties} isLoading={isLoading} hasActiveFilters={hasActiveFilters} />
+                <>
+                  <PropertyGrid properties={properties} isLoading={isLoading} hasActiveFilters={hasActiveFilters} />
+                  {canLoadMore && (
+                    <button
+                      type="button"
+                      className="load-more-btn"
+                      onClick={() => setResultsLimit((n) => n + RESULTS_PAGE_SIZE)}
+                      disabled={isLoadingMore}
+                    >
+                      {isLoadingMore ? 'טוען…' : 'טען עוד נכסים'}
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </div>
