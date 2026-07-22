@@ -16,6 +16,7 @@ import { DashListSkeleton } from '../components/DashListSkeleton.jsx';
 import { OwnerProfileProgress } from '../components/OwnerProfileProgress.jsx';
 import { getGreeting } from '../utils/greeting.js';
 import { regionLabel, propertyTypeLabel } from '../data/propertyOptions.js';
+import { optimizedImageUrl } from '../utils/imageUrl.js';
 
 function buildWhatsAppUrl(phone, customerName, propertyName) {
   const text = `שלום ${customerName}, בנוגע לבקשת ההזמנה שלך ל${propertyName} ב-Dealim`;
@@ -366,7 +367,7 @@ export function OwnerDashboardPage() {
               layout
             >
               {property.owner_images?.[0] && (
-                <img src={property.owner_images[0]} alt="" className="dash-deal-card__img" />
+                <img src={optimizedImageUrl(property.owner_images[0], { width: 320 })} alt="" className="dash-deal-card__img" loading="lazy" />
               )}
               <div className="dash-deal-card__body">
                 <div className="dash-deal-card__dest">{property.name}</div>

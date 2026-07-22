@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { propertyApi } from '../api/client.js';
 import { PropertyCard } from '../components/PropertyCard.jsx';
 import { FacebookIcon, InstagramIcon, TikTokIcon, YouTubeIcon } from '../components/SocialIcons.jsx';
+import { optimizedImageUrl } from '../utils/imageUrl.js';
 
 const SOCIAL_LINKS = [
   { key: 'website', Icon: Globe, label: 'אתר' },
@@ -68,7 +69,7 @@ export function OwnerPublicProfilePage() {
       <div className="agent-social-profile__header container agent-social-profile__header--clean">
         <div className="agent-social-profile__avatar-wrap">
           {owner.logo_url
-            ? <img src={owner.logo_url} alt={owner.business_name} className="agent-social-profile__avatar" />
+            ? <img src={optimizedImageUrl(owner.logo_url, { width: 160 })} alt={owner.business_name} className="agent-social-profile__avatar" />
             : <div className="agent-social-profile__avatar-placeholder">{owner.business_name[0]}</div>}
         </div>
 

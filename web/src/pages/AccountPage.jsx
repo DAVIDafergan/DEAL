@@ -9,6 +9,7 @@ import { useLanguage } from '../context/LanguageContext.jsx';
 import { useFavorites } from '../hooks/useFavorites.js';
 import { getGreeting } from '../utils/greeting.js';
 import { agentApi, userApi } from '../api/client.js';
+import { optimizedImageUrl } from '../utils/imageUrl.js';
 
 const cardIn = {
   hidden: { opacity: 0, y: 16 },
@@ -84,7 +85,7 @@ export function AccountPage() {
       >
         <div className="account-avatar">
           {isAgent && agent?.logo_url
-            ? <img src={agent.logo_url} alt={agent.business_name} className="account-avatar__img" />
+            ? <img src={optimizedImageUrl(agent.logo_url, { width: 120 })} alt={agent.business_name} className="account-avatar__img" />
             : <div className="account-avatar__placeholder">
                 <User size={32} />
               </div>

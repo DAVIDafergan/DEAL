@@ -2,6 +2,7 @@ import { Link } from '../LocalizedLink.jsx';
 import { Globe } from 'lucide-react';
 import { FacebookIcon, InstagramIcon, TikTokIcon, YouTubeIcon } from '../SocialIcons.jsx';
 import { useLanguage } from '../../context/LanguageContext.jsx';
+import { optimizedImageUrl } from '../../utils/imageUrl.js';
 
 const SOCIAL_LINKS = [
   { key: 'website', Icon: Globe, labelKey: 'socialWebsite' },
@@ -25,7 +26,7 @@ export function OwnerCard({ owner }) {
   return (
     <div className="owner-card">
       {owner.logo_url
-        ? <img src={owner.logo_url} alt={owner.business_name} className="owner-card__avatar" loading="lazy" />
+        ? <img src={optimizedImageUrl(owner.logo_url, { width: 96 })} alt={owner.business_name} className="owner-card__avatar" loading="lazy" />
         : <div className="owner-card__avatar-placeholder">{owner.business_name?.[0] || '?'}</div>}
 
       <div className="owner-card__body">

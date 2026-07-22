@@ -75,6 +75,20 @@ async function ensureColumn(connection, table, column, definition) {
   }
 }
 
+/** Idempotent ADD INDEX — same pattern as ensureColumn. `columns` is the raw column list
+ * (e.g. "city" or "deleted_at, status") as it should appear inside the INDEX(...) clause. */
+async function ensureIndex(connection, table, indexName, columns) {
+  const [rows] = await connection.query(
+    `SELECT COUNT(*) AS count FROM information_schema.statistics
+     WHERE table_schema = DATABASE() AND table_name = ? AND index_name = ?`,
+    [table, indexName]
+  );
+  if (rows[0].count === 0) {
+    await connection.query(`ALTER TABLE ${table} ADD INDEX ${indexName} (${columns})`);
+    console.log(`[deal-radar-pro] Migrated: added index ${table}.${indexName} (${columns})`);
+  }
+}
+
 /**
  * מעביר טבלה קיימת לשם `_legacy` בלי לאבד נתונים — משמש לסגירת עולם הטיסות (deals/packages/
  * vibe_feed_cards/price_history) בלי למחוק היסטוריה. בטוח להריץ פעמים רבות: אם `oldName` כבר
@@ -326,6 +340,19 @@ const MIGRATIONS = [
       await connection.query('ALTER TABLE booking_requests ADD INDEX idx_booking_requests_tracking_token (tracking_token)');
     }
   },
+  // 10.1 — performance pass. Confirmed via EXPLAIN on a filled local DB (not guessed): filtering
+  // properties by city did a full table scan (no index existed at all — idx_properties_region
+  // covered region but nothing covered city, and city is filtered directly by search, the SEO
+  // city landing pages, and the wizard's autocomplete-backed lookups). The properties.status
+  // ENUM is low-cardinality and always paired with `deleted_at IS NULL` in every visibility
+  // check (search/facets/getPropertyById/getPropertyByIdForOwner/sitemap) — a composite lets
+  // MySQL narrow on deleted_at before filtering status row-by-row instead of scanning per query.
+  // property_units(property_id, is_active) speeds up the UNITS_AGG_JOIN subquery used by
+  // multi-row queries (search/facet-counts/dashboard list) — same rows idx_property_units_property
+  // already covered, but is_active no longer needs a row-by-row filter after the index seek.
+  (connection) => ensureIndex(connection, 'properties', 'idx_properties_city', 'city'),
+  (connection) => ensureIndex(connection, 'properties', 'idx_properties_deleted_status', 'deleted_at, status'),
+  (connection) => ensureIndex(connection, 'property_units', 'idx_property_units_property_active', 'property_id, is_active'),
 ];
 
 const SCHEMA_STATEMENTS = [

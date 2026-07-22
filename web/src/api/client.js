@@ -174,6 +174,7 @@ export const propertyApi = {
   facetCounts: (filters = {}) => getJson(`/properties/facet-counts${buildQuery(filters)}`),
   cities: (region) => getJson(`/properties/cities${buildQuery({ region })}`),
   get: (id) => getJson(`/properties/${id}`),
+  getBatch: (ids) => getJson(`/properties/batch${buildQuery({ ids: ids.join(',') })}`),
   getMine: (token) => getJson('/properties/mine', token),
   getOneMine: (token, id) => getJson(`/properties/${id}/mine`, token),
   create: (token, data) => postJson('/properties', data, token),

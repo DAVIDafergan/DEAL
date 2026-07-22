@@ -537,11 +537,36 @@ export async function listCitiesForRegion(region) {
   return rows;
 }
 
+/** Computes the same price_from/total_guest_capacity/max_bedrooms/unit_count aggregate that
+ * UNITS_AGG_JOIN computes in SQL, but in JS from units already fetched — always over active
+ * units only, matching the join's `WHERE is_active = 1` regardless of what the caller passed
+ * for activeOnly. NULL (not 0) when there are no active units, matching a LEFT JOIN miss. */
+function computeUnitsAgg(units) {
+  const active = units.filter((u) => u.is_active);
+  if (active.length === 0) return { price_from: null, total_guest_capacity: null, max_bedrooms: null, unit_count: null };
+  const prices = active.map((u) => u.base_price_night).filter((p) => p != null);
+  return {
+    price_from: prices.length ? Math.min(...prices) : null,
+    total_guest_capacity: active.reduce((sum, u) => sum + (u.max_guests || 0), 0),
+    max_bedrooms: Math.max(...active.map((u) => u.bedrooms || 0)),
+    unit_count: active.length,
+  };
+}
+
 /** Attaches the property's units (public callers get only active ones — a deactivated unit is
- * exactly as invisible to a traveler as a hidden property). */
+ * exactly as invisible to a traveler as a hidden property) plus the price/capacity aggregate,
+ * computed in JS from those same rows rather than a second DB round trip through UNITS_AGG_JOIN.
+ * 10.1: a single-row lookup joining UNITS_AGG_JOIN made MySQL materialize the aggregate over
+ * *every* property's units first (confirmed via EXPLAIN — "DERIVED" scanning all rows, vs. the
+ * correct "LATERAL DERIVED" per-row plan MySQL picks for multi-row queries) — wasteful and it
+ * gets slower with the whole table, not just this property. listUnitsForProperty already fetches
+ * every field needed to compute the aggregate ourselves, so the join is now dropped entirely for
+ * single-property lookups (getPropertyById / getPropertyByIdForOwner) — see DECISIONS.md 10.1. */
 async function withUnits(property, { activeOnly }) {
   if (!property) return property;
-  property.units = await listUnitsForProperty(property.id, { activeOnly });
+  const allUnits = await listUnitsForProperty(property.id, { activeOnly: false });
+  Object.assign(property, computeUnitsAgg(allUnits));
+  property.units = activeOnly ? allUnits.filter((u) => u.is_active) : allUnits;
   return property;
 }
 
@@ -565,9 +590,8 @@ async function attachOwnerCard(property) {
 export async function getPropertyById(id) {
   const pool = getPool();
   const [rows] = await pool.query(
-    `SELECT properties.*, units_agg.price_from, units_agg.total_guest_capacity, units_agg.max_bedrooms, units_agg.unit_count
-     FROM properties ${UNITS_AGG_JOIN}
-     WHERE properties.id = ? AND status NOT IN ('hidden','draft') AND opted_out = 0 AND deleted_at IS NULL
+    `SELECT * FROM properties
+     WHERE id = ? AND status NOT IN ('hidden','draft') AND opted_out = 0 AND deleted_at IS NULL
        AND ${NOT_BLOCKLISTED_SQL} AND ${confidencePublishableSql()} LIMIT 1`,
     [id]
   );
@@ -576,13 +600,35 @@ export async function getPropertyById(id) {
   return attachOwnerCard(property);
 }
 
+/** Batch version of getPropertyById for a list of ids — one properties query (WHERE id IN (...))
+ * instead of N, used by the favorites/compare pages so the client makes a single request instead
+ * of N parallel ones. Units + owner are still fetched per-property (small, indexed lookups), but
+ * that no longer costs a separate HTTP round trip per id — see DECISIONS.md 10.1. */
+export async function getPropertiesByIds(ids) {
+  if (!ids.length) return [];
+  const pool = getPool();
+  const placeholders = ids.map(() => '?').join(',');
+  const [rows] = await pool.query(
+    `SELECT * FROM properties
+     WHERE id IN (${placeholders}) AND status NOT IN ('hidden','draft') AND opted_out = 0 AND deleted_at IS NULL
+       AND ${NOT_BLOCKLISTED_SQL} AND ${confidencePublishableSql()}`,
+    ids
+  );
+  const byId = new Map();
+  await Promise.all(rows.map(async (row) => {
+    const property = await withUnits(parseProperty(row), { activeOnly: true });
+    byId.set(property.id, await attachOwnerCard(property));
+  }));
+  // Preserve the caller's requested order (favorites/compare lists are order-sensitive).
+  return ids.map((id) => byId.get(Number(id))).filter(Boolean);
+}
+
 /** Owner-scoped lookup — bypasses the hidden/opted-out/deleted filter so an owner can see their
  * own listing (including from the recycle bin) regardless of status. */
 export async function getPropertyByIdForOwner(id, ownerId) {
   const pool = getPool();
   const [rows] = await pool.query(
-    `SELECT properties.*, units_agg.price_from, units_agg.total_guest_capacity, units_agg.max_bedrooms, units_agg.unit_count
-     FROM properties ${UNITS_AGG_JOIN} WHERE properties.id = ? AND owner_id = ? LIMIT 1`,
+    `SELECT * FROM properties WHERE id = ? AND owner_id = ? LIMIT 1`,
     [id, ownerId]
   );
   return rows[0] ? withUnits(parseProperty(rows[0]), { activeOnly: false }) : null;

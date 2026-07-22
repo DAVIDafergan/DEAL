@@ -6100,3 +6100,32 @@ html[dir="rtl"] .auth-form__input { text-align: right; direction: rtl; }
 .seo-lp__faq-item { padding: 14px 0; border-bottom: 1px solid var(--ds-ghost); }
 .seo-lp__faq-q { font-size: 0.95rem; font-weight: 700; color: var(--ds-bone); margin: 0 0 6px; }
 .seo-lp__faq-a { font-size: 0.86rem; color: var(--color-text-secondary); line-height: 1.6; margin: 0; }
+
+/* ── 10.1/10.3: site loading motif — a turning key, used by <RouteLoading> (Suspense fallback)
+   and reused wherever a themed loading state is needed instead of a generic spinner. ── */
+.route-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-3);
+  min-height: 40vh;
+  padding: var(--sp-10) var(--sp-4);
+  color: var(--ds-ash);
+}
+.route-loading__key {
+  color: var(--ds-hearth);
+  animation: route-loading-spin 1.1s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+.route-loading__text {
+  font-size: var(--ts-body);
+  font-weight: 600;
+}
+@keyframes route-loading-spin {
+  0%, 20% { transform: rotate(0deg); }
+  50%, 70% { transform: rotate(35deg); }
+  100% { transform: rotate(0deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .route-loading__key { animation: none; }
+}

@@ -746,8 +746,18 @@ export function createApp() {
       } catch { next(); }
     });
 
-    // Static assets (JS, CSS, images)
-    app.use(express.static(WEB_DIST_DIR));
+    // Static assets (JS, CSS, images). 10.1: Vite content-hashes everything under /assets/ (the
+    // filename itself changes on any content change), so those specific files are safe to cache
+    // for a year as immutable — a new deploy ships new filenames, never overwrites an old one.
+    // Everything else (index.html, favicon.ico, manifest.json — unhashed) keeps express.static's
+    // default (no long cache), since those filenames CAN legitimately change content on deploy.
+    app.use(express.static(WEB_DIST_DIR, {
+      setHeaders(res, filePath) {
+        if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        }
+      },
+    }));
 
     // ── 9.7 Programmatic SEO landing pages ─────────────────────────────────────
     // /אזור/:region, /עיר/:city, /קטגוריה/:category, and the two-dimension combos, all through

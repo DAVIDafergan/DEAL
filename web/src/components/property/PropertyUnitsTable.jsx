@@ -2,6 +2,7 @@ import { Users, BedDouble } from 'lucide-react';
 import { getCurrencySymbol } from '../../utils/currency.js';
 import { unitAmenityLabel } from '../../data/propertyOptions.js';
 import { useLanguage } from '../../context/LanguageContext.jsx';
+import { optimizedImageUrl } from '../../utils/imageUrl.js';
 
 /** PropertyUnitsTable — 9.4 "טבלת יחידות", the Booking-style heart of the property page: one
  * row per bookable unit with photo/name/capacity/rooms/unique amenities/price/book button.
@@ -27,7 +28,7 @@ export function PropertyUnitsTable({ units, currency, selectedUnitId, onSelectUn
           <div key={unit.id} className={`ut__row${isSelected ? ' ut__row--selected' : ''}`} role="row">
             <div className="ut__unit" role="cell">
               <div className="ut__unit-media">
-                {image ? <img src={image} alt="" loading="lazy" /> : <div className="ut__unit-media-placeholder" />}
+                {image ? <img src={optimizedImageUrl(image, { width: 160 })} alt="" loading="lazy" /> : <div className="ut__unit-media-placeholder" />}
               </div>
               <div>
                 <div className="ut__unit-name">{unit.name}</div>

@@ -1,35 +1,42 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AppShell } from './AppShell.jsx';
 import { PublicLayout } from './components/PublicLayout.jsx';
 import { LanguageProvider } from './context/LanguageContext.jsx';
 import { AgentAuthProvider } from './context/AgentAuthContext.jsx';
-import { RegisterPage } from './pages/RegisterPage.jsx';
-import { AdminPage } from './pages/AdminPage.jsx';
-import { OwnerRegisterPage } from './pages/OwnerRegisterPage.jsx';
-import { OwnerLoginPage } from './pages/OwnerLoginPage.jsx';
-import { OwnerDashboardPage } from './pages/OwnerDashboardPage.jsx';
-import { OwnerSettingsPage } from './pages/OwnerSettingsPage.jsx';
-import { OwnerBookingsPage } from './pages/OwnerBookingsPage.jsx';
-import { OwnerPublicProfilePage } from './pages/OwnerPublicProfilePage.jsx';
-import { PropertyPage } from './pages/PropertyPage.jsx';
-import { RemovePage } from './pages/RemovePage.jsx';
-import { FavoritesPage } from './pages/FavoritesPage.jsx';
-import { BookingStatusPage } from './pages/BookingStatusPage.jsx';
-import { MyBookingsPage } from './pages/MyBookingsPage.jsx';
-import { ComparePage } from './pages/ComparePage.jsx';
-import { SeoLandingPage } from './pages/SeoLandingPage.jsx';
-import { AccountPage } from './pages/AccountPage.jsx';
-import { TermsPage } from './pages/TermsPage.jsx';
-import { PrivacyPage } from './pages/PrivacyPage.jsx';
-import { TravelerRegisterPage } from './pages/TravelerRegisterPage.jsx';
-import { TravelerLoginPage } from './pages/TravelerLoginPage.jsx';
-import { AccessibilityPage } from './pages/AccessibilityPage.jsx';
-import { ContactPage } from './pages/ContactPage.jsx';
 import { TravelerAuthProvider } from './context/TravelerAuthContext.jsx';
 import { AccessibilityWidget } from './components/AccessibilityWidget.jsx';
+import { RouteLoading } from './components/RouteLoading.jsx';
 import './index.css';
+
+// 10.1: every page below AppShell (home) is route-split into its own chunk instead of one
+// 595KB bundle — a visitor only pays for the home page's code on first load; the dashboard,
+// admin panel, legal pages, etc. only download when actually visited. AppShell itself (home)
+// stays a static import — it's the single most common landing page, so lazy-loading it would
+// only add a loading flash with no real benefit. See DECISIONS.md 10.1.
+const RegisterPage = lazy(() => import('./pages/RegisterPage.jsx').then((m) => ({ default: m.RegisterPage })));
+const AdminPage = lazy(() => import('./pages/AdminPage.jsx').then((m) => ({ default: m.AdminPage })));
+const OwnerRegisterPage = lazy(() => import('./pages/OwnerRegisterPage.jsx').then((m) => ({ default: m.OwnerRegisterPage })));
+const OwnerLoginPage = lazy(() => import('./pages/OwnerLoginPage.jsx').then((m) => ({ default: m.OwnerLoginPage })));
+const OwnerDashboardPage = lazy(() => import('./pages/OwnerDashboardPage.jsx').then((m) => ({ default: m.OwnerDashboardPage })));
+const OwnerSettingsPage = lazy(() => import('./pages/OwnerSettingsPage.jsx').then((m) => ({ default: m.OwnerSettingsPage })));
+const OwnerBookingsPage = lazy(() => import('./pages/OwnerBookingsPage.jsx').then((m) => ({ default: m.OwnerBookingsPage })));
+const OwnerPublicProfilePage = lazy(() => import('./pages/OwnerPublicProfilePage.jsx').then((m) => ({ default: m.OwnerPublicProfilePage })));
+const PropertyPage = lazy(() => import('./pages/PropertyPage.jsx').then((m) => ({ default: m.PropertyPage })));
+const RemovePage = lazy(() => import('./pages/RemovePage.jsx').then((m) => ({ default: m.RemovePage })));
+const FavoritesPage = lazy(() => import('./pages/FavoritesPage.jsx').then((m) => ({ default: m.FavoritesPage })));
+const BookingStatusPage = lazy(() => import('./pages/BookingStatusPage.jsx').then((m) => ({ default: m.BookingStatusPage })));
+const MyBookingsPage = lazy(() => import('./pages/MyBookingsPage.jsx').then((m) => ({ default: m.MyBookingsPage })));
+const ComparePage = lazy(() => import('./pages/ComparePage.jsx').then((m) => ({ default: m.ComparePage })));
+const SeoLandingPage = lazy(() => import('./pages/SeoLandingPage.jsx').then((m) => ({ default: m.SeoLandingPage })));
+const AccountPage = lazy(() => import('./pages/AccountPage.jsx').then((m) => ({ default: m.AccountPage })));
+const TermsPage = lazy(() => import('./pages/TermsPage.jsx').then((m) => ({ default: m.TermsPage })));
+const PrivacyPage = lazy(() => import('./pages/PrivacyPage.jsx').then((m) => ({ default: m.PrivacyPage })));
+const TravelerRegisterPage = lazy(() => import('./pages/TravelerRegisterPage.jsx').then((m) => ({ default: m.TravelerRegisterPage })));
+const TravelerLoginPage = lazy(() => import('./pages/TravelerLoginPage.jsx').then((m) => ({ default: m.TravelerLoginPage })));
+const AccessibilityPage = lazy(() => import('./pages/AccessibilityPage.jsx').then((m) => ({ default: m.AccessibilityPage })));
+const ContactPage = lazy(() => import('./pages/ContactPage.jsx').then((m) => ({ default: m.ContactPage })));
 
 // 9.8: the whole route tree, mounted twice below (once at "/", once at "/en") — paths here are
 // relative (no leading "/") so they resolve against whichever base matched. LanguageProvider
@@ -38,6 +45,7 @@ import './index.css';
 // to LocalizedLink, see components/LocalizedLink.jsx) with ordinary absolute-looking paths.
 function RouteTree() {
   return (
+    <Suspense fallback={<RouteLoading />}>
     <Routes>
       {/* Routes with shared public header */}
       <Route element={<PublicLayout />}>
@@ -75,6 +83,7 @@ function RouteTree() {
       {/* App shell — home, header lives inside AppShell */}
       <Route path="*" element={<AppShell />} />
     </Routes>
+    </Suspense>
   );
 }
 

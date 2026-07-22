@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { propertyApi } from '../api/client.js';
 
-/** usePropertyDetails — fetches current, live data for a list of property ids in parallel.
+/** usePropertyDetails — fetches current, live data for a list of property ids in one request.
  * Used by FavoritesPage/ComparePage instead of trusting a stale localStorage snapshot — a
- * saved favorite's price/photos/status may have changed, or it may have been unpublished
- * (fetch failures for individual ids are silently dropped, not surfaced as a page-level error). */
+ * saved favorite's price/photos/status may have changed, or it may have been unpublished.
+ * 10.1: was N parallel GET /:id calls (one HTTP round trip per favorite); now a single
+ * GET /properties/batch — same "one request instead of a waterfall" fix as the property page. */
 export function usePropertyDetails(ids) {
   const [properties, setProperties] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -14,8 +15,9 @@ export function usePropertyDetails(ids) {
     if (ids.length === 0) { setProperties([]); setIsLoading(false); return; }
     let cancelled = false;
     setIsLoading(true);
-    Promise.all(ids.map((id) => propertyApi.get(id).then((r) => r.property).catch(() => null)))
-      .then((results) => { if (!cancelled) setProperties(results.filter(Boolean)); })
+    propertyApi.getBatch(ids)
+      .then((r) => { if (!cancelled) setProperties(r.properties); })
+      .catch(() => { if (!cancelled) setProperties([]); })
       .finally(() => { if (!cancelled) setIsLoading(false); });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps

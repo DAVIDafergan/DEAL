@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import {
-  searchProperties, getPropertyById, getPropertyByIdForOwner, getPropertyByIdRaw, listPropertiesByOwner,
+  searchProperties, getPropertyById, getPropertiesByIds, getPropertyByIdForOwner, getPropertyByIdRaw, listPropertiesByOwner,
   createProperty, updateProperty,
   getAvailability, setAvailability,
   createBookingRequest, getBookingRequestById, getBookingRequestByTrackingToken, listBookingRequestsForOwner,
@@ -17,6 +17,10 @@ import { sendVerificationCode, notifyOwnerOfBookingRequest } from '../services/c
 import { notifyCustomerBookingReceived, notifyOwnerNewBooking, notifyCustomerStatusChanged, estimateBookingPrice } from '../services/bookingNotifications.js';
 import { authRateLimiter } from '../middleware/rateLimiter.js';
 import { geocodePropertyInBackground } from '../services/geocode.js';
+import { ttlCached } from '../utils/ttlCache.js';
+
+const cachedSearch = ttlCached('search', 30_000);
+const cachedFacetCounts = ttlCached('facet-counts', 30_000);
 
 function publicOwner(a) {
   const { password_hash, email, phone, stripe_customer_id, stripe_subscription_id, rejection_reason, account_type, ...rest } = a;
@@ -35,7 +39,7 @@ const KOSHER_LEVELS = ['kosher', 'shomer_shabbat', 'kosher_kitchen', 'not_applic
 router.get('/', async (req, res) => {
   try {
     const { region, city, property_type, min_guests, bedrooms, min_price, max_price, kosher_level, amenities, check_in, check_out, limit, sort } = req.query;
-    const properties = await searchProperties({
+    const filters = {
       region: REGIONS.includes(region) ? region : undefined,
       city: city || undefined,
       propertyType: PROPERTY_TYPES.includes(property_type) ? property_type : undefined,
@@ -49,7 +53,10 @@ router.get('/', async (req, res) => {
       checkOut: check_in && check_out ? check_out : undefined,
       sort: ['price_asc', 'price_desc', 'new'].includes(sort) ? sort : undefined,
       limit,
-    });
+    };
+    // 10.1: 30s TTL cache — identical query string (the overwhelmingly common case: the
+    // homepage's default no-filter search) is served from memory instead of hitting MySQL again.
+    const properties = await cachedSearch(JSON.stringify(filters), () => searchProperties(filters));
     res.json({ properties });
   } catch (err) {
     console.error('[properties] search error:', err.message);
@@ -75,7 +82,7 @@ router.get('/cities', async (req, res) => {
 router.get('/facet-counts', async (req, res) => {
   try {
     const { region, city, property_type, min_guests, bedrooms, min_price, max_price, kosher_level, amenities, check_in, check_out } = req.query;
-    const counts = await getFacetCounts({
+    const filters = {
       region: REGIONS.includes(region) ? region : undefined,
       city: city || undefined,
       propertyType: PROPERTY_TYPES.includes(property_type) ? property_type : undefined,
@@ -87,10 +94,28 @@ router.get('/facet-counts', async (req, res) => {
       amenities: amenities ? String(amenities).split(',') : [],
       checkIn: check_in && check_out ? check_in : undefined,
       checkOut: check_in && check_out ? check_out : undefined,
-    });
+    };
+    const counts = await cachedFacetCounts(JSON.stringify(filters), () => getFacetCounts(filters));
     res.json(counts);
   } catch (err) {
     console.error('[properties] facet-counts error:', err.message);
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
+/** GET /api/properties/batch?ids=1,2,3 — 10.1: one request for many properties (favorites,
+ * compare) instead of N parallel GET /:id calls. Registered before /:id so "batch" isn't
+ * captured as an id. Caps at 40 ids — same shape as a search page, no real caller needs more. */
+router.get('/batch', async (req, res) => {
+  try {
+    const ids = String(req.query.ids || '')
+      .split(',')
+      .map((s) => Number(s.trim()))
+      .filter((n) => Number.isInteger(n) && n > 0)
+      .slice(0, 40);
+    const properties = await getPropertiesByIds(ids);
+    res.json({ properties });
+  } catch (err) {
     res.status(500).json({ error: 'Internal error' });
   }
 });

@@ -5,6 +5,7 @@ import { usePropertyDetails } from '../hooks/usePropertyDetails.js';
 import { regionLabel, propertyTypeLabel, AMENITIES, amenityLabel } from '../data/propertyOptions.js';
 import { getCurrencySymbol } from '../utils/currency.js';
 import { useLanguage } from '../context/LanguageContext.jsx';
+import { optimizedImageUrl } from '../utils/imageUrl.js';
 
 /** ComparePage — 9.6 "השוואה בין נכסים שמורים": a simple side-by-side table (region/city,
  * capacity, price, amenities) for up to 4 properties, driven entirely by ?ids= in the URL so
@@ -33,7 +34,7 @@ export function ComparePage() {
               <div className="cmp__label" />
               {properties.map((p) => (
                 <div key={p.id} className="cmp__col-head">
-                  {p.owner_images?.[0] && <img src={p.owner_images[0]} alt="" className="cmp__img" />}
+                  {p.owner_images?.[0] && <img src={optimizedImageUrl(p.owner_images[0], { width: 240 })} alt="" className="cmp__img" loading="lazy" />}
                   <Link to={`/property/${p.id}`} className="cmp__name">{p.name}</Link>
                   <span className="cmp__location">{regionLabel(p.region, lang)}{p.city ? ` · ${p.city}` : ''}</span>
                 </div>
