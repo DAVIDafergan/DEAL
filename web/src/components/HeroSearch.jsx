@@ -1,7 +1,8 @@
 import { useMemo, useRef, useState } from 'react';
-import { Search, MapPin, CalendarDays, Users, Sparkles, Waves, UtensilsCrossed, Baby } from 'lucide-react';
+import { Search, MapPin, Users, Sparkles, Waves, UtensilsCrossed, Baby } from 'lucide-react';
 import { REGIONS, regionLabel } from '../data/propertyOptions.js';
 import { ALL_TOWNS, regionForTown } from '../data/israeliTowns.js';
+import { HeroDateRangeField } from './HeroDateRangeField.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
 
 const POPULAR_REGIONS = ['north', 'galilee', 'golan', 'jerusalem'];
@@ -57,7 +58,7 @@ function WhereField({ filters, setFilter, lang, t }) {
 
   return (
     <div className="hero-search__field hero-search__field--where">
-      <label className="hero-search__label" htmlFor="hs-where"><MapPin size={12} /> {t.heroSearchWhere}</label>
+      <label className="hero-search__label" htmlFor="hs-where"><span className="icon-draw icon-draw--once"><MapPin size={12} /></span> {t.heroSearchWhere}</label>
       <input
         id="hs-where"
         type="text"
@@ -117,32 +118,10 @@ export function HeroSearch({ filters, setFilter, onSearch }) {
       >
         <WhereField filters={filters} setFilter={setFilter} lang={lang} t={t} />
         <div className="hero-search__divider" aria-hidden="true" />
-        <div className="hero-search__field hero-search__field--dates">
-          <label className="hero-search__label" htmlFor="hs-checkin"><CalendarDays size={12} /> {t.heroSearchWhen}</label>
-          <div className="hero-search__date-pair">
-            <input
-              id="hs-checkin"
-              type="date"
-              aria-label={t.heroSearchCheckIn}
-              className="hero-search__input hero-search__input--date"
-              value={filters.checkIn}
-              min={new Date().toISOString().slice(0, 10)}
-              onChange={(e) => setFilter({ checkIn: e.target.value })}
-            />
-            <span className="hero-search__date-sep" aria-hidden="true">–</span>
-            <input
-              type="date"
-              aria-label={t.heroSearchCheckOut}
-              className="hero-search__input hero-search__input--date"
-              value={filters.checkOut}
-              min={filters.checkIn || new Date().toISOString().slice(0, 10)}
-              onChange={(e) => setFilter({ checkOut: e.target.value })}
-            />
-          </div>
-        </div>
+        <HeroDateRangeField checkIn={filters.checkIn} checkOut={filters.checkOut} onChange={setFilter} />
         <div className="hero-search__divider" aria-hidden="true" />
         <div className="hero-search__field">
-          <label className="hero-search__label" htmlFor="hs-guests"><Users size={12} /> {t.heroSearchGuests}</label>
+          <label className="hero-search__label" htmlFor="hs-guests"><span className="icon-draw icon-draw--once"><Users size={12} /></span> {t.heroSearchGuests}</label>
           <input
             id="hs-guests"
             type="number"
@@ -154,7 +133,7 @@ export function HeroSearch({ filters, setFilter, onSearch }) {
           />
         </div>
         <button type="submit" className="hero-search__submit">
-          <Search size={18} />
+          <span className="icon-draw icon-draw--once"><Search size={18} /></span>
           <span>{t.heroSearchSubmit}</span>
         </button>
       </form>
@@ -169,7 +148,7 @@ export function HeroSearch({ filters, setFilter, onSearch }) {
         <span className="hero-search__quick-divider" aria-hidden="true" />
         {POPULAR_CATEGORIES.map(({ key, labelKey, icon: Icon, apply }) => (
           <button key={key} type="button" className="hero-search__quick-chip" onClick={() => { apply(setFilter); onSearch(); }}>
-            <Icon size={13} strokeWidth={1.8} /> {t[labelKey]}
+            <span className="icon-draw icon-draw--once"><Icon size={13} strokeWidth={1.8} /></span> {t[labelKey]}
           </button>
         ))}
       </div>

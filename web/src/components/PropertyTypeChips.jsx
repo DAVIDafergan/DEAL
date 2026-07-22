@@ -24,11 +24,15 @@ export function PropertyTypeChips({ filters, setFilter, onSearch }) {
       {PROPERTY_TYPES.map(({ value }) => {
         const Icon = TYPE_ICONS[value] || Home;
         const isActive = filters.propertyType === value;
+        const count = counts[value] ?? 0;
+        // 11.3: a "0" next to a type reads as broken/empty rather than "nothing here yet" —
+        // only show the count once it's actually meaningful, and dim the whole chip so an
+        // empty type doesn't visually compete with ones that have real results.
         return (
           <button
             key={value}
             type="button"
-            className={`property-type-chip${isActive ? ' is-active' : ''}`}
+            className={`property-type-chip${isActive ? ' is-active' : ''}${count === 0 ? ' is-empty' : ''}`}
             onClick={() => {
               setFilter({ propertyType: isActive ? '' : value });
               onSearch?.();
@@ -36,7 +40,7 @@ export function PropertyTypeChips({ filters, setFilter, onSearch }) {
           >
             <Icon size={15} strokeWidth={1.8} />
             <span>{propertyTypeLabel(value, lang)}</span>
-            <span className="property-type-chip__count">{counts[value] ?? 0}</span>
+            {count > 0 && <span className="property-type-chip__count">{count}</span>}
           </button>
         );
       })}

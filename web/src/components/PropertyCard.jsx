@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { Link } from './LocalizedLink.jsx';
-import { MessageCircle, CheckCircle, Users, BedDouble, Waves, Heart, Star } from 'lucide-react';
+import { MessageCircle, CheckCircle, Users, BedDouble, Waves, Heart, Star, Home } from 'lucide-react';
 import { getCurrencySymbol } from '../utils/currency.js';
 import { regionLabel, amenityLabel } from '../data/propertyOptions.js';
 import { useFavorites } from '../hooks/useFavorites.js';
@@ -67,7 +67,12 @@ export function PropertyCard({ property }) {
       <div className="adc__media">
         {images.length > 0
           ? <img src={optimizedImageUrl(images[hoverIndex], { width: 480 })} alt={property.name} className="adc__img" loading="lazy" width="480" height="320" />
-          : <div className="adc__img-placeholder" />}
+          : (
+            <div className="adc__img-placeholder">
+              <Home size={28} strokeWidth={1.3} />
+              <span>{t.noPhotoYet}</span>
+            </div>
+          )}
 
         {images.length > 1 && (
           <div className="adc__media-dots">
@@ -150,7 +155,7 @@ export function PropertyCard({ property }) {
                 <span className="adc__currency">{getCurrencySymbol(property.currency)}</span>
               </span>
             ) : (
-              <span className="adc__price">{t.priceOnRequest}</span>
+              <span className="adc__price adc__price--inquire">{t.priceOnRequest}</span>
             )}
             {price && <span className="adc__pax">{t.perNightLabel}</span>}
             {property.description && (

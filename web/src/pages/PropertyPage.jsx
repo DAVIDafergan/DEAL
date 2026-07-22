@@ -245,7 +245,6 @@ export function PropertyPage() {
                     <CheckCircle size={13} /> {t.verifiedByOwner}
                   </span>
                 )}
-                <FreshnessBadge updatedAt={property.availability_updated_at} />
               </div>
             </div>
             <div className="pp__header-actions">
@@ -324,85 +323,20 @@ export function PropertyPage() {
               <FinalPriceCalculator unit={selectedUnit} cleaningFee={property.cleaning_fee} currency={property.currency} />
             </section>
           )}
-
-          {isClaimed && <OwnerCard owner={property.owner} />}
-
-          <PropertyReviews propertyId={property.id} ownerId={property.owner_id} />
-
-          {property.nearby_attractions && (
-            <section className="pp__section">
-              <h2 className="pp__section-title"><MapPinned size={17} /> {t.ppNearbyTitle}</h2>
-              <ul className="pp__policies-list">
-                {property.nearby_attractions.split('\n').map((line) => line.trim()).filter(Boolean).map((line, i) => (
-                  <li key={i}>{line}</li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          <section className="pp__section pp__policies">
-            <h2 className="pp__section-title"><Info size={17} /> {t.ppPoliciesTitle}</h2>
-            <ul className="pp__policies-list">
-              <li>{t.ppPolicyCheckInOut}</li>
-              <li>{t.ppPolicyMinNights(selectedUnit?.min_nights || property.min_nights || 1)}</li>
-              <li>{t.ppPolicyCancellation}</li>
-            </ul>
-            {reportInfoSubmitted ? (
-              <p className="agent-form__hint">{t.reportInfoSubmitted}</p>
-            ) : (
-              <button type="button" className="pp-review-card__action-btn" style={{ marginTop: 10 }} onClick={handleReportInfo}>
-                <Flag size={12} /> {t.reportInfoButton}
-              </button>
-            )}
-          </section>
-
-          {!isClaimed && (
-            <section className="pp__section">
-              <p className="deal-modal__desc" style={{ fontSize: '0.8rem', opacity: 0.75 }}>
-                {t.unclaimedDisclaimer}
-                {property.source_url && (
-                  <> {t.unclaimedOfficialPage} <a href={property.source_url} target="_blank" rel="noopener noreferrer">{property.source_url}</a></>
-                )}
-              </p>
-              <div className="deal-modal__actions">
-                {property.source_url && (
-                  <a className="deal-modal__btn deal-modal__btn--hotel" href={property.source_url} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink size={16} /> {t.officialSiteLink}
-                  </a>
-                )}
-              </div>
-              {isPendingClaim ? (
-                <p className="deal-modal__desc">
-                  <Clock size={15} style={{ verticalAlign: 'middle', marginInlineEnd: 4 }} />
-                  {t.claimPendingNotice}
-                </p>
-              ) : null}
-              <p className="agent-form__hint" style={{ marginTop: 4 }}>
-                {t.notRelevantQuestion} <Link to="/remove">{t.removeRequestLink}</Link>
-              </p>
-              {!isPendingClaim && (
-                <ClaimFlow propertyId={property.id} />
-              )}
-            </section>
-          )}
-
-          {similar.length > 0 && (
-            <section className="pp__section pp__similar">
-              <h2 className="pp__section-title">{similarIsCheaper ? t.ppSimilarCheaperTitle : t.ppSimilarTitle}</h2>
-              <PropertyGrid properties={similar} isLoading={false} />
-            </section>
-          )}
         </div>
 
-        <div className="pp__contact">
-          <h2 className="pp__contact-title">{t.contactCardTitle}</h2>
-          {priceFrom && (
-            <div className="pp__contact-price">
-              <strong>{Math.round(priceFrom)} {getCurrencySymbol(property.currency)}</strong>
-              <span>{isMultiUnit ? t.priceFromLabel : t.perNightLabel}</span>
-            </div>
-          )}
-          {hasContact ? (
+        {/* 11.3: a contact card with no real contact method is worse than no card — it used to
+            render a "details coming soon" placeholder that just left a sparse box floating next
+            to the main column. Now it simply doesn't render at all in that case. */}
+        {hasContact && (
+          <div className="pp__contact">
+            <h2 className="pp__contact-title">{t.contactCardTitle}</h2>
+            {priceFrom && (
+              <div className="pp__contact-price">
+                <strong>{Math.round(priceFrom)} {getCurrencySymbol(property.currency)}</strong>
+                <span>{isMultiUnit ? t.priceFromLabel : t.perNightLabel}</span>
+              </div>
+            )}
             <div className="pp__contact-actions">
               {waUrl && (
                 <a className="deal-modal__btn deal-modal__btn--wa" href={waUrl} target="_blank" rel="noopener noreferrer" onClick={() => trackPropertyEvent(id, 'whatsapp_click')}>
@@ -415,10 +349,85 @@ export function PropertyPage() {
                 </a>
               )}
             </div>
+            <FreshnessBadge updatedAt={property.availability_updated_at} className="pp__contact-freshness" />
+          </div>
+        )}
+      </div>
+
+      {/* 11.3: everything below here (owner, reviews, nearby, policies, similar) used to live
+          inside .pp__main, confined to the 752px column next to the sticky contact card — once
+          the short contact card stopped scrolling, that whole column-width's worth of space
+          next to these sections just sat empty for the rest of the page. Breaking them out to
+          their own full-width, single-column container (below the two-column zone entirely)
+          removes that dead space instead of trying to fill it. */}
+      <div className="container pp__below">
+        {isClaimed && <OwnerCard owner={property.owner} />}
+
+        <PropertyReviews propertyId={property.id} ownerId={property.owner_id} />
+
+        {property.nearby_attractions && (
+          <section className="pp__section">
+            <h2 className="pp__section-title"><MapPinned size={17} /> {t.ppNearbyTitle}</h2>
+            <ul className="pp__policies-list">
+              {property.nearby_attractions.split('\n').map((line) => line.trim()).filter(Boolean).map((line, i) => (
+                <li key={i}>{line}</li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        <section className="pp__section pp__policies">
+          <h2 className="pp__section-title"><Info size={17} /> {t.ppPoliciesTitle}</h2>
+          <ul className="pp__policies-list">
+            <li>{t.ppPolicyCheckInOut}</li>
+            <li>{t.ppPolicyMinNights(selectedUnit?.min_nights || property.min_nights || 1)}</li>
+            <li>{t.ppPolicyCancellation}</li>
+          </ul>
+          {reportInfoSubmitted ? (
+            <p className="agent-form__hint">{t.reportInfoSubmitted}</p>
           ) : (
-            <p className="agent-form__hint">{t.contactNoInfoAvailable}</p>
+            <button type="button" className="pp-review-card__action-btn" style={{ marginTop: 10 }} onClick={handleReportInfo}>
+              <Flag size={12} /> {t.reportInfoButton}
+            </button>
           )}
-        </div>
+        </section>
+
+        {!isClaimed && (
+          <section className="pp__section">
+            <p className="deal-modal__desc" style={{ fontSize: '0.8rem', opacity: 0.75 }}>
+              {t.unclaimedDisclaimer}
+              {property.source_url && (
+                <> {t.unclaimedOfficialPage} <a href={property.source_url} target="_blank" rel="noopener noreferrer">{property.source_url}</a></>
+              )}
+            </p>
+            <div className="deal-modal__actions">
+              {property.source_url && (
+                <a className="deal-modal__btn deal-modal__btn--hotel" href={property.source_url} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink size={16} /> {t.officialSiteLink}
+                </a>
+              )}
+            </div>
+            {isPendingClaim ? (
+              <p className="deal-modal__desc">
+                <Clock size={15} style={{ verticalAlign: 'middle', marginInlineEnd: 4 }} />
+                {t.claimPendingNotice}
+              </p>
+            ) : null}
+            <p className="agent-form__hint" style={{ marginTop: 4 }}>
+              {t.notRelevantQuestion} <Link to="/remove">{t.removeRequestLink}</Link>
+            </p>
+            {!isPendingClaim && (
+              <ClaimFlow propertyId={property.id} />
+            )}
+          </section>
+        )}
+
+        {similar.length > 0 && (
+          <section className="pp__section pp__similar">
+            <h2 className="pp__section-title">{similarIsCheaper ? t.ppSimilarCheaperTitle : t.ppSimilarTitle}</h2>
+            <PropertyGrid properties={similar} isLoading={false} />
+          </section>
+        )}
       </div>
 
       {/* 10.4: mobile fixed bottom bar — price + the same two contact buttons directly, not a

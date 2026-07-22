@@ -55,6 +55,12 @@ export function PublicAvailabilityCalendar({ propertyId, unitId }) {
   const todayStr = toDateStr(today);
   const PrevIcon = dir === 'rtl' ? ChevronRight : ChevronLeft;
   const NextIcon = dir === 'rtl' ? ChevronLeft : ChevronRight;
+  // 11.3: "available/booked" used to only show up buried in the legend at the bottom of the
+  // calendar with no immediate answer to "is it free right now" — this is that answer, in the
+  // calendar's own header where it has context.
+  const isTodayAvailable = year === today.getFullYear() && month === today.getMonth()
+    ? (Object.hasOwn(availability, todayStr) ? availability[todayStr] : true)
+    : null;
 
   return (
     <div className="pub-cal">
@@ -63,6 +69,11 @@ export function PublicAvailabilityCalendar({ propertyId, unitId }) {
         <strong>{monthLabel}</strong>
         <button type="button" className="pub-cal__nav-btn" onClick={() => changeMonth(1)} aria-label={t.calNextMonth}><NextIcon size={16} /></button>
       </div>
+      {!loading && isTodayAvailable !== null && (
+        <span className={`pub-cal__today-status${isTodayAvailable ? ' is-available' : ' is-blocked'}`}>
+          {isTodayAvailable ? t.calAvailable : t.calBlocked} — {t.calToday}
+        </span>
+      )}
 
       {loading ? (
         <p className="pub-cal__loading">{t.calLoadingAvailability}</p>

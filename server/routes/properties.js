@@ -34,7 +34,11 @@ function publicOwner(a) {
 const router = Router();
 
 const REGIONS = ['north', 'galilee', 'golan', 'carmel', 'center', 'jerusalem', 'south', 'dead_sea', 'eilat'];
-const PROPERTY_TYPES = ['zimmer', 'villa', 'cottage', 'suite'];
+// 11.3: this whitelist is what silently drops an unrecognized property_type filter to
+// undefined below — 'complex' was added to the DB enum and the frontend catalog (11.2) but
+// missed here, so filtering by "cabin complex" quietly did nothing (returned every property,
+// not zero) instead of erroring. Found via manual verification, not reported — see DECISIONS.md.
+const PROPERTY_TYPES = ['zimmer', 'villa', 'cottage', 'suite', 'complex'];
 const KOSHER_LEVELS = ['kosher', 'shomer_shabbat', 'kosher_kitchen', 'not_applicable'];
 const VIEW_TYPES = ['sea', 'lake', 'mountains', 'desert', 'green', 'open'];
 

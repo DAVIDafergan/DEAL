@@ -91,8 +91,12 @@
 
 /* ── 7.7 — owner card on the public property page ────────────────────────── */
 
+/* 11.3: was a block-level flex container that always stretched to the full 752px main column
+   even when its content (avatar + one line of name + a short description) was a fraction of
+   that — reads as a big empty card. inline-flex sizes it to its content instead, capped so it
+   still wraps sensibly on narrow screens. */
 .owner-card {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 12px;
   padding: 14px;
@@ -100,7 +104,10 @@
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border-subtle);
   background: var(--color-surface);
+  max-width: min(480px, 100%);
+  width: fit-content;
 }
+@media (max-width: 480px) { .owner-card { width: 100%; } }
 .owner-card__avatar {
   width: 52px; height: 52px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
 }
@@ -177,6 +184,7 @@
 .pp__contact-price strong { font-size: var(--ts-price); color: var(--ds-gold); font-variant-numeric: tabular-nums; }
 .pp__contact-price span { font-size: 0.8rem; color: var(--ds-ash); margin-inline-start: 4px; }
 .pp__contact-actions { display: flex; flex-direction: column; gap: 10px; }
+.pp__contact-freshness.freshness-badge { align-self: flex-start; }
 
 /* ── Gallery ── */
 .pg {
@@ -343,7 +351,9 @@
 .amenities-bar__item svg { color: var(--ds-hearth); flex-shrink: 0; }
 
 /* ── Generic section ── */
-.pp__section { margin-top: 26px; }
+/* 11.3: token-based, and tighter than the old flat 26px — with 8+ sections stacking down the
+   main column, that added up to a lot of dead vertical space between chunks of content. */
+.pp__section { margin-top: var(--sp-5, 20px); }
 .pp__section-title {
   display: flex;
   align-items: center;
@@ -435,11 +445,27 @@
 }
 
 /* ── Public read-only availability calendar ── */
-.pub-cal { max-width: 420px; }
+/* 11.3: was unstyled bare content (no background/border) — the available/blocked legend at the
+   bottom looked like a stray element with no visual owner. Wrapping the whole thing in a card
+   ties the legend and the "today" status chip directly to the calendar that explains them. */
+.pub-cal {
+  max-width: 420px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 18px;
+}
 .pub-cal__head {
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 10px;
 }
+.pub-cal__today-status {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 0.72rem; font-weight: 700;
+  padding: 3px 10px; border-radius: var(--radius-pill);
+}
+.pub-cal__today-status.is-available { background: rgba(91,107,78,0.12); color: var(--ds-olive); }
+.pub-cal__today-status.is-blocked { background: rgba(140,47,57,0.1); color: var(--ds-wine); }
 .pub-cal__nav-btn {
   width: 32px; height: 32px; border-radius: 50%;
   border: 1px solid var(--ds-ghost); background: var(--ds-ink); color: var(--ds-ash);
@@ -464,6 +490,16 @@
 .pub-cal__dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
 .pub-cal__dot.is-available { background: rgba(91,107,78,0.15); border: 1px solid var(--ds-olive); }
 .pub-cal__dot.is-blocked { background: rgba(140,47,57,0.1); border: 1px solid var(--ds-wine); }
+
+/* ── 11.3: below-the-fold full-width zone (owner/reviews/nearby/policies/similar) ──
+   Text-heavy sections stay at a comfortable reading width even though their container is now
+   the full 1180px page width; the similar-properties grid is the one section that should
+   actually use the extra room (more cards per row instead of a fixed 752px cap). */
+.pp__below > .pp__section:not(.pp__similar),
+.pp__below > .owner-card,
+.pp__below > .pp-reviews {
+  max-width: 760px;
+}
 
 /* ── Similar properties ── */
 .pp__similar .deals-grid { grid-template-columns: repeat(2, 1fr); }
