@@ -32,6 +32,7 @@ export const PROPERTY_TYPES = [
   { value: 'villa', label: 'וילה', labelEn: 'Villa' },
   { value: 'cottage', label: 'בקתה', labelEn: 'Cottage' },
   { value: 'suite', label: 'סוויטה', labelEn: 'Suite' },
+  { value: 'complex', label: 'מתחם צימרים', labelEn: 'Cabin complex' },
 ];
 
 export const KOSHER_LEVELS = [

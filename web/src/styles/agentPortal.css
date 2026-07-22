@@ -1794,6 +1794,40 @@ select.wizard-input { cursor: pointer; }
   margin: 0;
 }
 
+/* ── 11.2: consolidated dashboard tabs (overview/stats/settings) ────────────
+   Scrollable row, never wraps — on a narrow phone the tab bar scrolls horizontally instead of
+   breaking to a second line, so every tab stays a single thumb-reachable tap away. */
+.dash-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 14px 20px 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-bottom: 1px solid #E5E9F0;
+}
+.dash-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 9px 16px;
+  border: none;
+  background: none;
+  border-bottom: 2px solid transparent;
+  color: #64748B;
+  font-size: 0.86rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  min-height: 40px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.dash-tab-btn.is-active { color: var(--ds-hearth, #C1592B); border-bottom-color: var(--ds-hearth, #C1592B); }
+.dash-tab-btn:hover:not(.is-active) { color: #1E293B; }
+
+.dash-stats-property-picker { margin: 20px 0 4px; max-width: 360px; }
+.dash-stats-property-picker .settings-field__label { display: block; margin-bottom: 6px; }
+
 /* ── Rejected banner ──────────────────────────────────────────────────────── */
 .dash-page .dash-banner--rejected {
   background: rgba(239,68,68,0.06);
@@ -2006,7 +2040,10 @@ a.opp__item:hover { background: rgba(193,89,43,0.1); color: var(--ds-hearth); }
   color: var(--ds-ash);
 }
 .dash-deal-card__stats span { display: inline-flex; align-items: center; gap: 4px; }
-.dash-deal-card__stats-link { display: inline-flex; align-items: center; gap: 4px; color: var(--ds-hearth); font-weight: 700; }
+.dash-deal-card__stats-link {
+  display: inline-flex; align-items: center; gap: 4px; color: var(--ds-hearth); font-weight: 700;
+  background: none; border: none; padding: 0; font-size: inherit; font-family: inherit; cursor: pointer;
+}
 
 .dash-page .dash-deal-status--approved { background: rgba(5,150,105,0.1); color: #059669; }
 .dash-page .dash-deal-status--pending  { background: rgba(245,158,11,0.1); color: #d97706; }

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Link } from '../components/LocalizedLink.jsx';
-import { ArrowLeft, Eye, MessageCircle, Phone, Share2, Heart, TrendingUp, TrendingDown } from 'lucide-react';
+import { Eye, MessageCircle, Phone, Share2, Heart, TrendingUp, TrendingDown } from 'lucide-react';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { propertyApi } from '../api/client.js';
 import { RouteLoading } from '../components/RouteLoading.jsx';
@@ -15,44 +14,38 @@ const METRICS = [
   { key: 'favorite', icon: Heart, labelKey: 'statsFavorites', primary: false },
 ];
 
-/** PropertyStatsPage — 10.5 dedicated per-property stats page. WhatsApp clicks are called out
- * as "the" metric (marked primary below) — per spec, that's the real conversion event here,
- * everything else is funnel context around it. */
-export function PropertyStatsPage() {
+/** PropertyStatsPanel — 11.2: extracted from what used to be the standalone PropertyStatsPage
+ * route (10.5), now rendered inside the dashboard's "Statistics" tab for a given propertyId
+ * (see DECISIONS.md 11.2). WhatsApp clicks are called out as "the" metric (marked primary
+ * below) — per spec, that's the real conversion event here, everything else is funnel context. */
+export function PropertyStatsPanel({ propertyId, token }) {
   const { t, dir } = useLanguage();
-  const { id } = useParams();
-  const { token, loading: authLoading } = useAgentAuth();
-  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!authLoading && !token) navigate('/owner/login', { replace: true });
-  }, [authLoading, token, navigate]);
-
-  useEffect(() => {
-    if (!token) return;
-    propertyApi.getStats(token, id, 30)
+    if (!token || !propertyId) return;
+    setLoading(true);
+    propertyApi.getStats(token, propertyId, 30)
       .then(setStats)
       .catch(() => setStats(null))
       .finally(() => setLoading(false));
-  }, [token, id]);
+  }, [token, propertyId]);
 
-  if (authLoading || loading) return <RouteLoading />;
-  if (!stats) return <div className="settings-page" dir={dir}><p className="agent-form__hint">{t.statsNoData}</p></div>;
+  if (loading) return <RouteLoading />;
+  if (!stats) return <div className="settings-page settings-page--embedded" dir={dir}><p className="agent-form__hint">{t.statsNoData}</p></div>;
 
   const maxDay = Math.max(1, ...stats.viewsByDay.map((d) => d.total));
   const totalSourceViews = stats.sources.search + stats.sources.direct + stats.sources.external;
 
   return (
-    <div className="settings-page stats-page" dir={dir}>
-      <div className="settings-page__header">
-        <Link to="/owner/dashboard" className="settings-page__back"><ArrowLeft size={16} /> {t.statsBackToDashboard}</Link>
-        <h1 className="settings-page__title">{t.statsPageTitle}</h1>
+    <div className="settings-page settings-page--embedded stats-page" dir={dir}>
+      <div className="settings-page__header settings-page__header--embedded">
+        <h2 className="settings-page__title">{t.statsPageTitle}</h2>
         <p className="agent-form__hint">{t.statsWindowLabel(stats.days)}</p>
       </div>
 
-      <div className="container stats-metrics">
+      <div className="stats-metrics">
         {METRICS.map(({ key, icon: Icon, labelKey, primary }) => {
           const curr = stats.current[key];
           const pct = stats.changePct[key];
@@ -72,7 +65,7 @@ export function PropertyStatsPage() {
         })}
       </div>
 
-      <div className="container stats-section">
+      <div className="stats-section">
         <h2 className="pp__section-title">{t.statsViewsByDay}</h2>
         {stats.viewsByDay.length === 0 ? (
           <p className="agent-form__hint">{t.statsNoData}</p>
@@ -87,7 +80,7 @@ export function PropertyStatsPage() {
         )}
       </div>
 
-      <div className="container stats-section">
+      <div className="stats-section">
         <h2 className="pp__section-title">{t.statsSources}</h2>
         {totalSourceViews === 0 ? (
           <p className="agent-form__hint">{t.statsNoData}</p>
@@ -111,4 +104,13 @@ export function PropertyStatsPage() {
       </div>
     </div>
   );
+}
+
+/** The old standalone route (/owner/dashboard/stats/:id) now just redirects into the
+ * consolidated dashboard's Statistics tab — kept so existing bookmarks/links don't break. */
+export function PropertyStatsPage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  useEffect(() => { navigate(`/owner/dashboard?tab=stats&property=${id}`, { replace: true }); }, [navigate, id]);
+  return null;
 }

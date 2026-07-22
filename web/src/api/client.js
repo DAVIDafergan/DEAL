@@ -1,6 +1,30 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
+// 11.2: page-to-page nav (home -> property -> back) was refetching the same public data every
+// time with no client-side cache at all. Short in-memory TTL cache for anonymous GETs only
+// (token === null) — owner/admin-authenticated reads always bypass this and hit the network,
+// since those are read right after mutations (publish, update, etc.) and must stay fresh.
+const CACHE_TTL_MS = 30_000;
+const CACHE_MAX_ENTRIES = 100;
+const getJsonCache = new Map();
+
+function cacheGet(key) {
+  const hit = getJsonCache.get(key);
+  if (!hit) return undefined;
+  if (Date.now() - hit.storedAt > CACHE_TTL_MS) { getJsonCache.delete(key); return undefined; }
+  return hit.value;
+}
+
+function cacheSet(key, value) {
+  if (getJsonCache.size >= CACHE_MAX_ENTRIES) getJsonCache.delete(getJsonCache.keys().next().value);
+  getJsonCache.set(key, { value, storedAt: Date.now() });
+}
+
 async function getJson(path, token = null) {
+  if (!token) {
+    const cached = cacheGet(path);
+    if (cached) return cached;
+  }
   const headers = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const res = await fetch(`${API_BASE}${path}`, { headers });
@@ -8,7 +32,9 @@ async function getJson(path, token = null) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `Request to ${path} failed with status ${res.status}`);
   }
-  return res.json();
+  const data = await res.json();
+  if (!token) cacheSet(path, data);
+  return data;
 }
 
 async function postJson(path, data, token = null) {
@@ -19,6 +45,7 @@ async function postJson(path, data, token = null) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `POST to ${path} failed with status ${res.status}`);
   }
+  getJsonCache.clear();
   return res.json();
 }
 
@@ -30,6 +57,7 @@ async function patchJson(path, data, token = null) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `PATCH to ${path} failed with status ${res.status}`);
   }
+  getJsonCache.clear();
   return res.json();
 }
 
@@ -38,6 +66,7 @@ async function deleteReq(path, token = null) {
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const res = await fetch(`${API_BASE}${path}`, { method: 'DELETE', headers });
   if (!res.ok) throw new Error(`DELETE to ${path} failed with status ${res.status}`);
+  getJsonCache.clear();
   return res.json();
 }
 

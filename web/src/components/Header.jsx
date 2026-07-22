@@ -67,7 +67,11 @@ export function Header({ reels = false, activeTab = 'home' }) {
 
             {!loading && (
               (token && agent) || traveler ? (
-                <Link to="/account" className="header-avatar-btn" aria-label={t.personalAreaLabel}>
+                // 11.2: an owner's account button goes straight to their dashboard — the old
+                // /account picker page in between was an extra, unnecessary click (see
+                // DECISIONS.md 11.2). Travelers have no dashboard, so /account (favorites,
+                // profile, logout, delete) stays their landing spot.
+                <Link to={token && agent ? '/owner/dashboard' : '/account'} className="header-avatar-btn" aria-label={t.personalAreaLabel}>
                   <User size={20} />
                 </Link>
               ) : (
@@ -112,7 +116,7 @@ export function Header({ reels = false, activeTab = 'home' }) {
           <div className="top-bar__desktop-right">
             {!loading && (
               token && agent ? (
-                <Link to="/account" className="header-auth-btn header-auth-btn--ghost">
+                <Link to="/owner/dashboard" className="header-auth-btn header-auth-btn--ghost">
                   <User size={15} />
                   <span>{agent.business_name}</span>
                 </Link>

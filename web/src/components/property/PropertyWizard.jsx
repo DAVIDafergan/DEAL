@@ -19,6 +19,16 @@ const CHECKLIST_LABELS = {
   contact: 'טלפון או וואטסאפ',
 };
 
+// 11.2: every missing checklist item jumps straight to the step that fixes it, instead of
+// leaving the owner to guess which of the 6 earlier steps has the gap.
+const CHECKLIST_STEP = {
+  name: 1, property_type: 1,
+  region: 2, city: 2,
+  unit: 3, unit_price_capacity: 3, unit_photos: 3,
+  complex_photos: 5,
+  contact: 6,
+};
+
 /** 9.5: builds a PropertyCard-shaped object straight from wizard state (no fetch — the wizard
  * already has everything in memory) for the step-7 live preview. */
 function buildPreviewProperty({ name, region, city, ownerImages, units, amenities }) {
@@ -406,12 +416,22 @@ export function PropertyWizard({ initialData = null, propertyId: initialProperty
 
                 {checklist && (
                   <div className="wpc">
-                    {Object.entries(CHECKLIST_LABELS).map(([key, label]) => (
-                      <div key={key} className={`wpc__item ${checklist.missing.includes(key) ? 'wpc__item--missing' : 'wpc__item--ok'}`}>
-                        {checklist.missing.includes(key) ? <Circle size={14} /> : <CheckCircle2 size={14} />}
-                        {label}
-                      </div>
-                    ))}
+                    {Object.entries(CHECKLIST_LABELS).map(([key, label]) => {
+                      const isMissing = checklist.missing.includes(key);
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          className={`wpc__item ${isMissing ? 'wpc__item--missing' : 'wpc__item--ok'}`}
+                          onClick={isMissing ? () => go(CHECKLIST_STEP[key] || 1) : undefined}
+                          disabled={!isMissing}
+                        >
+                          {isMissing ? <Circle size={14} /> : <CheckCircle2 size={14} />}
+                          {label}
+                          {isMissing && <span className="wpc__item-fix">← להשלמה</span>}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
                 {apiError && <p className="wizard-error">{apiError}</p>}

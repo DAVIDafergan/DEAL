@@ -383,6 +383,21 @@ const MIGRATIONS = [
   // 10.8 — report-incorrect-info queue (distinct from review reports — this flags property
   // *data*, not a review).
   (connection) => ensureColumn(connection, 'properties', 'info_report_count', 'INT NOT NULL DEFAULT 0'),
+  // 11.2 — property-type filter needed a 5th type ("מתחם"/complex — several standalone units
+  // sharing one plot, distinct from a single villa/suite). Same guarded MODIFY COLUMN pattern
+  // as the status enum widenings above.
+  async (connection) => {
+    const [rows] = await connection.query(
+      `SELECT COLUMN_TYPE FROM information_schema.columns
+       WHERE table_schema = DATABASE() AND table_name = 'properties' AND column_name = 'property_type'`
+    );
+    if (rows[0] && !rows[0].COLUMN_TYPE.includes("'complex'")) {
+      await connection.query(
+        "ALTER TABLE properties MODIFY COLUMN property_type ENUM('zimmer','villa','cottage','suite','complex') NOT NULL"
+      );
+      console.log('[deal-radar-pro] Migrated: properties.property_type enum widened to include \'complex\'');
+    }
+  },
 ];
 
 const SCHEMA_STATEMENTS = [

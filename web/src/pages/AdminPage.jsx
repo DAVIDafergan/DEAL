@@ -4,6 +4,7 @@ import { CheckCircle, XCircle, Eye, RefreshCw, ArrowLeft, Trash2, ChevronLeft, C
 import { Link } from '../components/LocalizedLink.jsx';
 import { adminApi } from '../api/client.js';
 import { Logo } from '../components/Logo.jsx';
+import { SiteFooter } from '../components/SiteFooter.jsx';
 
 const AGENTS_PER_PAGE = 25;
 
@@ -1134,6 +1135,7 @@ export function AdminPage() {
           ))}
         </div>
       )}
+      <SiteFooter />
     </div>
   );
 }

@@ -5,7 +5,6 @@ import { ChevronLeft } from 'lucide-react';
 import { propertyApi } from '../api/client.js';
 import { PropertyGrid } from '../components/PropertyGrid.jsx';
 import { PropertyEmptyState } from '../components/PropertyEmptyState.jsx';
-import { SiteFooter } from '../components/SiteFooter.jsx';
 import { RouteLoading } from '../components/RouteLoading.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
 
@@ -115,8 +114,6 @@ export function SeoLandingPage() {
           </div>
         ))}
       </div>
-
-      <SiteFooter />
     </div>
   );
 }

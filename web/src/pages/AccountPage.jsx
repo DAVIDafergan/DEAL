@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { Link } from '../components/LocalizedLink.jsx';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Heart, LayoutDashboard, LogOut, ArrowLeft, User, Settings, Trash2 } from 'lucide-react';
+import { Heart, LogOut, ArrowLeft, User, Trash2 } from 'lucide-react';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { useTravelerAuth } from '../context/TravelerAuthContext.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
@@ -33,7 +33,15 @@ export function AccountPage() {
   const isAgent = !loading && token && agent;
   const isTraveler = !isAgent && !!traveler;
 
-  if (!loading && !isAgent && !isTraveler) {
+  // 11.2: this page is now traveler-only — an owner landing here (an old bookmark, a direct
+  // URL) goes straight to the consolidated dashboard instead of a picker screen (DECISIONS.md
+  // 11.2).
+  if (isAgent) {
+    navigate('/owner/dashboard', { replace: true });
+    return null;
+  }
+
+  if (!loading && !isTraveler) {
     navigate('/owner/login', { replace: true });
     return null;
   }
@@ -112,34 +120,6 @@ export function AccountPage() {
             </div>
           </Link>
         </motion.div>
-
-        {isAgent && (
-          <motion.div variants={cardIn}>
-            <Link to="/owner/dashboard" className="account-card account-card--action">
-              <div className="account-card__icon account-card__icon--dash">
-                <LayoutDashboard size={22} />
-              </div>
-              <div className="account-card__text">
-                <span className="account-card__label">{t.dashboardLinkOwner}</span>
-                <span className="account-card__sub">{t.manageDealsSub}</span>
-              </div>
-            </Link>
-          </motion.div>
-        )}
-
-        {isAgent && (
-          <motion.div variants={cardIn}>
-            <Link to="/owner/dashboard/settings" className="account-card account-card--action">
-              <div className="account-card__icon account-card__icon--settings">
-                <Settings size={22} />
-              </div>
-              <div className="account-card__text">
-                <span className="account-card__label">{t.settingsLink}</span>
-                <span className="account-card__sub">{t.editProfileSub}</span>
-              </div>
-            </Link>
-          </motion.div>
-        )}
 
         {isTraveler && (
           <motion.div variants={cardIn}>

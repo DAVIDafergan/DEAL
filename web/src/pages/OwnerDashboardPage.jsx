@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Link } from '../components/LocalizedLink.jsx';
 import {
   PlusCircle, Settings, LogOut, CheckCircle, AlertTriangle, MessageCircle,
-  LayoutDashboard, Trash2, Home, Pencil, MapPin, CalendarDays, Eye, BarChart3, Copy,
+  LayoutDashboard, Trash2, Home, Pencil, MapPin, CalendarDays, Eye, BarChart3, Copy, LayoutGrid, Zap,
 } from 'lucide-react';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { agentApi, propertyApi } from '../api/client.js';
@@ -12,12 +12,21 @@ import { PropertyWizard } from '../components/property/PropertyWizard.jsx';
 import { AvailabilityCalendar } from '../components/property/AvailabilityCalendar.jsx';
 import { DeletePropertyModal } from '../components/property/DeletePropertyModal.jsx';
 import { PropertyTrashPanel } from '../components/property/PropertyTrashPanel.jsx';
+import { BulkPriceEditor } from '../components/property/BulkPriceEditor.jsx';
 import { DashListSkeleton } from '../components/DashListSkeleton.jsx';
 import { OwnerProfileProgress } from '../components/OwnerProfileProgress.jsx';
 import { RouteLoading } from '../components/RouteLoading.jsx';
+import { OwnerSettingsPanel } from './OwnerSettingsPage.jsx';
+import { PropertyStatsPanel } from './PropertyStatsPage.jsx';
 import { getGreeting } from '../utils/greeting.js';
 import { regionLabel, propertyTypeLabel } from '../data/propertyOptions.js';
 import { optimizedImageUrl } from '../utils/imageUrl.js';
+
+const TABS = [
+  { key: 'overview', label: 'סקירה כללית', icon: LayoutGrid },
+  { key: 'stats', label: 'סטטיסטיקה', icon: BarChart3 },
+  { key: 'settings', label: 'הגדרות', icon: Settings },
+];
 
 const cardAnim = {
   hidden: { opacity: 0, y: 16 },
@@ -40,6 +49,12 @@ function KpiCard({ icon: Icon, label, value, iconColor, iconBg, index }) {
 export function OwnerDashboardPage() {
   const { token, agent, loading, logout } = useAgentAuth();
   const navigate = useNavigate();
+  // 11.2: tabs live in the URL (?tab=...) instead of component state so the consolidated
+  // dashboard — KPIs/properties/stats/settings, previously three separate routes — survives a
+  // full page refresh on whichever tab the owner was on (see DECISIONS.md 11.2).
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = TABS.some((t) => t.key === searchParams.get('tab')) ? searchParams.get('tab') : 'overview';
+  const statsPropertyId = searchParams.get('property');
   const [properties, setProperties] = useState([]);
   const [propsLoading, setPropsLoading] = useState(true);
   const [eventSummary, setEventSummary] = useState({});
@@ -52,6 +67,7 @@ export function OwnerDashboardPage() {
   const [deletingProperty, setDeletingProperty] = useState(null);
   const [propertyDeleting, setPropertyDeleting] = useState(false);
   const [showTrash, setShowTrash] = useState(false);
+  const [showBulkPricing, setShowBulkPricing] = useState(false);
 
   useEffect(() => {
     if (!loading && !token) navigate('/owner/login', { replace: true });
@@ -112,6 +128,28 @@ export function OwnerDashboardPage() {
       refreshProperties();
     } catch (err) {
       notify(err.message || 'שגיאה בשכפול הנכס', 'error');
+    }
+  }
+
+  // 11.2: "one-tap availability update" — toggle *today* open/blocked straight from the property
+  // card, no calendar modal. Two API calls (read today's current state, then flip it) but only
+  // one tap from the owner's side; togglingId drives a per-card loading state so a slow network
+  // can't make a double-tap send two conflicting writes.
+  const [togglingAvailabilityId, setTogglingAvailabilityId] = useState(null);
+  async function handleToggleTodayAvailability(property) {
+    setTogglingAvailabilityId(property.id);
+    try {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const tomorrowStr = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+      const { availability } = await propertyApi.getAvailability(property.id, { from: todayStr, to: tomorrowStr });
+      const todayRow = availability.find((row) => row.date.slice(0, 10) === todayStr);
+      const currentlyAvailable = todayRow ? Boolean(todayRow.is_available) : true;
+      await propertyApi.setAvailability(token, property.id, [{ date: todayStr, is_available: !currentlyAvailable }]);
+      notify(currentlyAvailable ? 'הנכס סומן כתפוס להיום' : 'הנכס סומן כפנוי להיום');
+    } catch (err) {
+      notify(err.message || 'שגיאה בעדכון הזמינות', 'error');
+    } finally {
+      setTogglingAvailabilityId(null);
     }
   }
 
@@ -193,6 +231,12 @@ export function OwnerDashboardPage() {
       </AnimatePresence>
 
       <AnimatePresence>
+        {showBulkPricing && (
+          <BulkPriceEditor token={token} properties={properties} onClose={() => setShowBulkPricing(false)} onSaved={refreshProperties} />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
         {notification && (
           <motion.div className={`dash-toast dash-toast--${notification.type}`} initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
             {notification.msg}
@@ -209,6 +253,51 @@ export function OwnerDashboardPage() {
         </div>
       </div>
 
+      {/* 11.2: everything (KPIs, properties, per-property stats, account settings, password,
+          logout, delete account) lives on this one route now, switched via tabs — not separate
+          page routes. Scrollable on mobile so the row never wraps/overflows a narrow screen. */}
+      <div className="dash-tabs container" role="tablist">
+        {TABS.map(({ key, label, icon: Icon }) => (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === key}
+            className={`dash-tab-btn${activeTab === key ? ' is-active' : ''}`}
+            onClick={() => setSearchParams((prev) => { const n = new URLSearchParams(prev); n.set('tab', key); if (key !== 'stats') n.delete('property'); return n; })}
+          >
+            <Icon size={15} />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'settings' && <OwnerSettingsPanel />}
+
+      {activeTab === 'stats' && (
+        <div className="container">
+          <div className="dash-stats-property-picker">
+            <label className="settings-field__label" htmlFor="dash-stats-property">בחרו נכס</label>
+            <select
+              id="dash-stats-property"
+              className="settings-field__input"
+              value={statsPropertyId || ''}
+              onChange={(e) => setSearchParams((prev) => { const n = new URLSearchParams(prev); n.set('tab', 'stats'); n.set('property', e.target.value); return n; })}
+            >
+              <option value="" disabled>בחרו נכס לצפייה בסטטיסטיקה</option>
+              {properties.filter((p) => p.status !== 'draft').map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+          {statsPropertyId
+            ? <PropertyStatsPanel propertyId={statsPropertyId} token={token} />
+            : <p className="agent-form__hint">בחרו נכס למעלה כדי לראות את הסטטיסטיקה שלו.</p>}
+        </div>
+      )}
+
+      {activeTab === 'overview' && (
+      <>
       <OwnerProfileProgress agent={agent} properties={properties} />
 
       <div id="onb-kpis" className="dash-kpis container">
@@ -232,10 +321,10 @@ export function OwnerDashboardPage() {
               פרופיל ציבורי
             </Link>
           )}
-          <Link to="/owner/dashboard/settings" className="dash-quick-pill">
-            <span className="dash-quick-pill__dot"><Settings size={15} /></span>
-            הגדרות
-          </Link>
+          <motion.button className="dash-quick-pill" whileTap={{ scale: 0.97 }} onClick={() => setShowBulkPricing(true)}>
+            <span className="dash-quick-pill__dot"><Zap size={15} /></span>
+            עריכת מחירים בכמות
+          </motion.button>
           <motion.button className="dash-quick-pill" whileTap={{ scale: 0.97 }} onClick={() => setShowTrash(true)}>
             <span className="dash-quick-pill__dot"><Trash2 size={15} /></span>
             פח מיחזור
@@ -308,9 +397,13 @@ export function OwnerDashboardPage() {
                   <div className="dash-deal-card__stats">
                     <span title="צפיות ב-30 הימים האחרונים"><Eye size={12} /> {eventSummary[property.id]?.views || 0}</span>
                     <span title="קליקים לוואטסאפ ב-30 הימים האחרונים"><MessageCircle size={12} /> {eventSummary[property.id]?.whatsappClicks || 0}</span>
-                    <Link to={`/owner/dashboard/stats/${property.id}`} className="dash-deal-card__stats-link" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      type="button"
+                      className="dash-deal-card__stats-link"
+                      onClick={(e) => { e.stopPropagation(); setSearchParams({ tab: 'stats', property: String(property.id) }); }}
+                    >
                       <BarChart3 size={12} /> סטטיסטיקה מלאה
-                    </Link>
+                    </button>
                   </div>
                 )}
               </div>
@@ -323,6 +416,18 @@ export function OwnerDashboardPage() {
                   <motion.button className="dash-deal-edit" whileTap={{ scale: 0.9 }} onClick={(e) => { e.stopPropagation(); setAvailabilityProperty(property); }} title="לוח זמינות">
                     <CalendarDays size={14} />
                     <span className="dash-deal-btn-label">זמינות</span>
+                  </motion.button>
+                )}
+                {property.status !== 'draft' && (
+                  <motion.button
+                    className="dash-deal-edit"
+                    whileTap={{ scale: 0.9 }}
+                    disabled={togglingAvailabilityId === property.id}
+                    onClick={(e) => { e.stopPropagation(); handleToggleTodayAvailability(property); }}
+                    title="עדכון זמינות היום בלחיצה אחת"
+                  >
+                    <Zap size={14} />
+                    <span className="dash-deal-btn-label">{togglingAvailabilityId === property.id ? '…' : 'החלף היום'}</span>
                   </motion.button>
                 )}
                 <motion.button className="dash-deal-edit" whileTap={{ scale: 0.9 }} onClick={(e) => { e.stopPropagation(); setEditingProperty(property); }} title={property.status === 'draft' ? 'השלימו את הפרסום' : 'ערוך נכס'}>
@@ -342,6 +447,8 @@ export function OwnerDashboardPage() {
           ))}
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 }

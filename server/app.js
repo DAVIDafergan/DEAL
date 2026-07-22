@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import compression from 'compression';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -570,6 +571,11 @@ function buildSeoPageHtml(data, requestPath, baseHtml) {
 
 export function createApp() {
   const app = express();
+
+  // ── Compression (11.2) — nothing in this stack was gzipping/brotli-ing responses; every
+  // JS/CSS/JSON payload was going over the wire raw. Images are already compressed formats
+  // (Cloudinary) so compression's default filter correctly skips them.
+  app.use(compression());
 
   // ── Security headers (Helmet) ──────────────────────────────────────────────
   app.use(helmet({

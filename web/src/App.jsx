@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { NowProvider } from './context/NowContext.jsx';
 import { propertyApi } from './api/client.js';
 import { HeroSearch } from './components/HeroSearch.jsx';
+import { PropertyTypeChips } from './components/PropertyTypeChips.jsx';
 import { RegionPicker } from './components/RegionPicker.jsx';
 import { CategoryChips } from './components/CategoryChips.jsx';
 import { TrustSection } from './components/TrustSection.jsx';
@@ -127,6 +128,7 @@ export function App() {
             >
               <HeroSearch filters={filters} setFilter={setFilter} onSearch={scrollToResults} />
             </motion.div>
+            <PropertyTypeChips filters={filters} setFilter={setFilter} onSearch={scrollToResults} />
             <RecentSearches searches={recentSearches} onPick={handlePickRecentSearch} />
             <button type="button" className="surprise-me-btn" onClick={handleSurpriseMe}>
               <Shuffle size={14} /> {t.surpriseMeButton}

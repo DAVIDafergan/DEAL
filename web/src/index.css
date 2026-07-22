@@ -121,6 +121,13 @@ select:focus-visible {
   flex-direction: column;
 }
 
+.public-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.public-layout__main { flex: 1; }
+
 .container {
   width: 100%;
   max-width: 1180px;
@@ -2698,7 +2705,10 @@ label { color: var(--color-text-secondary); }
   background: var(--ds-void);
   color: var(--ds-bone);
   padding-bottom: 60px;
+  display: flex;
+  flex-direction: column;
 }
+.adm-page > .site-footer { margin-top: auto; }
 
 /* Toast */
 .adm-toast {
@@ -3871,6 +3881,41 @@ label { color: var(--color-text-secondary); }
   .hero-search__submit:hover { transform: none; }
 }
 
+/* ── 11.2 property-type quick chips (homepage, under the hero search) ──────── */
+.property-type-chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+.property-type-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--ds-ghost);
+  background: var(--ds-ink);
+  color: var(--ds-bone);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: border-color var(--transition-base), color var(--transition-base), background var(--transition-base);
+}
+.property-type-chip:hover { border-color: var(--ds-hearth); color: var(--ds-hearth); }
+.property-type-chip.is-active { background: var(--gradient-accent); border-color: transparent; color: #fff; }
+.property-type-chip__count {
+  font-size: 0.7rem;
+  font-weight: 700;
+  opacity: 0.75;
+  background: rgba(255,255,255,0.14);
+  border-radius: var(--radius-pill);
+  padding: 1px 7px;
+}
+.property-type-chip.is-active .property-type-chip__count { background: rgba(255,255,255,0.28); }
+
 /* ── 9.2 shared home section title ───────────────────────────────────────── */
 
 .home-section-title {
@@ -4787,6 +4832,11 @@ label { color: var(--color-text-secondary); }
   transition: border-color 0.15s, color 0.15s;
 }
 .settings-page__back:hover { border-color: var(--color-text-muted); color: var(--color-text-primary); }
+
+/* 11.2: same settings-page look, dropped into a dashboard tab instead of its own route — no
+   min-height:100vh (the dashboard shell already provides page height) and no back-link. */
+.settings-page--embedded { min-height: 0; padding: 24px 0 40px; max-width: none; }
+.settings-page__header--embedded { margin-bottom: 20px; }
 
 .settings-page__grid {
   display: grid;
@@ -5854,7 +5904,20 @@ html.a11y-readable-font button {
   text-align: center;
   font-size: 0.76rem;
   color: var(--ds-ash);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
 }
+.site-footer__social { display: flex; align-items: center; gap: 10px; }
+.site-footer__social-link {
+  display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 1px solid var(--ds-ghost); color: var(--ds-ash);
+  transition: border-color var(--transition-base), color var(--transition-base);
+}
+.site-footer__social-link:hover { border-color: var(--ds-hearth); color: var(--ds-hearth); }
 
 @media (max-width: 600px) {
   .site-footer__inner { gap: 20px; }

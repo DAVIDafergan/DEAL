@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Link } from '../components/LocalizedLink.jsx';
-import { ArrowLeft, CheckCircle, KeyRound, Globe } from 'lucide-react';
+import { CheckCircle, KeyRound, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { agentApi } from '../api/client.js';
@@ -93,22 +92,19 @@ function PasswordCard({ token }) {
   );
 }
 
-/** OwnerSettingsPage — same settings-* shell as AgentSettingsPage; owner data lives in the same
- * agents table. Autosaves ~800ms after the last edit (7.7: "שמירה אוטומטית עם חיווי ברור") —
- * password change is a separate, deliberate action below, not part of the autosave. */
-export function OwnerSettingsPage() {
+/** OwnerSettingsPanel — 11.2: extracted from what used to be the standalone OwnerSettingsPage
+ * route, now rendered as the dashboard's "Settings" tab (see DECISIONS.md 11.2 — the consolidated
+ * dashboard requirement). Autosaves ~800ms after the last edit (7.7); password change is a
+ * separate, deliberate action below, not part of the autosave. Still entirely self-contained
+ * (reads its own agent/token from context), so it drops straight into a tab panel with no props. */
+export function OwnerSettingsPanel() {
   const { token, agent, loading, refreshAgent } = useAgentAuth();
-  const navigate = useNavigate();
   const [form, setForm] = useState(EMPTY_FORM);
   const [saveState, setSaveState] = useState(null); // 'saving' | 'saved' | 'error' | null
   const [saveError, setSaveError] = useState('');
   const [socialErrors, setSocialErrors] = useState({});
   const saveTimer = useRef(null);
   const isFirstLoad = useRef(true);
-
-  useEffect(() => {
-    if (!loading && !token) navigate('/owner/login', { replace: true });
-  }, [loading, token, navigate]);
 
   useEffect(() => {
     if (agent) {
@@ -170,12 +166,9 @@ export function OwnerSettingsPage() {
   }
 
   return (
-    <div className="settings-page" dir="rtl">
-      <div className="settings-page__header">
-        <Link to="/owner/dashboard" className="settings-page__back">
-          <ArrowLeft size={16} /> דשבורד
-        </Link>
-        <h1 className="settings-page__title">הגדרות חשבון</h1>
+    <div className="settings-page settings-page--embedded" dir="rtl">
+      <div className="settings-page__header settings-page__header--embedded">
+        <h2 className="settings-page__title">הגדרות חשבון</h2>
         <div className="settings-save-indicator">
           <AnimatePresence mode="wait">
             {saveState === 'saving' && (
@@ -256,4 +249,12 @@ export function OwnerSettingsPage() {
       </div>
     </div>
   );
+}
+
+/** The old standalone route (/owner/dashboard/settings) now just redirects into the
+ * consolidated dashboard's Settings tab — kept so existing bookmarks/links don't break. */
+export function OwnerSettingsPage() {
+  const navigate = useNavigate();
+  useEffect(() => { navigate('/owner/dashboard?tab=settings', { replace: true }); }, [navigate]);
+  return null;
 }

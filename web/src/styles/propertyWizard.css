@@ -105,6 +105,10 @@
 .wpc__item {
   display: flex; align-items: center; gap: 8px;
   font-size: 0.85rem; color: var(--color-text-secondary);
+  background: none; border: none; padding: 4px 0; width: 100%; text-align: start;
+  font-family: inherit; cursor: default;
 }
 .wpc__item--ok { color: var(--color-success,#22c55e); }
-.wpc__item--missing { color: var(--color-text-muted); }
+.wpc__item--missing { color: var(--color-text-muted); cursor: pointer; }
+.wpc__item--missing:hover { color: var(--ds-hearth); }
+.wpc__item-fix { margin-inline-start: auto; font-size: 0.78rem; color: var(--ds-hearth); font-weight: 600; }
