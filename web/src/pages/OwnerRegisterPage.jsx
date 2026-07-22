@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link } from '../components/LocalizedLink.jsx';
 import { ChevronRight, CheckCircle, ArrowLeft } from 'lucide-react';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 

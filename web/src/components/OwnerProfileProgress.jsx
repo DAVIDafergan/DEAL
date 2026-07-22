@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link } from './LocalizedLink.jsx';
 import { CheckCircle2, Circle } from 'lucide-react';
 
 /** OwnerProfileProgress — 9.5 onboarding: "סרגל התקדמות (הפרופיל שלך 60% מוכן)". Persistent on

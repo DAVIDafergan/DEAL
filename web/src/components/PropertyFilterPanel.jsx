@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, MapPin, Calendar, Users, Banknote, Sparkles } from 'lucide-react';
-import { REGIONS, PROPERTY_TYPES, KOSHER_LEVELS, AMENITIES } from '../data/propertyOptions.js';
+import { REGIONS, PROPERTY_TYPES, KOSHER_LEVELS, AMENITIES, regionLabel, propertyTypeLabel, kosherLabel, amenityLabel } from '../data/propertyOptions.js';
 import { propertyApi } from '../api/client.js';
+import { useLanguage } from '../context/LanguageContext.jsx';
 
 function ToggleChip({ label, isActive, onClick }) {
   return (
@@ -50,6 +51,7 @@ function Section({ id, title, icon, summary, isOpen, onToggle, children }) {
 const EMPTY_FACETS = { amenities: {}, kosherLevel: {}, propertyType: {}, region: {} };
 
 export function PropertyFilterPanel({ filters, setFilter, toggleAmenity, resultCount, isLoading }) {
+  const { t, lang } = useLanguage();
   const [openSection, setOpenSection] = useState('where');
   const [cities, setCities] = useState([]);
   const [facets, setFacets] = useState(EMPTY_FACETS);
@@ -89,34 +91,34 @@ export function PropertyFilterPanel({ filters, setFilter, toggleAmenity, resultC
   }, [filters.region, filters.city, filters.propertyType, filters.guests, filters.bedrooms, filters.minPrice, filters.maxPrice, filters.kosherLevel, filters.checkIn, filters.checkOut, filters.amenities]);
 
   const whereSummary = [
-    filters.region && REGIONS.find((r) => r.value === filters.region)?.label,
+    filters.region && regionLabel(filters.region, lang),
     filters.city,
-  ].filter(Boolean).join(' · ') || 'כל האזורים';
+  ].filter(Boolean).join(' · ') || t.filterAllRegions;
 
   const whenSummary = filters.checkIn && filters.checkOut
     ? `${filters.checkIn} → ${filters.checkOut}`
-    : 'כל התאריכים';
+    : t.filterAllDates;
 
   const howManySummary = [
-    filters.guests && `${filters.guests}+ אורחים`,
-    filters.bedrooms && `${filters.bedrooms}+ חדרי שינה`,
-  ].filter(Boolean).join(' · ') || 'כל הכמויות';
+    filters.guests && t.filterGuestsPlus(filters.guests),
+    filters.bedrooms && t.filterBedroomsPlus(filters.bedrooms),
+  ].filter(Boolean).join(' · ') || t.filterAllQuantities;
 
   const budgetSummary = (filters.minPrice || filters.maxPrice)
     ? `${filters.minPrice || '0'}–${filters.maxPrice || '∞'} ₪`
-    : 'כל התקציבים';
+    : t.filterAllBudgets;
 
   const whatMattersCount = filters.amenities.length + (filters.kosherLevel ? 1 : 0) + (filters.propertyType ? 1 : 0);
-  const whatMattersSummary = whatMattersCount > 0 ? `${whatMattersCount} נבחרו` : 'הכל';
+  const whatMattersSummary = whatMattersCount > 0 ? t.filterMattersSelected(whatMattersCount) : t.filterMattersAll;
 
   return (
     <div className="pfp">
-      <Section id="where" title="איפה" icon={<MapPin size={16} />} summary={whereSummary} isOpen={openSection === 'where'} onToggle={toggleSection}>
+      <Section id="where" title={t.filterWhereLabel} icon={<MapPin size={16} />} summary={whereSummary} isOpen={openSection === 'where'} onToggle={toggleSection}>
         <div className="pfp__chip-row">
           {REGIONS.map((r) => (
             <ToggleChip
               key={r.value}
-              label={`${r.label} (${facets.region[r.value] ?? 0})`}
+              label={`${regionLabel(r.value, lang)} (${facets.region[r.value] ?? 0})`}
               isActive={filters.region === r.value}
               onClick={() => setFilter({ region: filters.region === r.value ? '' : r.value })}
             />
@@ -124,7 +126,7 @@ export function PropertyFilterPanel({ filters, setFilter, toggleAmenity, resultC
         </div>
         {filters.region && cities.length > 0 && (
           <>
-            <p className="pfp__sub-label">עיר / יישוב</p>
+            <p className="pfp__sub-label">{t.filterCityLabel}</p>
             <div className="pfp__chip-row">
               {cities.map(({ city, count }) => (
                 <ToggleChip key={city} label={`${city} (${count})`} isActive={filters.city === city} onClick={() => setFilter({ city: filters.city === city ? '' : city })} />
@@ -134,74 +136,74 @@ export function PropertyFilterPanel({ filters, setFilter, toggleAmenity, resultC
         )}
       </Section>
 
-      <Section id="when" title="מתי" icon={<Calendar size={16} />} summary={whenSummary} isOpen={openSection === 'when'} onToggle={toggleSection}>
+      <Section id="when" title={t.filterWhenLabel} icon={<Calendar size={16} />} summary={whenSummary} isOpen={openSection === 'when'} onToggle={toggleSection}>
         <div className="pfp__field-row">
           <label className="pfp__field">
-            <span className="pfp__field-label">תאריך כניסה</span>
+            <span className="pfp__field-label">{t.filterCheckIn}</span>
             <input type="date" className="agent-form__input" value={filters.checkIn} onChange={(e) => setFilter({ checkIn: e.target.value })} />
           </label>
           <label className="pfp__field">
-            <span className="pfp__field-label">תאריך יציאה</span>
+            <span className="pfp__field-label">{t.filterCheckOut}</span>
             <input type="date" className="agent-form__input" value={filters.checkOut} onChange={(e) => setFilter({ checkOut: e.target.value })} />
           </label>
         </div>
       </Section>
 
-      <Section id="howmany" title="כמה" icon={<Users size={16} />} summary={howManySummary} isOpen={openSection === 'howmany'} onToggle={toggleSection}>
+      <Section id="howmany" title={t.filterHowManyLabel} icon={<Users size={16} />} summary={howManySummary} isOpen={openSection === 'howmany'} onToggle={toggleSection}>
         <div className="pfp__field-row">
           <label className="pfp__field">
-            <span className="pfp__field-label">מספר אורחים</span>
-            <input type="number" min="1" className="agent-form__input" placeholder="כמה אורחים?" value={filters.guests} onChange={(e) => setFilter({ guests: e.target.value })} />
+            <span className="pfp__field-label">{t.filterGuestsCount}</span>
+            <input type="number" min="1" className="agent-form__input" value={filters.guests} onChange={(e) => setFilter({ guests: e.target.value })} />
           </label>
           <label className="pfp__field">
-            <span className="pfp__field-label">חדרי שינה</span>
-            <input type="number" min="1" className="agent-form__input" placeholder="כמה חדרים?" value={filters.bedrooms} onChange={(e) => setFilter({ bedrooms: e.target.value })} />
+            <span className="pfp__field-label">{t.filterBedroomsCount}</span>
+            <input type="number" min="1" className="agent-form__input" value={filters.bedrooms} onChange={(e) => setFilter({ bedrooms: e.target.value })} />
           </label>
         </div>
       </Section>
 
-      <Section id="budget" title="תקציב" icon={<Banknote size={16} />} summary={budgetSummary} isOpen={openSection === 'budget'} onToggle={toggleSection}>
+      <Section id="budget" title={t.filterBudgetLabel} icon={<Banknote size={16} />} summary={budgetSummary} isOpen={openSection === 'budget'} onToggle={toggleSection}>
         <div className="pfp__field-row">
           <label className="pfp__field">
-            <span className="pfp__field-label">מ-₪</span>
+            <span className="pfp__field-label">{t.filterPriceFrom}</span>
             <input type="number" min="0" className="agent-form__input" placeholder="0" value={filters.minPrice} onChange={(e) => setFilter({ minPrice: e.target.value })} />
           </label>
           <label className="pfp__field">
-            <span className="pfp__field-label">עד ₪</span>
-            <input type="number" min="0" className="agent-form__input" placeholder="ללא הגבלה" value={filters.maxPrice} onChange={(e) => setFilter({ maxPrice: e.target.value })} />
+            <span className="pfp__field-label">{t.filterPriceTo}</span>
+            <input type="number" min="0" className="agent-form__input" placeholder={t.filterUnlimited} value={filters.maxPrice} onChange={(e) => setFilter({ maxPrice: e.target.value })} />
           </label>
         </div>
       </Section>
 
-      <Section id="matters" title="מה חשוב לך" icon={<Sparkles size={16} />} summary={whatMattersSummary} isOpen={openSection === 'matters'} onToggle={toggleSection}>
-        <p className="pfp__sub-label">סוג נכס</p>
+      <Section id="matters" title={t.filterMattersLabel} icon={<Sparkles size={16} />} summary={whatMattersSummary} isOpen={openSection === 'matters'} onToggle={toggleSection}>
+        <p className="pfp__sub-label">{t.filterPropertyType}</p>
         <div className="pfp__chip-row">
           {PROPERTY_TYPES.map((p) => (
             <ToggleChip
               key={p.value}
-              label={`${p.label} (${facets.propertyType[p.value] ?? 0})`}
+              label={`${propertyTypeLabel(p.value, lang)} (${facets.propertyType[p.value] ?? 0})`}
               isActive={filters.propertyType === p.value}
               onClick={() => setFilter({ propertyType: filters.propertyType === p.value ? '' : p.value })}
             />
           ))}
         </div>
-        <p className="pfp__sub-label">מתקנים</p>
+        <p className="pfp__sub-label">{t.filterAmenities}</p>
         <div className="pfp__chip-row">
           {AMENITIES.map((a) => (
             <ToggleChip
               key={a.value}
-              label={`${a.label} (${facets.amenities[a.value] ?? 0})`}
+              label={`${amenityLabel(a.value, lang)} (${facets.amenities[a.value] ?? 0})`}
               isActive={filters.amenities.includes(a.value)}
               onClick={() => toggleAmenity(a.value)}
             />
           ))}
         </div>
-        <p className="pfp__sub-label">כשרות</p>
+        <p className="pfp__sub-label">{t.filterKosher}</p>
         <div className="pfp__chip-row">
           {KOSHER_LEVELS.filter((k) => k.value !== 'not_applicable').map((k) => (
             <ToggleChip
               key={k.value}
-              label={`${k.label} (${facets.kosherLevel[k.value] ?? 0})`}
+              label={`${kosherLabel(k.value, lang)} (${facets.kosherLevel[k.value] ?? 0})`}
               isActive={filters.kosherLevel === k.value}
               onClick={() => setFilter({ kosherLevel: filters.kosherLevel === k.value ? '' : k.value })}
             />
@@ -209,7 +211,7 @@ export function PropertyFilterPanel({ filters, setFilter, toggleAmenity, resultC
         </div>
       </Section>
 
-      <p className="pfp__result-count">{isLoading ? 'סופר תוצאות…' : `${resultCount} נכסים תואמים`}</p>
+      <p className="pfp__result-count">{isLoading ? t.filterCountingResults : t.filterResultsCount(resultCount)}</p>
     </div>
   );
 }

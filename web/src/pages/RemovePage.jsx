@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link } from '../components/LocalizedLink.jsx';
 import { ArrowLeft, ShieldOff, CheckCircle } from 'lucide-react';
 import { removeApi } from '../api/client.js';
 import { Logo } from '../components/Logo.jsx';

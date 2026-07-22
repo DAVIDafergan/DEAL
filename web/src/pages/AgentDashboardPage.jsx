@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { Link } from '../components/LocalizedLink.jsx';
 import {
   PlusCircle, Settings, LogOut, CheckCircle, XCircle, AlertTriangle, Clock,
   MessageCircle, LayoutDashboard, Trash2, Zap, Pencil, ShoppingBag, MousePointerClick,

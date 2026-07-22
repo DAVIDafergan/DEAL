@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { Link } from '../components/LocalizedLink.jsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Check, X, MessageCircle, Users, Calendar } from 'lucide-react';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';

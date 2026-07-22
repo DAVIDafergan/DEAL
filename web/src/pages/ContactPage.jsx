@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from '../components/LocalizedLink.jsx';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Send, CheckCircle } from 'lucide-react';
 

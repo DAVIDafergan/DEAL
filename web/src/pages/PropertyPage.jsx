@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { Link } from '../components/LocalizedLink.jsx';
 import { motion } from 'framer-motion';
 import { ArrowLeft, ChevronLeft, MessageCircle, CheckCircle, ExternalLink, Users, Bath, ShieldAlert, Send, Clock, Heart, Share2, CalendarClock, Info } from 'lucide-react';
 import { propertyApi } from '../api/client.js';
@@ -15,6 +16,7 @@ import { OwnerCard } from '../components/property/OwnerCard.jsx';
 import { saveTrackedBooking } from '../utils/myBookings.js';
 import { PropertyPageSkeleton } from '../components/property/PropertyPageSkeleton.jsx';
 import { PropertyGrid } from '../components/PropertyGrid.jsx';
+import { useLanguage } from '../context/LanguageContext.jsx';
 
 /** BackLink — 7.8: "כפתור חזרה ששומר על מצב החיפוש והגלילה". Going back in browser history
  * (rather than a hard Link to "/") preserves the previous page's URL query params (7.2's filter
@@ -32,6 +34,7 @@ function BackLink({ className, children }) {
 
 /** ClaimFlow — the "אני בעל הנכס" flow: request code (owner auth required) → enter code → pending. */
 function ClaimFlow({ propertyId }) {
+  const { t } = useLanguage();
   const { token } = useAgentAuth();
   const [step, setStep] = useState('idle'); // idle | requested | done
   const [code, setCode] = useState('');
@@ -42,10 +45,10 @@ function ClaimFlow({ propertyId }) {
   if (!token) {
     return (
       <p className="agent-form__hint" style={{ marginTop: 8 }}>
-        כדי לתבוע בעלות על הנכס יש להתחבר או להירשם כבעל צימר קודם.{' '}
-        <Link to={`/owner/login?next=/property/${propertyId}`}>התחברות</Link>
+        {t.claimLoginPrompt}{' '}
+        <Link to={`/owner/login?next=/property/${propertyId}`}>{t.claimLoginLink}</Link>
         {' '}·{' '}
-        <Link to={`/owner/register?next=/property/${propertyId}`}>הרשמה</Link>
+        <Link to={`/owner/register?next=/property/${propertyId}`}>{t.claimRegisterLink}</Link>
       </p>
     );
   }
@@ -58,7 +61,7 @@ function ClaimFlow({ propertyId }) {
       setSentTo(masked);
       setStep('requested');
     } catch (err) {
-      setError(err.message || 'שגיאה בשליחת הקוד');
+      setError(err.message || t.claimErrorGeneric);
     } finally {
       setSubmitting(false);
     }
@@ -71,7 +74,7 @@ function ClaimFlow({ propertyId }) {
       await propertyApi.verifyClaim(token, propertyId, code);
       setStep('done');
     } catch (err) {
-      setError(err.message || 'קוד שגוי או שפג תוקפו');
+      setError(err.message || t.claimErrorCode);
     } finally {
       setSubmitting(false);
     }
@@ -81,8 +84,8 @@ function ClaimFlow({ propertyId }) {
     return (
       <p className="deal-modal__desc">
         <CheckCircle size={15} style={{ verticalAlign: 'middle', marginInlineEnd: 4 }} />
-        אומת בהצלחה! הבקשה שלך ממתינה לאישור מנהל, לרוב תוך יום עסקים. הנכס יופיע ב"הנכסים שלי" בדשבורד.
-        {' '}<Link to="/owner/dashboard">לדשבורד</Link>
+        {t.claimVerifiedSuccess}
+        {' '}<Link to="/owner/dashboard">{t.claimDashboardLink}</Link>
       </p>
     );
   }
@@ -90,11 +93,11 @@ function ClaimFlow({ propertyId }) {
   if (step === 'requested') {
     return (
       <div className="agent-form__field" style={{ marginTop: 8 }}>
-        <label className="agent-form__label">קוד אימות נשלח ל-{sentTo} — הזן אותו כאן</label>
+        <label className="agent-form__label">{t.claimCodeSentTo(sentTo)}</label>
         <input className="agent-form__input" inputMode="numeric" maxLength={6} value={code} onChange={(e) => setCode(e.target.value)} />
         {error && <p className="agent-form__error-msg">{error}</p>}
         <motion.button className="deal-modal__btn deal-modal__btn--book" style={{ marginTop: 8 }} whileTap={{ scale: 0.97 }} disabled={submitting || !code} onClick={handleVerify}>
-          {submitting ? 'מאמת…' : 'אמת קוד'}
+          {submitting ? t.claimVerifying : t.claimVerifyButton}
         </motion.button>
       </div>
     );
@@ -104,7 +107,7 @@ function ClaimFlow({ propertyId }) {
     <>
       {error && <p className="agent-form__error-msg">{error}</p>}
       <motion.button className="deal-modal__btn deal-modal__btn--share" whileTap={{ scale: 0.97 }} disabled={submitting} onClick={handleRequestCode}>
-        {submitting ? 'שולח…' : 'אני בעל הנכס'}
+        {submitting ? t.claimSending : t.claimOwnerButton}
       </motion.button>
     </>
   );
@@ -129,20 +132,21 @@ function estimatePrice(unit, checkIn, checkOut) {
 }
 
 // 7.8: "ולידציה תוך כדי הקלדה, הודעה ליד השדה הבעייתי, גלילה אליו אוטומטית"
-function validateBookingForm(form) {
+function validateBookingForm(form, t) {
   const errors = {};
-  if (!form.check_in) errors.check_in = 'יש לבחור תאריך כניסה';
-  if (!form.check_out) errors.check_out = 'יש לבחור תאריך יציאה';
+  if (!form.check_in) errors.check_in = t.validationCheckIn;
+  if (!form.check_out) errors.check_out = t.validationCheckOut;
   if (form.check_in && form.check_out && form.check_out <= form.check_in) {
-    errors.check_out = 'תאריך היציאה חייב להיות אחרי תאריך הכניסה';
+    errors.check_out = t.validationCheckOutAfter;
   }
-  if (!form.customer_name.trim()) errors.customer_name = 'יש להזין שם מלא';
-  if (!form.customer_phone.trim()) errors.customer_phone = 'יש להזין מספר טלפון';
-  else if (form.customer_phone.replace(/[^0-9]/g, '').length < 9) errors.customer_phone = 'מספר הטלפון קצר מדי';
+  if (!form.customer_name.trim()) errors.customer_name = t.validationName;
+  if (!form.customer_phone.trim()) errors.customer_phone = t.validationPhone;
+  else if (form.customer_phone.replace(/[^0-9]/g, '').length < 9) errors.customer_phone = t.validationPhoneShort;
   return errors;
 }
 
 function BookingRequestForm({ propertyId, propertyName, unit, unitName, currency }) {
+  const { t } = useLanguage();
   const [form, setForm] = useState({ check_in: '', check_out: '', guest_count: 2, customer_name: '', customer_phone: '', customer_email: '', message: '' });
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null); // 'success' | 'error' | null
@@ -155,13 +159,13 @@ function BookingRequestForm({ propertyId, propertyName, unit, unitName, currency
     return (e) => {
       const next = { ...form, [key]: e.target.value };
       setForm(next);
-      if (touched[key]) setFieldErrors(validateBookingForm(next));
+      if (touched[key]) setFieldErrors(validateBookingForm(next, t));
     };
   }
   function markTouched(key) {
     return () => {
       setTouched((t) => ({ ...t, [key]: true }));
-      setFieldErrors(validateBookingForm(form));
+      setFieldErrors(validateBookingForm(form, t));
     };
   }
 
@@ -169,7 +173,7 @@ function BookingRequestForm({ propertyId, propertyName, unit, unitName, currency
 
   async function handleSubmit(e) {
     e.preventDefault();
-    const errors = validateBookingForm(form);
+    const errors = validateBookingForm(form, t);
     setFieldErrors(errors);
     setTouched({ check_in: true, check_out: true, customer_name: true, customer_phone: true });
     const firstErrorKey = Object.keys(errors)[0];
@@ -199,34 +203,34 @@ function BookingRequestForm({ propertyId, propertyName, unit, unitName, currency
       <div className="settings-card" style={{ marginTop: 16 }}>
         <p className="deal-modal__desc">
           <CheckCircle size={15} style={{ verticalAlign: 'middle', marginInlineEnd: 4 }} />
-          בקשתך הועברה לבעל הנכס. הוא יחזור אליך לאישור ההזמנה.
+          {t.ppBookingSuccess}
         </p>
         <div className="deal-modal__details" style={{ marginTop: 8 }}>
           <div className="deal-modal__detail-row">
-            <span className="deal-modal__detail-label">מספר בקשה</span>
+            <span className="deal-modal__detail-label">{t.ppBookingNumber}</span>
             <span>#{confirmation?.id}</span>
           </div>
           <div className="deal-modal__detail-row">
-            <span className="deal-modal__detail-label">תאריכים</span>
+            <span className="deal-modal__detail-label">{t.ppBookingDates}</span>
             <span>{form.check_in} – {form.check_out}</span>
           </div>
           {unitName && (
             <div className="deal-modal__detail-row">
-              <span className="deal-modal__detail-label">יחידה</span>
+              <span className="deal-modal__detail-label">{t.ppBookingUnit}</span>
               <span>{unitName}</span>
             </div>
           )}
           {confirmation?.priceEstimate && (
             <div className="deal-modal__detail-row">
-              <span className="deal-modal__detail-label">מחיר משוער</span>
-              <span>{Math.round(confirmation.priceEstimate.total)} {confirmation.priceEstimate.currencySymbol} ({confirmation.priceEstimate.nights} לילות)</span>
+              <span className="deal-modal__detail-label">{t.ppPriceEstimate}</span>
+              <span>{Math.round(confirmation.priceEstimate.total)} {confirmation.priceEstimate.currencySymbol} ({t.nightsCount(confirmation.priceEstimate.nights)})</span>
             </div>
           )}
         </div>
-        {form.customer_email && <p className="agent-form__hint" style={{ marginTop: 8 }}>אישור נשלח גם לאימייל שלך.</p>}
+        {form.customer_email && <p className="agent-form__hint" style={{ marginTop: 8 }}>{t.emailConfirmationNote}</p>}
         {confirmation?.trackingToken && (
           <p className="agent-form__hint" style={{ marginTop: 8 }}>
-            <Link to={`/booking/${confirmation.trackingToken}`}>למעקב אחר סטטוס הבקשה — בלי צורך בהרשמה ←</Link>
+            <Link to={`/booking/${confirmation.trackingToken}`}>{t.ppTrackBookingLink} ←</Link>
           </p>
         )}
       </div>
@@ -235,9 +239,9 @@ function BookingRequestForm({ propertyId, propertyName, unit, unitName, currency
 
   return (
     <form onSubmit={handleSubmit} noValidate className="settings-card" style={{ marginTop: 16 }}>
-      <h2 className="settings-card__title">בקשת הזמנה{unitName ? ` — ${unitName}` : ''}</h2>
+      <h2 className="settings-card__title">{t.ppBookingFormTitle}{unitName ? ` — ${unitName}` : ''}</h2>
       <div className="agent-form__field">
-        <label className="agent-form__label">תאריך כניסה</label>
+        <label className="agent-form__label">{t.filterCheckIn}</label>
         <input
           ref={(el) => (fieldRefs.current.check_in = el)}
           className={`agent-form__input${fieldErrors.check_in ? ' agent-form__input--error' : ''}`}
@@ -246,7 +250,7 @@ function BookingRequestForm({ propertyId, propertyName, unit, unitName, currency
         {fieldErrors.check_in && <p className="agent-form__error-msg">{fieldErrors.check_in}</p>}
       </div>
       <div className="agent-form__field">
-        <label className="agent-form__label">תאריך יציאה</label>
+        <label className="agent-form__label">{t.filterCheckOut}</label>
         <input
           ref={(el) => (fieldRefs.current.check_out = el)}
           className={`agent-form__input${fieldErrors.check_out ? ' agent-form__input--error' : ''}`}
@@ -255,11 +259,11 @@ function BookingRequestForm({ propertyId, propertyName, unit, unitName, currency
         {fieldErrors.check_out && <p className="agent-form__error-msg">{fieldErrors.check_out}</p>}
       </div>
       <div className="agent-form__field">
-        <label className="agent-form__label">מספר אורחים</label>
+        <label className="agent-form__label">{t.filterGuestsCount}</label>
         <input className="agent-form__input" type="number" min="1" value={form.guest_count} onChange={set('guest_count')} />
       </div>
       <div className="agent-form__field">
-        <label className="agent-form__label">שם מלא</label>
+        <label className="agent-form__label">{t.ppFullName}</label>
         <input
           ref={(el) => (fieldRefs.current.customer_name = el)}
           className={`agent-form__input${fieldErrors.customer_name ? ' agent-form__input--error' : ''}`}
@@ -268,7 +272,7 @@ function BookingRequestForm({ propertyId, propertyName, unit, unitName, currency
         {fieldErrors.customer_name && <p className="agent-form__error-msg">{fieldErrors.customer_name}</p>}
       </div>
       <div className="agent-form__field">
-        <label className="agent-form__label">טלפון</label>
+        <label className="agent-form__label">{t.ppPhone}</label>
         <input
           ref={(el) => (fieldRefs.current.customer_phone = el)}
           className={`agent-form__input${fieldErrors.customer_phone ? ' agent-form__input--error' : ''}`}
@@ -277,28 +281,29 @@ function BookingRequestForm({ propertyId, propertyName, unit, unitName, currency
         {fieldErrors.customer_phone && <p className="agent-form__error-msg">{fieldErrors.customer_phone}</p>}
       </div>
       <div className="agent-form__field">
-        <label className="agent-form__label">אימייל (אופציונלי — לקבלת אישור)</label>
+        <label className="agent-form__label">{t.ppEmailOptional}</label>
         <input className="agent-form__input" type="email" value={form.customer_email} onChange={set('customer_email')} />
       </div>
       <div className="agent-form__field">
-        <label className="agent-form__label">הודעה (אופציונלי)</label>
+        <label className="agent-form__label">{t.ppMessageOptional}</label>
         <input className="agent-form__input" value={form.message} onChange={set('message')} />
       </div>
       {priceEstimate && (
         <div className="deal-modal__detail-row" style={{ background: 'var(--color-surface-elevated)', borderRadius: 'var(--radius-sm)', padding: '10px 12px' }}>
-          <span className="deal-modal__detail-label">מחיר משוער</span>
-          <span>{Math.round(priceEstimate.total)} {getCurrencySymbol(currency)} · {priceEstimate.nights} לילות</span>
+          <span className="deal-modal__detail-label">{t.ppPriceEstimate}</span>
+          <span>{Math.round(priceEstimate.total)} {getCurrencySymbol(currency)} · {t.nightsCount(priceEstimate.nights)}</span>
         </div>
       )}
-      {result === 'error' && <p className="agent-form__error-msg">שגיאה בשליחת הבקשה, נסו שוב</p>}
+      {result === 'error' && <p className="agent-form__error-msg">{t.bookingErrorSubmit}</p>}
       <motion.button type="submit" className="deal-modal__btn deal-modal__btn--book" whileTap={{ scale: 0.97 }} disabled={submitting}>
-        <Send size={16} /> {submitting ? 'שולח…' : 'שלח בקשת הזמנה'}
+        <Send size={16} /> {submitting ? t.ppSubmitting : t.ppSubmitBooking}
       </motion.button>
     </form>
   );
 }
 
 export function PropertyPage() {
+  const { t, dir, lang } = useLanguage();
   const { id } = useParams();
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -334,12 +339,12 @@ export function PropertyPage() {
     }
   }
 
-  if (loading) return <div dir="rtl"><PropertyPageSkeleton /></div>;
+  if (loading) return <div dir={dir}><PropertyPageSkeleton /></div>;
   if (error || !property) {
     return (
-      <div className="agent-social-profile agent-social-profile--error" dir="rtl">
-        <p>הנכס לא נמצא</p>
-        <BackLink className="agent-social-profile__back-clean">← חזרה</BackLink>
+      <div className="agent-social-profile agent-social-profile--error" dir={dir}>
+        <p>{t.propertyNotFound}</p>
+        <BackLink className="agent-social-profile__back-clean">← {t.backButton}</BackLink>
       </div>
     );
   }
@@ -361,17 +366,17 @@ export function PropertyPage() {
   const favKey = { id: property.id, deal_source: 'property', name: property.name, image: property.owner_images?.[0] };
 
   return (
-    <div className="pp" dir="rtl">
+    <div className="pp" dir={dir}>
       <div className="pp__topbar container">
         <BackLink className="agent-social-profile__back-clean">
-          <ArrowLeft size={14} /> חזרה
+          <ArrowLeft size={14} /> {t.backButton}
         </BackLink>
       </div>
 
-      <nav className="property-breadcrumbs container" aria-label="פירורי לחם">
-        <Link to="/">בית</Link>
+      <nav className="property-breadcrumbs container" aria-label={t.breadcrumbsLabel}>
+        <Link to="/">{t.homeLink}</Link>
         <ChevronLeft size={13} aria-hidden="true" />
-        <Link to={`/?region=${property.region}`}>{regionLabel(property.region)}</Link>
+        <Link to={`/אזור/${encodeURIComponent(regionLabel(property.region, 'he'))}`}>{regionLabel(property.region, lang)}</Link>
         <ChevronLeft size={13} aria-hidden="true" />
         <span aria-current="page">{property.name}</span>
       </nav>
@@ -386,7 +391,7 @@ export function PropertyPage() {
               <div className="deal-modal__media-gradient" />
               <div className="deal-modal__price-overlay">
                 <span className="adc__exclusive-badge" style={{ position: 'static' }}>
-                  <ShieldAlert size={12} /> בעל הנכס טרם אימת את העמוד
+                  <ShieldAlert size={12} /> {t.unclaimedNotice}
                 </span>
               </div>
             </div>
@@ -396,22 +401,22 @@ export function PropertyPage() {
             <div>
               <h1 className="pp__title">{property.name}</h1>
               <p className="pp__subtitle">
-                {propertyTypeLabel(property.property_type)} · {regionLabel(property.region)}{property.city ? ` · ${property.city}` : ''}
+                {propertyTypeLabel(property.property_type, lang)} · {regionLabel(property.region, lang)}{property.city ? ` · ${property.city}` : ''}
               </p>
               {isClaimed && property.owner_id && (
                 <span className="pp__verified-badge">
-                  <CheckCircle size={13} /> מאומת ע"י הבעלים
+                  <CheckCircle size={13} /> {t.verifiedByOwner}
                 </span>
               )}
             </div>
             <div className="pp__header-actions">
-              <button type="button" className={`pp__icon-btn${isFavorite(favKey) ? ' is-fav' : ''}`} onClick={() => toggleFavorite(favKey)} aria-label="הוסף למועדפים">
+              <button type="button" className={`pp__icon-btn${isFavorite(favKey) ? ' is-fav' : ''}`} onClick={() => toggleFavorite(favKey)} aria-label={t.addToFavorites}>
                 <Heart size={18} />
               </button>
-              <button type="button" className="pp__icon-btn" onClick={handleShare} aria-label="שתף">
+              <button type="button" className="pp__icon-btn" onClick={handleShare} aria-label={t.shareButtonLabel}>
                 <Share2 size={18} />
               </button>
-              {shareCopied && <span className="pp__share-toast">הקישור הועתק!</span>}
+              {shareCopied && <span className="pp__share-toast">{t.linkCopiedToast}</span>}
             </div>
           </div>
 
@@ -423,9 +428,9 @@ export function PropertyPage() {
                 <Users size={15} />
                 <span>
                   {[
-                    capacity ? `עד ${capacity} אורחים` : null,
-                    bedrooms ? `${bedrooms} חדרי שינה` : null,
-                    property.bathrooms ? `${property.bathrooms} חדרי רחצה` : null,
+                    capacity ? t.guestsUpTo(capacity) : null,
+                    bedrooms ? t.bedroomsCount(bedrooms) : null,
+                    property.bathrooms ? t.bathroomsCount(property.bathrooms) : null,
                   ].filter(Boolean).join(' · ')}
                 </span>
               </div>
@@ -433,12 +438,12 @@ export function PropertyPage() {
             {property.kosher_level !== 'not_applicable' && (
               <div className="deal-modal__detail-row">
                 <Bath size={15} opacity={0.5} />
-                <span>{kosherLabel(property.kosher_level)}</span>
+                <span>{kosherLabel(property.kosher_level, lang)}</span>
               </div>
             )}
             {priceFrom && (
               <div className="deal-modal__detail-row">
-                <span className="deal-modal__detail-label">{isMultiUnit ? 'החל מ-' : 'מחיר ללילה'}</span>
+                <span className="deal-modal__detail-label">{isMultiUnit ? t.priceFromLabel : t.pricePerNightLabel}</span>
                 <span>{Math.round(priceFrom)} {getCurrencySymbol(property.currency)}</span>
               </div>
             )}
@@ -448,7 +453,7 @@ export function PropertyPage() {
 
           {isMultiUnit && (
             <section className="pp__section">
-              <h2 className="pp__section-title">יחידות במתחם</h2>
+              <h2 className="pp__section-title">{t.ppUnitsTitle}</h2>
               <PropertyUnitsTable
                 units={units}
                 currency={property.currency}
@@ -461,7 +466,7 @@ export function PropertyPage() {
 
           {isClaimed && selectedUnit && (
             <section className="pp__section">
-              <h2 className="pp__section-title"><CalendarClock size={17} /> לוח זמינות</h2>
+              <h2 className="pp__section-title"><CalendarClock size={17} /> {t.ppAvailabilityTitle}</h2>
               <PublicAvailabilityCalendar propertyId={property.id} unitId={isMultiUnit ? selectedUnit.id : undefined} />
             </section>
           )}
@@ -469,37 +474,37 @@ export function PropertyPage() {
           {isClaimed && <OwnerCard owner={property.owner} />}
 
           <section className="pp__section pp__policies">
-            <h2 className="pp__section-title"><Info size={17} /> מדיניות</h2>
+            <h2 className="pp__section-title"><Info size={17} /> {t.ppPoliciesTitle}</h2>
             <ul className="pp__policies-list">
-              <li>שעות צ׳ק אין/אאוט — לתיאום ישיר מול בעל הנכס</li>
-              <li>מינימום לילות: {selectedUnit?.min_nights || property.min_nights || 1}</li>
-              <li>מדיניות ביטולים — לבירור מול בעל הנכס לפני אישור ההזמנה</li>
+              <li>{t.ppPolicyCheckInOut}</li>
+              <li>{t.ppPolicyMinNights(selectedUnit?.min_nights || property.min_nights || 1)}</li>
+              <li>{t.ppPolicyCancellation}</li>
             </ul>
           </section>
 
           {!isClaimed && (
             <section className="pp__section">
               <p className="deal-modal__desc" style={{ fontSize: '0.8rem', opacity: 0.75 }}>
-                המידע בעמוד זה נאסף ממקורות פומביים ועשוי להיות לא מעודכן.
+                {t.unclaimedDisclaimer}
                 {property.source_url && (
-                  <> לעמוד הרשמי: <a href={property.source_url} target="_blank" rel="noopener noreferrer">{property.source_url}</a></>
+                  <> {t.unclaimedOfficialPage} <a href={property.source_url} target="_blank" rel="noopener noreferrer">{property.source_url}</a></>
                 )}
               </p>
               <div className="deal-modal__actions">
                 {property.source_url && (
                   <a className="deal-modal__btn deal-modal__btn--hotel" href={property.source_url} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink size={16} /> לאתר הרשמי של הצימר
+                    <ExternalLink size={16} /> {t.officialSiteLink}
                   </a>
                 )}
               </div>
               {isPendingClaim ? (
                 <p className="deal-modal__desc">
                   <Clock size={15} style={{ verticalAlign: 'middle', marginInlineEnd: 4 }} />
-                  תביעת הבעלות על נכס זה כבר הוגשה וממתינה לאישור מנהל.
+                  {t.claimPendingNotice}
                 </p>
               ) : null}
               <p className="agent-form__hint" style={{ marginTop: 4 }}>
-                לא רלוונטי? <Link to="/remove">בקשת הסרת הנכס</Link>
+                {t.notRelevantQuestion} <Link to="/remove">{t.removeRequestLink}</Link>
               </p>
               {!isPendingClaim && (
                 <ClaimFlow propertyId={property.id} />
@@ -522,7 +527,7 @@ export function PropertyPage() {
 
           {similar.length > 0 && (
             <section className="pp__section pp__similar">
-              <h2 className="pp__section-title">נכסים דומים באזור</h2>
+              <h2 className="pp__section-title">{t.ppSimilarTitle}</h2>
               <PropertyGrid properties={similar} isLoading={false} />
             </section>
           )}
@@ -546,10 +551,10 @@ export function PropertyPage() {
         <div className="pp__mobile-bar">
           <div>
             <strong>{Math.round(priceFrom)} {getCurrencySymbol(property.currency)}</strong>
-            <span>ללילה</span>
+            <span>{t.perNightLabel}</span>
           </div>
           <button type="button" onClick={() => bookingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
-            הזמן עכשיו
+            {t.ppBookNow}
           </button>
         </div>
       )}

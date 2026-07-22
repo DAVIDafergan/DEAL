@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { Link } from '../components/LocalizedLink.jsx';
 import { agentApi } from '../api/client.js';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';

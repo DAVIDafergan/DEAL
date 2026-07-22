@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { Link } from '../components/LocalizedLink.jsx';
 import { ArrowLeft, Globe } from 'lucide-react';
 import { GoogleLoginButton } from '../components/GoogleLoginButton.jsx';
 import { userApi } from '../api/client.js';

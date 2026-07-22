@@ -4,7 +4,8 @@ import { LanguageSwitcher } from './LanguageSwitcher.jsx';
 import { Logo } from './Logo.jsx';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { useTravelerAuth } from '../context/TravelerAuthContext.jsx';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Link } from './LocalizedLink.jsx';
 import { Heart, Menu, X, User, FileText, Home, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -49,7 +50,7 @@ export function Header({ reels = false, activeTab = 'home' }) {
             <button
               className="header-hamburger"
               onClick={() => setMenuOpen(v => !v)}
-              aria-label="תפריט"
+              aria-label={t.menuLabel}
             >
               <AnimatePresence mode="wait" initial={false}>
                 {menuOpen ? (
@@ -66,7 +67,7 @@ export function Header({ reels = false, activeTab = 'home' }) {
 
             {!loading && (
               (token && agent) || traveler ? (
-                <Link to="/account" className="header-avatar-btn" aria-label="אזור אישי">
+                <Link to="/account" className="header-avatar-btn" aria-label={t.personalAreaLabel}>
                   <User size={20} />
                 </Link>
               ) : (
@@ -74,7 +75,7 @@ export function Header({ reels = false, activeTab = 'home' }) {
                   className="header-auth-btn header-auth-btn--primary header-login-pill"
                   onClick={() => navigate('/owner/login')}
                 >
-                  {t.headerLoginButton || 'התחברות'}
+                  {t.headerLoginButton}
                 </button>
               )
             )}
@@ -92,7 +93,7 @@ export function Header({ reels = false, activeTab = 'home' }) {
               <motion.button
                 className="header-search-pill"
                 onClick={handleHeaderSearchPillClick}
-                aria-label="חזור לחיפוש"
+                aria-label={t.backToSearchLabel}
                 initial={{ opacity: 0, y: -10, scale: 0.88 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -10, scale: 0.88 }}
@@ -101,7 +102,7 @@ export function Header({ reels = false, activeTab = 'home' }) {
                 whileTap={{ scale: 0.97 }}
               >
                 <Search size={14} className="header-search-pill__search-icon" />
-                <span className="header-search-pill__text">חפש לי חופשה…</span>
+                <span className="header-search-pill__text">{t.findMyVacationLabel}</span>
                 <span className="header-search-pill__arrow">↓</span>
               </motion.button>
             )}
@@ -125,7 +126,7 @@ export function Header({ reels = false, activeTab = 'home' }) {
                   className="header-auth-btn header-auth-btn--ghost"
                   onClick={() => navigate('/owner/login')}
                 >
-                  {t.headerLoginButton || 'התחברות'}
+                  {t.headerLoginButton}
                 </button>
               )
             )}
@@ -147,31 +148,31 @@ export function Header({ reels = false, activeTab = 'home' }) {
               transition={{ duration: 0.18 }}
             >
               <Link to="/" className={`header-drawer__item${activeTab === 'home' ? ' header-drawer__item--active' : ''}`} onClick={closeMenu}>
-                <Home size={16} /> {t.homeLink || 'דף הבית'}
+                <Home size={16} /> {t.homeLink}
               </Link>
               <div className="header-drawer__divider" />
               {token && agent && (
                 <Link to="/my/favorites" className="header-drawer__item" onClick={closeMenu}>
-                  <Heart size={15} /> {t.favoritesLink || 'המועדפים שלי'}
+                  <Heart size={15} /> {t.favoritesLink}
                 </Link>
               )}
               <div className="header-drawer__lang-row">
-                <span className="header-drawer__lang-label">{t.languageLabel || 'שפה'}</span>
+                <span className="header-drawer__lang-label">{t.languageLabel}</span>
                 <LanguageSwitcher />
               </div>
               <div className="header-drawer__divider" />
               <Link to="/contact" className="header-drawer__item header-drawer__item--muted" onClick={closeMenu}>
-                <FileText size={15} /> צור קשר
+                <FileText size={15} /> {t.footerContact}
               </Link>
               <Link to="/terms" className="header-drawer__item header-drawer__item--muted" onClick={closeMenu}>
-                <FileText size={15} /> {t.termsLink || 'תנאי שימוש'}
+                <FileText size={15} /> {t.termsLink}
               </Link>
               <Link to="/privacy" className="header-drawer__item header-drawer__item--muted" onClick={closeMenu}>
-                <FileText size={15} /> {t.privacyLink || 'מדיניות פרטיות'}
+                <FileText size={15} /> {t.privacyLink}
               </Link>
               {!loading && !token && (
                 <button className="header-drawer__item" onClick={() => { navigate('/register'); closeMenu(); }}>
-                  הרשמת בעל צימר
+                  {t.footerOwnerRegister}
                 </button>
               )}
             </motion.nav>

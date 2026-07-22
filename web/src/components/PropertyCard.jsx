@@ -1,10 +1,11 @@
 import { useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from './LocalizedLink.jsx';
 import { MessageCircle, CheckCircle, Users, BedDouble, Waves, Heart } from 'lucide-react';
 import { getCurrencySymbol } from '../utils/currency.js';
-import { regionLabel } from '../data/propertyOptions.js';
+import { regionLabel, amenityLabel } from '../data/propertyOptions.js';
 import { useFavorites } from '../hooks/useFavorites.js';
 import { optimizedImageUrl } from '../utils/imageUrl.js';
+import { useLanguage } from '../context/LanguageContext.jsx';
 
 function buildWhatsAppUrl(number, propertyName) {
   const text = `שלום, ראיתי את ${propertyName} ב-Dealim ואני מתעניין/ת`;
@@ -13,12 +14,12 @@ function buildWhatsAppUrl(number, propertyName) {
   return `https://wa.me/${clean}?text=${encodeURIComponent(text)}`;
 }
 
-function topAmenities(property) {
+function topAmenities(property, lang) {
   const list = [];
-  if (property.has_private_jacuzzi) list.push('ג׳קוזי פרטי');
-  if (property.has_private_pool) list.push('בריכה פרטית');
-  else if (property.has_heated_pool) list.push('בריכה מחוממת');
-  if (property.has_view) list.push('נוף');
+  if (property.has_private_jacuzzi) list.push(amenityLabel('has_private_jacuzzi', lang));
+  if (property.has_private_pool) list.push(amenityLabel('has_private_pool', lang));
+  else if (property.has_heated_pool) list.push(amenityLabel('has_heated_pool', lang));
+  if (property.has_view) list.push(amenityLabel('has_view', lang));
   return list;
 }
 
@@ -29,13 +30,14 @@ function topAmenities(property) {
 const HOVER_INTERVAL_MS = 1100;
 
 export function PropertyCard({ property }) {
+  const { t, lang } = useLanguage();
   const images = property.owner_images?.length ? property.owner_images : [];
   const [hoverIndex, setHoverIndex] = useState(0);
   const intervalRef = useRef(null);
   const { toggleFavorite, isFavorite } = useFavorites();
   const favKey = { id: property.id, deal_source: 'property', name: property.name, image: images[0] };
   const isClaimed = property.status === 'claimed' || property.status === 'active';
-  const amenities = topAmenities(property);
+  const amenities = topAmenities(property, lang);
   const price = property.price_from ?? property.base_price_night;
   const capacity = property.total_guest_capacity ?? property.guest_capacity;
   const bedrooms = property.max_bedrooms ?? property.bedrooms;
@@ -78,7 +80,7 @@ export function PropertyCard({ property }) {
           type="button"
           className={`adc__fav-btn${isFavorite(favKey) ? ' is-fav' : ''}`}
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(favKey); }}
-          aria-label="הוסף למועדפים"
+          aria-label={t.addToFavorites}
         >
           <Heart size={15} strokeWidth={2} />
         </button>
@@ -87,16 +89,16 @@ export function PropertyCard({ property }) {
 
         {isClaimed ? (
           <span className="adc__value-badge" style={{ background: 'var(--ds-olive)', boxShadow: 'none' }}>
-            <CheckCircle size={11} /> מאומת
+            <CheckCircle size={11} /> {t.verifiedBadge}
           </span>
         ) : (
-          <span className="adc__exclusive-badge">טרם אומת</span>
+          <span className="adc__exclusive-badge">{t.unverifiedBadge}</span>
         )}
 
         <div className="adc__overlay-bottom">
           <div>
             <div className="adc__dest-name">{property.name}</div>
-            <span className="adc__country">{regionLabel(property.region)}{property.city ? ` · ${property.city}` : ''}</span>
+            <span className="adc__country">{regionLabel(property.region, lang)}{property.city ? ` · ${property.city}` : ''}</span>
           </div>
         </div>
       </div>
@@ -109,8 +111,8 @@ export function PropertyCard({ property }) {
             </span>
             <span className="adc__info-text">
               {[
-                capacity ? `עד ${capacity} אורחים` : null,
-                bedrooms ? `${bedrooms} חדרי שינה` : null,
+                capacity ? t.guestsUpTo(capacity) : null,
+                bedrooms ? t.bedroomsCount(bedrooms) : null,
               ].filter(Boolean).join(' · ')}
             </span>
           </div>
@@ -128,7 +130,7 @@ export function PropertyCard({ property }) {
             <span className="icon-draw icon-draw--once adc__info-icon">
               <BedDouble size={12} strokeWidth={1.8} />
             </span>
-            <span className="adc__info-text">{bedrooms} חדרי שינה</span>
+            <span className="adc__info-text">{t.bedroomsCount(bedrooms)}</span>
           </div>
         )}
 
@@ -136,14 +138,14 @@ export function PropertyCard({ property }) {
           <div className="adc__price-block">
             {price ? (
               <span className="adc__price">
-                {isMultiUnit && <span className="adc__price-from">החל מ-</span>}
+                {isMultiUnit && <span className="adc__price-from">{t.priceFromLabel}</span>}
                 {Math.round(price)}{' '}
                 <span className="adc__currency">{getCurrencySymbol(property.currency)}</span>
               </span>
             ) : (
-              <span className="adc__price">מחיר לפי פנייה</span>
+              <span className="adc__price">{t.priceOnRequest}</span>
             )}
-            {price && <span className="adc__pax">ללילה</span>}
+            {price && <span className="adc__pax">{t.perNightLabel}</span>}
             {property.description && (
               <span className="adc__desc-snippet">{property.description.slice(0, 40)}</span>
             )}
@@ -157,7 +159,7 @@ export function PropertyCard({ property }) {
                 type="button"
                 className="adc__btn adc__btn--wa"
                 onClick={() => window.open(buildWhatsAppUrl(property.whatsapp, property.name), '_blank', 'noopener,noreferrer')}
-                aria-label="שאל בWhatsApp"
+                aria-label={t.whatsappAsk}
               >
                 <MessageCircle size={14} />
               </button>

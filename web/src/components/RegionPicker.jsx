@@ -1,5 +1,6 @@
 import { Mountain, Trees, Waves, Sun, Landmark, TentTree, Snowflake, Palmtree, Building2 } from 'lucide-react';
-import { REGIONS } from '../data/propertyOptions.js';
+import { REGIONS, regionLabel } from '../data/propertyOptions.js';
+import { useLanguage } from '../context/LanguageContext.jsx';
 
 // 9.1: replaces the Israel pin-map on the homepage. Each region gets a distinct warm duotone
 // gradient (no photo backend for arbitrary region queries yet — see DECISIONS.md 9.1) + a
@@ -18,6 +19,7 @@ const REGION_META = {
 };
 
 export function RegionPicker({ propertiesByRegion = {}, onSelectRegion, activeRegion }) {
+  const { t, lang } = useLanguage();
   return (
     <div className="region-picker" role="list">
       {REGIONS.map((region) => {
@@ -34,8 +36,8 @@ export function RegionPicker({ propertiesByRegion = {}, onSelectRegion, activeRe
             onClick={() => onSelectRegion(region.value)}
           >
             <Icon className="region-card__icon" size={26} strokeWidth={1.75} aria-hidden="true" />
-            <span className="region-card__name">{region.label}</span>
-            <span className="region-card__count">{count > 0 ? `${count} נכסים` : 'בקרוב'}</span>
+            <span className="region-card__name">{regionLabel(region.value, lang)}</span>
+            <span className="region-card__count">{count > 0 ? t.regionCardCount(count) : t.regionCardComingSoon}</span>
           </button>
         );
       })}

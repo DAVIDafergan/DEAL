@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link } from '../components/LocalizedLink.jsx';
 import { ArrowLeft, Home } from 'lucide-react';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { adminApi, agentApi } from '../api/client.js';

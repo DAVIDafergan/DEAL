@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { propertyApi } from '../../api/client.js';
-
-const WEEKDAY_LABELS = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'];
+import { useLanguage } from '../../context/LanguageContext.jsx';
 
 function toDateStr(d) {
   return d.toISOString().slice(0, 10);
@@ -21,6 +20,7 @@ function monthMatrix(year, month) {
  * the selected unit. Reuses the same public GET availability endpoint the owner's editable
  * calendar uses — no new backend, just no edit controls here. */
 export function PublicAvailabilityCalendar({ propertyId, unitId }) {
+  const { t, dir } = useLanguage();
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
@@ -51,23 +51,25 @@ export function PublicAvailabilityCalendar({ propertyId, unitId }) {
   }
 
   const cells = monthMatrix(year, month);
-  const monthLabel = new Date(Date.UTC(year, month, 1)).toLocaleDateString('he-IL', { month: 'long', year: 'numeric' });
+  const monthLabel = new Date(Date.UTC(year, month, 1)).toLocaleDateString(t.calLocale, { month: 'long', year: 'numeric' });
   const todayStr = toDateStr(today);
+  const PrevIcon = dir === 'rtl' ? ChevronRight : ChevronLeft;
+  const NextIcon = dir === 'rtl' ? ChevronLeft : ChevronRight;
 
   return (
     <div className="pub-cal">
       <div className="pub-cal__head">
-        <button type="button" className="pub-cal__nav-btn" onClick={() => changeMonth(-1)} aria-label="חודש קודם"><ChevronRight size={16} /></button>
+        <button type="button" className="pub-cal__nav-btn" onClick={() => changeMonth(-1)} aria-label={t.calPrevMonth}><PrevIcon size={16} /></button>
         <strong>{monthLabel}</strong>
-        <button type="button" className="pub-cal__nav-btn" onClick={() => changeMonth(1)} aria-label="חודש הבא"><ChevronLeft size={16} /></button>
+        <button type="button" className="pub-cal__nav-btn" onClick={() => changeMonth(1)} aria-label={t.calNextMonth}><NextIcon size={16} /></button>
       </div>
 
       {loading ? (
-        <p className="pub-cal__loading">טוען זמינות…</p>
+        <p className="pub-cal__loading">{t.calLoadingAvailability}</p>
       ) : (
         <>
           <div className="pub-cal__grid pub-cal__grid--labels">
-            {WEEKDAY_LABELS.map((d) => <div key={d}>{d}</div>)}
+            {t.calWeekdays.map((d, i) => <div key={i}>{d}</div>)}
           </div>
           <div className="pub-cal__grid">
             {cells.map((date, i) => {
@@ -79,7 +81,7 @@ export function PublicAvailabilityCalendar({ propertyId, unitId }) {
                 <div
                   key={dateStr}
                   className={`pub-cal__cell${isPast ? ' is-past' : available ? ' is-available' : ' is-blocked'}`}
-                  title={isPast ? '' : available ? 'פנוי' : 'תפוס'}
+                  title={isPast ? '' : available ? t.calAvailable : t.calBlocked}
                 >
                   {date.getUTCDate()}
                 </div>
@@ -87,8 +89,8 @@ export function PublicAvailabilityCalendar({ propertyId, unitId }) {
             })}
           </div>
           <div className="pub-cal__legend">
-            <span><i className="pub-cal__dot is-available" />פנוי</span>
-            <span><i className="pub-cal__dot is-blocked" />תפוס</span>
+            <span><i className="pub-cal__dot is-available" />{t.calAvailable}</span>
+            <span><i className="pub-cal__dot is-blocked" />{t.calBlocked}</span>
           </div>
         </>
       )}

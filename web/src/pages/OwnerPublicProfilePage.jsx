@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { Link } from '../components/LocalizedLink.jsx';
 import { Share2, MessageCircle, CheckCircle, ArrowLeft, Globe } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { propertyApi } from '../api/client.js';

@@ -1,4 +1,5 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { Link } from '../components/LocalizedLink.jsx';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Heart, LayoutDashboard, LogOut, ArrowLeft, User, Settings, Trash2, CalendarCheck } from 'lucide-react';
@@ -22,7 +23,7 @@ const container = {
 export function AccountPage() {
   const { agent, token, loading, logout: agentLogout } = useAgentAuth();
   const { traveler, travelerToken, travelerLogout } = useTravelerAuth();
-  const { t } = useLanguage();
+  const { t, dir } = useLanguage();
   const navigate = useNavigate();
   const { favorites } = useFavorites();
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -58,17 +59,17 @@ export function AccountPage() {
       }
       navigate('/', { replace: true });
     } catch (err) {
-      alert(err.message || 'שגיאה במחיקת החשבון');
+      alert(err.message || t.accountDeleteError);
       setDeleting(false);
       setConfirmDelete(false);
     }
   }
 
   return (
-    <div className="account-page container" dir="rtl">
+    <div className="account-page container" dir={dir}>
       <Link to="/" className="account-page__back">
         <ArrowLeft size={14} />
-        {t.backToFeedButton || 'חזרה'}
+        {t.backButton}
       </Link>
 
       {/* Greeting */}
@@ -92,8 +93,8 @@ export function AccountPage() {
         <div className="account-profile-info">
           <h1 className="account-profile-name">{displayName || '...'}</h1>
           <p className="account-profile-email">{displayEmail}</p>
-          {isTraveler && <span className="account-profile-badge">מטייל</span>}
-          {isAgent && <span className="account-profile-badge account-profile-badge--agent">{agent.account_type === 'property_owner' ? 'בעל נכס' : 'סוכן'}</span>}
+          {isTraveler && <span className="account-profile-badge">{t.accountTravelerBadge}</span>}
+          {isAgent && <span className="account-profile-badge account-profile-badge--agent">{agent.account_type === 'property_owner' ? t.accountOwnerBadge : t.accountAgentBadge}</span>}
         </div>
       </motion.div>
 
@@ -105,8 +106,8 @@ export function AccountPage() {
               <Heart size={22} />
             </div>
             <div className="account-card__text">
-              <span className="account-card__label">{t.favoritesLink || 'המועדפים שלי'}</span>
-              <span className="account-card__sub">{favorites.length} נכסים שמורים</span>
+              <span className="account-card__label">{t.favoritesLink}</span>
+              <span className="account-card__sub">{t.savedPropertiesCount(favorites.length)}</span>
             </div>
           </Link>
         </motion.div>
@@ -117,8 +118,8 @@ export function AccountPage() {
               <CalendarCheck size={22} />
             </div>
             <div className="account-card__text">
-              <span className="account-card__label">ההזמנות שלי</span>
-              <span className="account-card__sub">מעקב אחרי בקשות הזמנה לפי סטטוס</span>
+              <span className="account-card__label">{t.myBookingsTitle}</span>
+              <span className="account-card__sub">{t.myBookingsSubLabel}</span>
             </div>
           </Link>
         </motion.div>
@@ -130,8 +131,8 @@ export function AccountPage() {
                 <LayoutDashboard size={22} />
               </div>
               <div className="account-card__text">
-                <span className="account-card__label">{t.dashboardLink || 'לוח בקרה'}</span>
-                <span className="account-card__sub">{t.manageDealsSub || 'ניהול נכסים ובקשות הזמנה'}</span>
+                <span className="account-card__label">{t.dashboardLinkOwner}</span>
+                <span className="account-card__sub">{t.manageDealsSub}</span>
               </div>
             </Link>
           </motion.div>
@@ -144,8 +145,8 @@ export function AccountPage() {
                 <Settings size={22} />
               </div>
               <div className="account-card__text">
-                <span className="account-card__label">{t.settingsLink || 'הגדרות פרופיל'}</span>
-                <span className="account-card__sub">{t.editProfileSub || 'עריכת פרטים ותמונה'}</span>
+                <span className="account-card__label">{t.settingsLink}</span>
+                <span className="account-card__sub">{t.editProfileSub}</span>
               </div>
             </Link>
           </motion.div>
@@ -158,8 +159,8 @@ export function AccountPage() {
                 <User size={22} />
               </div>
               <div className="account-card__text">
-                <span className="account-card__label">סוכן נסיעות?</span>
-                <span className="account-card__sub">הרשם כסוכן וצור דילים</span>
+                <span className="account-card__label">{t.travelerAgentPrompt}</span>
+                <span className="account-card__sub">{t.travelerAgentPromptSub}</span>
               </div>
             </Link>
           </motion.div>
@@ -171,7 +172,7 @@ export function AccountPage() {
               <LogOut size={22} />
             </div>
             <div className="account-card__text">
-              <span className="account-card__label">{t.logoutButton || 'התנתקות'}</span>
+              <span className="account-card__label">{t.logoutButton}</span>
             </div>
           </button>
         </motion.div>
@@ -187,14 +188,14 @@ export function AccountPage() {
                 <Trash2 size={22} />
               </div>
               <div className="account-card__text">
-                <span className="account-card__label">מחיקת חשבון</span>
-                <span className="account-card__sub">פעולה בלתי הפיכה</span>
+                <span className="account-card__label">{t.deleteAccountLabel}</span>
+                <span className="account-card__sub">{t.deleteAccountSub}</span>
               </div>
             </button>
           ) : (
             <div className="account-delete-confirm">
               <p className="account-delete-confirm__msg">
-                בטוח? כל הנתונים ימחקו לצמיתות ולא ניתן לשחזר.
+                {t.deleteAccountConfirmMsg}
               </p>
               <div className="account-delete-confirm__btns">
                 <button
@@ -202,14 +203,14 @@ export function AccountPage() {
                   onClick={() => setConfirmDelete(false)}
                   disabled={deleting}
                 >
-                  ביטול
+                  {t.cancelButton}
                 </button>
                 <button
                   className="account-delete-confirm__btn account-delete-confirm__btn--confirm"
                   onClick={handleDeleteAccount}
                   disabled={deleting}
                 >
-                  {deleting ? 'מוחק…' : 'מחק לצמיתות'}
+                  {deleting ? t.deletingButton : t.deleteForeverButton}
                 </button>
               </div>
             </div>

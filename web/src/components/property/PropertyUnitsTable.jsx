@@ -1,19 +1,21 @@
 import { Users, BedDouble } from 'lucide-react';
 import { getCurrencySymbol } from '../../utils/currency.js';
 import { unitAmenityLabel } from '../../data/propertyOptions.js';
+import { useLanguage } from '../../context/LanguageContext.jsx';
 
 /** PropertyUnitsTable — 9.4 "טבלת יחידות", the Booking-style heart of the property page: one
  * row per bookable unit with photo/name/capacity/rooms/unique amenities/price/book button.
  * A CSS grid "table" (not a literal <table>) so it can collapse into stacked cards on mobile
  * without the usual table-responsiveness fight. */
 export function PropertyUnitsTable({ units, currency, selectedUnitId, onSelectUnit, onBook }) {
+  const { t, lang } = useLanguage();
   return (
-    <div className="ut" role="table" aria-label="יחידות במתחם">
+    <div className="ut" role="table" aria-label={t.ppUnitsTitle}>
       <div className="ut__head" role="row">
-        <span role="columnheader">יחידה</span>
-        <span role="columnheader">קיבולת</span>
-        <span role="columnheader">מתקנים</span>
-        <span role="columnheader">מחיר</span>
+        <span role="columnheader">{t.utUnitCol}</span>
+        <span role="columnheader">{t.utCapacityCol}</span>
+        <span role="columnheader">{t.filterAmenities}</span>
+        <span role="columnheader">{t.utPriceCol}</span>
         <span role="columnheader" aria-hidden="true" />
       </div>
 
@@ -33,23 +35,23 @@ export function PropertyUnitsTable({ units, currency, selectedUnitId, onSelectUn
               </div>
             </div>
 
-            <div className="ut__meta" role="cell" data-label="קיבולת">
+            <div className="ut__meta" role="cell" data-label={t.utCapacityCol}>
               {unit.max_guests && <span><Users size={13} /> {unit.max_guests}</span>}
               {unit.bedrooms && <span><BedDouble size={13} /> {unit.bedrooms}</span>}
             </div>
 
-            <div className="ut__amenities" role="cell" data-label="מתקנים">
-              {amenities.length > 0 ? amenities.map(unitAmenityLabel).join(' · ') : '—'}
+            <div className="ut__amenities" role="cell" data-label={t.filterAmenities}>
+              {amenities.length > 0 ? amenities.map((a) => unitAmenityLabel(a, lang)).join(' · ') : '—'}
             </div>
 
-            <div className="ut__price" role="cell" data-label="מחיר">
+            <div className="ut__price" role="cell" data-label={t.utPriceCol}>
               {unit.base_price_night ? (
                 <>
                   <strong>{Math.round(unit.base_price_night)} {getCurrencySymbol(currency)}</strong>
-                  <span>ללילה</span>
+                  <span>{t.perNightLabel}</span>
                 </>
               ) : (
-                <span className="ut__price-inquire">מחיר לפי פנייה</span>
+                <span className="ut__price-inquire">{t.priceOnRequest}</span>
               )}
             </div>
 
@@ -59,7 +61,7 @@ export function PropertyUnitsTable({ units, currency, selectedUnitId, onSelectUn
                 className="ut__book-btn"
                 onClick={() => { onSelectUnit(unit.id); onBook(); }}
               >
-                {isSelected ? 'נבחר ✓' : 'הזמן'}
+                {isSelected ? t.utSelected : t.ppBookNow}
               </button>
             </div>
           </div>

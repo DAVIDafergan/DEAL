@@ -1,19 +1,24 @@
-import { Link } from 'react-router-dom';
+import { Link } from '../LocalizedLink.jsx';
 import { Globe } from 'lucide-react';
 import { FacebookIcon, InstagramIcon, TikTokIcon, YouTubeIcon } from '../SocialIcons.jsx';
+import { useLanguage } from '../../context/LanguageContext.jsx';
 
 const SOCIAL_LINKS = [
-  { key: 'website', Icon: Globe, label: 'אתר' },
-  { key: 'facebook_url', Icon: FacebookIcon, label: 'פייסבוק' },
-  { key: 'instagram_url', Icon: InstagramIcon, label: 'אינסטגרם' },
-  { key: 'tiktok_url', Icon: TikTokIcon, label: 'טיקטוק' },
-  { key: 'youtube_url', Icon: YouTubeIcon, label: 'יוטיוב' },
+  { key: 'website', Icon: Globe, labelKey: 'socialWebsite' },
+  { key: 'facebook_url', Icon: FacebookIcon, labelKey: 'socialFacebook' },
+  { key: 'instagram_url', Icon: InstagramIcon, labelKey: 'socialInstagram' },
+  { key: 'tiktok_url', Icon: TikTokIcon, labelKey: 'socialTiktok' },
+  { key: 'youtube_url', Icon: YouTubeIcon, labelKey: 'socialYoutube' },
 ];
 
 /** OwnerCard — 7.7 public property page: "כרטיס בעלים עם תמונה, שם, תיאור קצר, אייקוני רשתות,
  * וקישור לכל הנכסים שלו". Only rendered when the property has a verified owner (property.owner
- * is only attached server-side when owner_id is set — see propertyStore.attachOwnerCard). */
+ * is only attached server-side when owner_id is set — see propertyStore.attachOwnerCard).
+ * owner.description is seller-entered content and intentionally NOT translated (9.8: "תוכן
+ * שהמוכר הזין נשאר בשפת המקור") — there's no stored content-language field to base a language
+ * badge on, so one isn't shown; see DECISIONS.md 9.8. */
 export function OwnerCard({ owner }) {
+  const { t } = useLanguage();
   if (!owner) return null;
   const socials = SOCIAL_LINKS.filter(({ key }) => owner[key]);
 
@@ -28,8 +33,8 @@ export function OwnerCard({ owner }) {
         {owner.description && <p className="owner-card__desc">{owner.description.slice(0, 90)}{owner.description.length > 90 ? '…' : ''}</p>}
         {socials.length > 0 && (
           <div className="owner-card__socials">
-            {socials.map(({ key, Icon, label }) => (
-              <a key={key} href={owner[key]} target="_blank" rel="noopener noreferrer" aria-label={label} className="owner-card__social-link">
+            {socials.map(({ key, Icon, labelKey }) => (
+              <a key={key} href={owner[key]} target="_blank" rel="noopener noreferrer" aria-label={t[labelKey]} className="owner-card__social-link">
                 <Icon />
               </a>
             ))}
@@ -39,7 +44,7 @@ export function OwnerCard({ owner }) {
 
       {owner.slug && (
         <Link to={`/owner/${owner.slug}`} className="owner-card__link">
-          כל הנכסים
+          {t.ownerCardAllProperties}
         </Link>
       )}
     </div>

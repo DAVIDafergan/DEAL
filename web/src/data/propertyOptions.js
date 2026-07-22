@@ -1,15 +1,17 @@
 // Mirrors the ENUMs in core/db/index.js (properties table) — keep in sync if the schema changes.
+// 9.8: each entry carries both `label` (Hebrew) and `labelEn` — the label*() getters below take
+// an optional `lang` so every call site can render bilingually without duplicating this catalog.
 
 export const REGIONS = [
-  { value: 'north', label: 'הצפון' },
-  { value: 'galilee', label: 'הגליל' },
-  { value: 'golan', label: 'הגולן' },
-  { value: 'carmel', label: 'הכרמל' },
-  { value: 'center', label: 'המרכז' },
-  { value: 'jerusalem', label: 'ירושלים' },
-  { value: 'south', label: 'הדרום' },
-  { value: 'dead_sea', label: 'ים המלח' },
-  { value: 'eilat', label: 'אילת' },
+  { value: 'north', label: 'הצפון', labelEn: 'The North' },
+  { value: 'galilee', label: 'הגליל', labelEn: 'The Galilee' },
+  { value: 'golan', label: 'הגולן', labelEn: 'The Golan Heights' },
+  { value: 'carmel', label: 'הכרמל', labelEn: 'The Carmel' },
+  { value: 'center', label: 'המרכז', labelEn: 'Central Israel' },
+  { value: 'jerusalem', label: 'ירושלים', labelEn: 'Jerusalem' },
+  { value: 'south', label: 'הדרום', labelEn: 'The South' },
+  { value: 'dead_sea', label: 'ים המלח', labelEn: 'Dead Sea' },
+  { value: 'eilat', label: 'אילת', labelEn: 'Eilat' },
 ];
 
 // Approximate centroid per region — used to place pins on the map, not administrative borders.
@@ -26,46 +28,46 @@ export const REGION_COORDINATES = {
 };
 
 export const PROPERTY_TYPES = [
-  { value: 'zimmer', label: 'צימר' },
-  { value: 'villa', label: 'וילה' },
-  { value: 'cottage', label: 'בקתה' },
-  { value: 'suite', label: 'סוויטה' },
+  { value: 'zimmer', label: 'צימר', labelEn: 'Cabin' },
+  { value: 'villa', label: 'וילה', labelEn: 'Villa' },
+  { value: 'cottage', label: 'בקתה', labelEn: 'Cottage' },
+  { value: 'suite', label: 'סוויטה', labelEn: 'Suite' },
 ];
 
 export const KOSHER_LEVELS = [
-  { value: 'not_applicable', label: 'לא רלוונטי' },
-  { value: 'kosher', label: 'כשר' },
-  { value: 'shomer_shabbat', label: 'שומר שבת' },
-  { value: 'kosher_kitchen', label: 'מטבח כשר' },
+  { value: 'not_applicable', label: 'לא רלוונטי', labelEn: 'Not applicable' },
+  { value: 'kosher', label: 'כשר', labelEn: 'Kosher' },
+  { value: 'shomer_shabbat', label: 'שומר שבת', labelEn: 'Shabbat observant' },
+  { value: 'kosher_kitchen', label: 'מטבח כשר', labelEn: 'Kosher kitchen' },
 ];
 
 export const AMENITIES = [
-  { value: 'has_private_jacuzzi', label: 'ג׳קוזי פרטי' },
-  { value: 'has_private_pool', label: 'בריכה פרטית' },
-  { value: 'has_heated_pool', label: 'בריכה מחוממת' },
-  { value: 'has_sauna', label: 'סאונה' },
-  { value: 'has_view', label: 'נוף' },
-  { value: 'has_garden', label: 'גינה' },
-  { value: 'has_bbq', label: 'מנגל' },
-  { value: 'has_outdoor_jacuzzi', label: 'ג׳קוזי חיצוני' },
-  { value: 'has_parking', label: 'חניה' },
-  { value: 'has_air_conditioning', label: 'מיזוג' },
-  { value: 'has_equipped_kitchen', label: 'מטבח מאובזר' },
-  { value: 'has_wifi', label: 'WiFi' },
-  { value: 'is_kid_friendly', label: 'ידידותי לילדים' },
-  { value: 'is_pet_friendly', label: 'מתאים לחיות מחמד' },
-  { value: 'is_accessible', label: 'נגישות' },
+  { value: 'has_private_jacuzzi', label: 'ג׳קוזי פרטי', labelEn: 'Private jacuzzi' },
+  { value: 'has_private_pool', label: 'בריכה פרטית', labelEn: 'Private pool' },
+  { value: 'has_heated_pool', label: 'בריכה מחוממת', labelEn: 'Heated pool' },
+  { value: 'has_sauna', label: 'סאונה', labelEn: 'Sauna' },
+  { value: 'has_view', label: 'נוף', labelEn: 'View' },
+  { value: 'has_garden', label: 'גינה', labelEn: 'Garden' },
+  { value: 'has_bbq', label: 'מנגל', labelEn: 'BBQ' },
+  { value: 'has_outdoor_jacuzzi', label: 'ג׳קוזי חיצוני', labelEn: 'Outdoor jacuzzi' },
+  { value: 'has_parking', label: 'חניה', labelEn: 'Parking' },
+  { value: 'has_air_conditioning', label: 'מיזוג', labelEn: 'Air conditioning' },
+  { value: 'has_equipped_kitchen', label: 'מטבח מאובזר', labelEn: 'Equipped kitchen' },
+  { value: 'has_wifi', label: 'WiFi', labelEn: 'WiFi' },
+  { value: 'is_kid_friendly', label: 'ידידותי לילדים', labelEn: 'Kid-friendly' },
+  { value: 'is_pet_friendly', label: 'מתאים לחיות מחמד', labelEn: 'Pet-friendly' },
+  { value: 'is_accessible', label: 'נגישות', labelEn: 'Accessible' },
 ];
 
 // Per-unit amenities (7.3: "מתקנים ספציפיים ליחידה: ג'קוזי פרטי, מרפסת, בריכה פרטית") — a small,
 // separate catalog from the property-level AMENITIES above, since these describe one unit inside
 // a complex rather than something shared by the whole property.
 export const UNIT_AMENITIES = [
-  { value: 'private_jacuzzi', label: 'ג׳קוזי פרטי' },
-  { value: 'balcony', label: 'מרפסת' },
-  { value: 'private_pool', label: 'בריכה פרטית' },
-  { value: 'private_view', label: 'נוף פרטי' },
-  { value: 'kitchenette', label: 'מטבחון' },
+  { value: 'private_jacuzzi', label: 'ג׳קוזי פרטי', labelEn: 'Private jacuzzi' },
+  { value: 'balcony', label: 'מרפסת', labelEn: 'Balcony' },
+  { value: 'private_pool', label: 'בריכה פרטית', labelEn: 'Private pool' },
+  { value: 'private_view', label: 'נוף פרטי', labelEn: 'Private view' },
+  { value: 'kitchenette', label: 'מטבחון', labelEn: 'Kitchenette' },
 ];
 
 // 9.4: icon per amenity for the property page's amenities bar. Names are lucide-react exports,
@@ -88,18 +90,26 @@ export const AMENITY_ICON_NAMES = {
   is_accessible: 'Accessibility',
 };
 
-export function unitAmenityLabel(value) {
-  return UNIT_AMENITIES.find((a) => a.value === value)?.label || value;
+function pick(entry, value, lang) {
+  return lang === 'en' ? (entry?.labelEn || value) : (entry?.label || value);
 }
 
-export function regionLabel(value) {
-  return REGIONS.find((r) => r.value === value)?.label || value;
+export function unitAmenityLabel(value, lang = 'he') {
+  return pick(UNIT_AMENITIES.find((a) => a.value === value), value, lang);
 }
 
-export function propertyTypeLabel(value) {
-  return PROPERTY_TYPES.find((p) => p.value === value)?.label || value;
+export function regionLabel(value, lang = 'he') {
+  return pick(REGIONS.find((r) => r.value === value), value, lang);
 }
 
-export function kosherLabel(value) {
-  return KOSHER_LEVELS.find((k) => k.value === value)?.label || value;
+export function propertyTypeLabel(value, lang = 'he') {
+  return pick(PROPERTY_TYPES.find((p) => p.value === value), value, lang);
+}
+
+export function kosherLabel(value, lang = 'he') {
+  return pick(KOSHER_LEVELS.find((k) => k.value === value), value, lang);
+}
+
+export function amenityLabel(value, lang = 'he') {
+  return pick(AMENITIES.find((a) => a.value === value), value, lang);
 }

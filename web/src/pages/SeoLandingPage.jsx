@@ -1,16 +1,19 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { Link } from '../components/LocalizedLink.jsx';
 import { ChevronLeft } from 'lucide-react';
 import { propertyApi } from '../api/client.js';
 import { PropertyGrid } from '../components/PropertyGrid.jsx';
 import { PropertyEmptyState } from '../components/PropertyEmptyState.jsx';
 import { SiteFooter } from '../components/SiteFooter.jsx';
+import { useLanguage } from '../context/LanguageContext.jsx';
 
 /** SeoLandingPage — 9.7: the real, navigable React version of the region/city/category pages
  * the server also renders for crawlers (server/seo/landingData.js is the single source of
  * truth for the copy/data shape; this just fetches the same thing over /api/seo/landing so a
  * real visitor gets the exact content Googlebot saw, not a different client-only render). */
 export function SeoLandingPage() {
+  const { t, dir } = useLanguage();
   const params = useParams();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -54,22 +57,22 @@ export function SeoLandingPage() {
     return () => { tag?.remove(); };
   }, [data]);
 
-  if (loading) return <div className="pp__loading-page container" dir="rtl"><p className="bsp__loading">טוען…</p></div>;
+  if (loading) return <div className="pp__loading-page container" dir={dir}><p className="bsp__loading">{t.loadingButton}</p></div>;
 
   if (notFound || !data) {
     // Combo route couldn't resolve seg1 as a region or city — this is genuinely a 404, not
     // one of our pages. A future /:seg1/:seg2 could just as easily be someone else's route.
     return (
-      <div className="container" dir="rtl" style={{ padding: '60px 20px', textAlign: 'center' }}>
-        <p>העמוד לא נמצא.</p>
-        <Link to="/">לדף הבית</Link>
+      <div className="container" dir={dir} style={{ padding: '60px 20px', textAlign: 'center' }}>
+        <p>{t.seoPageNotFound}</p>
+        <Link to="/">{t.homeLink}</Link>
       </div>
     );
   }
 
   return (
-    <div className="seo-lp" dir="rtl">
-      <nav className="property-breadcrumbs container" aria-label="פירורי לחם">
+    <div className="seo-lp" dir={dir}>
+      <nav className="property-breadcrumbs container" aria-label={t.breadcrumbsLabel}>
         {data.breadcrumbs.map((b, i) => (
           <span key={b.name} style={{ display: 'contents' }}>
             {i > 0 && <ChevronLeft size={13} aria-hidden="true" />}
@@ -93,7 +96,7 @@ export function SeoLandingPage() {
 
       {data.relatedLinks.length > 0 && (
         <div className="container seo-lp__related">
-          <h2 className="seo-lp__section-title">חיפושים קרובים</h2>
+          <h2 className="seo-lp__section-title">{t.relatedSearchesTitle}</h2>
           <div className="seo-lp__related-links">
             {data.relatedLinks.slice(0, 12).map((l) => (
               <Link key={l.path} to={l.path} className="seo-lp__related-link">{l.label}</Link>
@@ -103,7 +106,7 @@ export function SeoLandingPage() {
       )}
 
       <div className="container seo-lp__faq">
-        <h2 className="seo-lp__section-title">שאלות נפוצות</h2>
+        <h2 className="seo-lp__section-title">{t.faqTitle}</h2>
         {data.faq.map((f) => (
           <div key={f.q} className="seo-lp__faq-item">
             <h3 className="seo-lp__faq-q">{f.q}</h3>

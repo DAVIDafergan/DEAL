@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link } from '../LocalizedLink.jsx';
 import { MessageCircle, ExternalLink, CheckCircle, Plane, Hotel, Car, Heart } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext.jsx';
 import { agentApi } from '../../api/client.js';

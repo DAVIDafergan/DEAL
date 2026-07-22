@@ -1,9 +1,11 @@
 import { Sparkles, Waves, Flame, Mountain, Trees, Utensils, ParkingCircle, Wind, UtensilsCrossed, Wifi, Baby, Dog, Accessibility, Check } from 'lucide-react';
-import { AMENITIES, AMENITY_ICON_NAMES } from '../../data/propertyOptions.js';
+import { AMENITIES, AMENITY_ICON_NAMES, amenityLabel } from '../../data/propertyOptions.js';
+import { useLanguage } from '../../context/LanguageContext.jsx';
 
 const ICONS = { Sparkles, Waves, Flame, Mountain, Trees, Utensils, ParkingCircle, Wind, UtensilsCrossed, Wifi, Baby, Dog, Accessibility, Check };
 
 export function PropertyAmenitiesBar({ property }) {
+  const { lang } = useLanguage();
   const active = AMENITIES.filter((a) => property[a.value]);
   if (active.length === 0) return null;
 
@@ -14,7 +16,7 @@ export function PropertyAmenitiesBar({ property }) {
         return (
           <div key={a.value} className="amenities-bar__item">
             <Icon size={18} strokeWidth={1.6} />
-            <span>{a.label}</span>
+            <span>{amenityLabel(a.value, lang)}</span>
           </div>
         );
       })}

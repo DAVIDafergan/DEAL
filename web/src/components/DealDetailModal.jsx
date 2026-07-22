@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Heart, MessageCircle, ExternalLink, Plane, Hotel, Car, CheckCircle, Share2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link } from './LocalizedLink.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { getCurrencySymbol } from '../utils/currency.js';
 import { agentApi } from '../api/client.js';

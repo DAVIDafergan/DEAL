@@ -15,10 +15,12 @@ import { RecentSearches } from './components/RecentSearches.jsx';
 import { usePropertyFilters } from './hooks/usePropertyFilters.js';
 import { saveRecentSearch, listRecentSearches } from './utils/recentSearches.js';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link } from './components/LocalizedLink.jsx';
 import { UserPlus } from 'lucide-react';
+import { useLanguage } from './context/LanguageContext.jsx';
 
 export function App() {
+  const { t, dir } = useLanguage();
   const resultsRef = useRef(null);
   const { filters, setFilter, toggleAmenity, clearAll, activeCount, apiFilters, hasActiveFilters } = usePropertyFilters();
   const [properties, setProperties] = useState([]);
@@ -75,9 +77,9 @@ export function App() {
 
   return (
     <NowProvider>
-      <main id="main-content" aria-label="תוכן ראשי">
+      <main id="main-content" aria-label={t.mainContentLabel}>
         {/* ── 1. Hero — what the site does + centered search box ── */}
-        <section className="home-hero" dir="rtl">
+        <section className="home-hero" dir={dir}>
           <div className="home-hero__inner container">
             <motion.h1
               className="home-hero__title"
@@ -85,7 +87,7 @@ export function App() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
             >
-              צימרים ווילות בישראל — ישירות מבעלי הנכס
+              {t.heroCabinTitle}
             </motion.h1>
             <motion.p
               className="home-hero__sub"
@@ -93,7 +95,7 @@ export function App() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.55, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
             >
-              בלי עמלות, בלי מתווכים — פנייה ישירה לבעלים, מחיר שקוף מהרגע הראשון
+              {t.heroCabinSub}
             </motion.p>
             <motion.div
               initial={{ opacity: 0, y: 14 }}
@@ -108,13 +110,13 @@ export function App() {
 
         {/* ── 2. Regions ── */}
         <section className="region-picker-section container">
-          <h2 className="home-section-title">חפשו לפי אזור</h2>
+          <h2 className="home-section-title">{t.regionsSectionTitle}</h2>
           <RegionPicker propertiesByRegion={propertiesByRegion} onSelectRegion={handleSelectRegion} activeRegion={filters.region} />
         </section>
 
         {/* ── 3. Quick categories ── */}
         <section className="category-chips-section container">
-          <h2 className="home-section-title">קטגוריות מהירות</h2>
+          <h2 className="home-section-title">{t.categoriesSectionTitle}</h2>
           <CategoryChips setFilter={setFilter} onPick={scrollToResults} />
         </section>
 
@@ -123,19 +125,19 @@ export function App() {
           <div className="agent-deals-section__head">
             <div>
               <h2 className="agent-deals-section__title">
-                {hasActiveFilters ? 'תוצאות החיפוש שלך' : 'נכסים מומלצים'}
+                {hasActiveFilters ? t.resultsTitleFiltered : t.resultsTitleDefault}
               </h2>
               <p className="agent-deals-section__subtitle">
-                נכסים ישירות מבעלים — חלקם מאומתים, חלקם עדיין ממתינים לאימות הבעלים
+                {t.resultsSubtitle}
               </p>
             </div>
             <label className="sort-select">
-              <span className="sort-select__label">מיון</span>
+              <span className="sort-select__label">{t.sortLabel}</span>
               <select className="sort-select__input" value={filters.sort} onChange={(e) => setFilter({ sort: e.target.value })}>
-                <option value="recommended">מומלצים</option>
-                <option value="price_asc">מחיר: מהזול ליקר</option>
-                <option value="price_desc">מחיר: מהיקר לזול</option>
-                <option value="new">חדשים באתר</option>
+                <option value="recommended">{t.sortRecommended}</option>
+                <option value="price_asc">{t.sortPriceAsc}</option>
+                <option value="price_desc">{t.sortPriceDesc}</option>
+                <option value="new">{t.sortNew}</option>
               </select>
             </label>
           </div>
@@ -169,7 +171,7 @@ export function App() {
                       onClick={() => setResultsLimit((n) => n + RESULTS_PAGE_SIZE)}
                       disabled={isLoadingMore}
                     >
-                      {isLoadingMore ? 'טוען…' : 'טען עוד נכסים'}
+                      {isLoadingMore ? t.loadingButton : t.loadMoreButton}
                     </button>
                   )}
                 </>
@@ -182,16 +184,16 @@ export function App() {
         <TrustSection />
 
         {/* ── 6. Owner CTA strip ── */}
-        <section className="agent-cta-strip" dir="rtl">
+        <section className="agent-cta-strip" dir={dir}>
           <div className="agent-cta-strip__inner container">
             <div className="agent-cta-strip__text">
-              <span className="agent-cta-strip__eyebrow">בעל צימר או וילה?</span>
-              <strong className="agent-cta-strip__heading">יש לך צימר? פרסם אותו בחינם</strong>
-              <p className="agent-cta-strip__sub">ללא עמלות · ישירות ללקוח · תוך דקות</p>
+              <span className="agent-cta-strip__eyebrow">{t.ownerCtaEyebrow}</span>
+              <strong className="agent-cta-strip__heading">{t.ownerCtaHeading}</strong>
+              <p className="agent-cta-strip__sub">{t.ownerCtaSub}</p>
             </div>
             <Link to="/register" className="agent-cta-strip__btn">
               <UserPlus size={16} />
-              הצטרף בחינם
+              {t.ownerCtaButton}
             </Link>
           </div>
         </section>
