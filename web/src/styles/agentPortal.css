@@ -220,7 +220,7 @@
   overflow: hidden;
 }
 
-.agent-form__step { display: flex; flex-direction: column; gap: 14px; }
+.agent-form__step { display: flex; flex-direction: column; gap: var(--sp-4, 16px); }
 .agent-form__step--success { align-items: center; text-align: center; gap: 16px; }
 .agent-form__step-indicator { margin: 0; font-size: 0.75rem; color: var(--color-text-muted); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
 .agent-form__step-title { margin: 0; font-size: 1.3rem; font-weight: 800; }
@@ -1802,9 +1802,14 @@ select.wizard-input { cursor: pointer; }
 }
 
 /* ── KPI cards ────────────────────────────────────────────────────────────── */
+/* 10.2: was a 3-column grid regardless of how many KPI cards actually render (2-4,
+   conditional) — with only 2 (the common case for a new/small account), the cards
+   stretched to fill a 3-wide track, leaving the icon crammed in a corner with a lot of
+   dead space instead of a compact card. flex + a bounded basis lets each card size to
+   its content and wrap, instead of always stretching to fill. */
 .dash-kpis {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   gap: 14px;
   padding-top: 20px;
   padding-bottom: 0;
@@ -1820,6 +1825,8 @@ select.wizard-input { cursor: pointer; }
   flex-direction: column;
   align-items: flex-start;
   gap: 10px;
+  flex: 1 1 180px;
+  max-width: 260px;
 }
 
 .dash-kpi__icon-box {
@@ -2010,8 +2017,8 @@ a.opp__item:hover { background: rgba(193,89,43,0.1); color: var(--ds-hearth); }
 
 /* ── Mobile responsive ────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
-  .dash-kpis { grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .dash-kpi { padding: 10px 8px; gap: 6px; border-radius: 12px; }
+  .dash-kpis { gap: 8px; }
+  .dash-kpi { padding: 10px 8px; gap: 6px; border-radius: 12px; flex-basis: calc(50% - 4px); max-width: none; }
   .dash-kpi__icon-box { width: 28px; height: 28px; border-radius: 8px; }
   .dash-kpi__value { font-size: 1.3rem; }
   .dash-kpi__label { font-size: 0.62rem; }
@@ -2019,7 +2026,7 @@ a.opp__item:hover { background: rgba(193,89,43,0.1); color: var(--ds-hearth); }
 @media (max-width: 400px) {
   .dash-topbar__nav-item { padding: 8px 8px; }
   .dash-kpis { gap: 6px; }
-  .dash-kpi { padding: 8px 6px; }
+  .dash-kpi { padding: 8px 6px; flex-basis: calc(50% - 3px); }
   .dash-kpi__value { font-size: 1.15rem; }
   .dash-page-title { font-size: 1.2rem; }
 }

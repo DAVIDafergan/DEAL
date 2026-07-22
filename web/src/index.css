@@ -34,6 +34,10 @@ body {
   color: var(--color-text-primary);
   font-family: var(--font-latin);
   -webkit-font-smoothing: antialiased;
+  /* 10.2: no baseline was set anywhere — text fell back to the browser default (~1.15),
+     which reads as cramped, especially in Hebrew. Most components already set their own
+     line-height explicitly (1.4-1.75) and keep it; this only affects text that didn't. */
+  line-height: 1.6;
 }
 
 [data-lang='he'] body,
@@ -5817,7 +5821,7 @@ html.a11y-readable-font button {
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--sp-4, 16px);
   margin: 4px 0 8px;
 }
 .auth-form__field {
@@ -5845,9 +5849,9 @@ html.a11y-readable-font button {
 html[dir="rtl"] .auth-form__input { text-align: right; direction: rtl; }
 .auth-form__input:focus {
   outline: none;
-  border-color: #2563EB;
+  border-color: var(--ds-hearth);
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+  box-shadow: 0 0 0 3px rgba(193,89,43,0.12);
 }
 .auth-form__input.is-error { border-color: #ef4444; }
 .auth-form__field-err {
