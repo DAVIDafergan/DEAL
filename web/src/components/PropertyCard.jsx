@@ -4,6 +4,7 @@ import { MessageCircle, CheckCircle, Users, BedDouble, Waves, Heart } from 'luci
 import { getCurrencySymbol } from '../utils/currency.js';
 import { regionLabel } from '../data/propertyOptions.js';
 import { useFavorites } from '../hooks/useFavorites.js';
+import { optimizedImageUrl } from '../utils/imageUrl.js';
 
 function buildWhatsAppUrl(number, propertyName) {
   const text = `שלום, ראיתי את ${propertyName} ב-Dealim ואני מתעניין/ת`;
@@ -62,7 +63,7 @@ export function PropertyCard({ property }) {
     >
       <div className="adc__media">
         {images.length > 0
-          ? <img src={images[hoverIndex]} alt={property.name} className="adc__img" loading="lazy" />
+          ? <img src={optimizedImageUrl(images[hoverIndex], { width: 480 })} alt={property.name} className="adc__img" loading="lazy" width="480" height="320" />
           : <div className="adc__img-placeholder" />}
 
         {images.length > 1 && (

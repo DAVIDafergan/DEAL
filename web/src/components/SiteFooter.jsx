@@ -4,15 +4,14 @@ import { Logo } from './Logo.jsx';
 import { Heart, FileText, Shield, Phone, UserPlus, Accessibility } from 'lucide-react';
 import { REGIONS } from '../data/propertyOptions.js';
 
-// 9.2/9.7: region + category links point at the existing query-param search (?region=,
-// ?amenities=) for now — they'll switch to the pretty programmatic-SEO URLs (/אזור/[region]
-// etc.) once those routes exist (9.7), same destinations, better URLs. Not blocking on that here.
+// 9.7: now pointing at the real programmatic-SEO landing pages (/קטגוריה/[slug]) built this
+// step, replacing the ?amenities= query-param placeholders from 9.2.
 const CATEGORY_LINKS = [
-  { label: 'עם ג׳קוזי', to: '/?amenities=has_private_jacuzzi' },
-  { label: 'עם בריכה', to: '/?amenities=has_private_pool' },
-  { label: 'כשר', to: '/?kosher=kosher' },
-  { label: 'למשפחות', to: '/?amenities=is_kid_friendly' },
-  { label: 'לקבוצות גדולות', to: '/?guests=10' },
+  { label: 'עם ג׳קוזי', to: `/קטגוריה/${encodeURIComponent("ג'קוזי")}` },
+  { label: 'עם בריכה', to: `/קטגוריה/${encodeURIComponent('בריכה')}` },
+  { label: 'כשר', to: `/קטגוריה/${encodeURIComponent('כשר')}` },
+  { label: 'למשפחות', to: `/קטגוריה/${encodeURIComponent('למשפחות')}` },
+  { label: 'לקבוצות גדולות', to: `/קטגוריה/${encodeURIComponent('לקבוצות-גדולות')}` },
 ];
 
 export function SiteFooter() {
@@ -44,7 +43,7 @@ export function SiteFooter() {
           <div className="site-footer__col">
             <span className="site-footer__col-title">אזורים</span>
             {REGIONS.map((r) => (
-              <Link key={r.value} to={`/?region=${r.value}`} className="site-footer__nav-link">{r.label}</Link>
+              <Link key={r.value} to={`/אזור/${encodeURIComponent(r.label)}`} className="site-footer__nav-link">{r.label}</Link>
             ))}
           </div>
           <div className="site-footer__col">

@@ -19,6 +19,7 @@ import { FavoritesPage } from './pages/FavoritesPage.jsx';
 import { BookingStatusPage } from './pages/BookingStatusPage.jsx';
 import { MyBookingsPage } from './pages/MyBookingsPage.jsx';
 import { ComparePage } from './pages/ComparePage.jsx';
+import { SeoLandingPage } from './pages/SeoLandingPage.jsx';
 import { AccountPage } from './pages/AccountPage.jsx';
 import { TermsPage } from './pages/TermsPage.jsx';
 import { PrivacyPage } from './pages/PrivacyPage.jsx';
@@ -50,6 +51,10 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               <Route path="/owner/dashboard" element={<OwnerDashboardPage />} />
               <Route path="/owner/:slug" element={<OwnerPublicProfilePage />} />
               <Route path="/property/:id" element={<PropertyPage />} />
+              <Route path="/אזור/:regionSlug" element={<SeoLandingPage />} />
+              <Route path="/עיר/:citySlug" element={<SeoLandingPage />} />
+              <Route path="/קטגוריה/:categorySlug" element={<SeoLandingPage />} />
+              <Route path="/:seg1/:seg2" element={<SeoLandingPage />} />
               <Route path="/remove" element={<RemovePage />} />
               <Route path="/my/favorites" element={<FavoritesPage />} />
               <Route path="/my/bookings" element={<MyBookingsPage />} />

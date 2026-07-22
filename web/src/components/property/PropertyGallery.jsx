@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ChevronRight, ChevronLeft, ImageOff } from 'lucide-react';
+import { optimizedImageUrl } from '../../utils/imageUrl.js';
 
 /** PropertyGallery — 9.4: main photo + secondary grid (Booking/Airbnb pattern), click opens a
  * full-screen lightbox. Falls back to a single placeholder tile when the owner hasn't uploaded
@@ -23,13 +24,13 @@ export function PropertyGallery({ images = [], alt }) {
     <>
       <div className="pg">
         <button type="button" className="pg__main" onClick={() => setLightboxIndex(0)}>
-          <img src={images[0]} alt={alt} loading="eager" />
+          <img src={optimizedImageUrl(images[0], { width: 900 })} alt={alt} loading="eager" width="900" height="380" />
         </button>
         {secondary.length > 0 && (
           <div className="pg__grid">
             {secondary.map((src, i) => (
               <button type="button" key={src + i} className="pg__thumb" onClick={() => setLightboxIndex(i + 1)}>
-                <img src={src} alt="" loading="lazy" />
+                <img src={optimizedImageUrl(src, { width: 260 })} alt="" loading="lazy" width="260" height="180" />
                 {i === secondary.length - 1 && images.length > 5 && (
                   <span className="pg__more">+{images.length - 5}</span>
                 )}
@@ -59,7 +60,7 @@ function Lightbox({ images, index, alt, onClose, onChange }) {
       <button type="button" className="pg-lightbox__nav pg-lightbox__nav--prev" onClick={prev} aria-label="תמונה קודמת">
         <ChevronRight size={26} />
       </button>
-      <img src={images[index]} alt={alt} className="pg-lightbox__img" />
+      <img src={optimizedImageUrl(images[index], { width: 1400 })} alt={alt} className="pg-lightbox__img" />
       <button type="button" className="pg-lightbox__nav pg-lightbox__nav--next" onClick={next} aria-label="תמונה הבאה">
         <ChevronLeft size={26} />
       </button>

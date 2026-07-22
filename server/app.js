@@ -21,6 +21,9 @@ import musicRouter from './routes/music.js';
 import usersRouter from './routes/users.js';
 import contactRouter from './routes/contact.js';
 import uploadsRouter from './routes/uploads.js';
+import seoRouter from './routes/seo.js';
+import { buildSeoLandingData } from './seo/landingData.js';
+import { buildRegionAndCategoryUrls } from './seo/sitemapBuilder.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WEB_DIST_DIR = path.join(__dirname, '..', 'web', 'dist');
@@ -449,6 +452,104 @@ function ownerToOgMeta(owner) {
   return { title, description, imageUrl, pageUrl, jsonLd };
 }
 
+// ── 9.7 Programmatic SEO landing page rendering ─────────────────────────────────
+
+function seoJsonLd(data, pageUrl) {
+  const itemList = {
+    '@type': 'ItemList',
+    numberOfItems: data.count,
+    itemListElement: data.properties.slice(0, 30).map((p, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      item: {
+        '@type': 'LodgingBusiness',
+        '@id': `${SITE_URL}/property/${p.id}`,
+        name: esc(p.name || ''),
+        url: `${SITE_URL}/property/${p.id}`,
+        image: p.owner_images?.[0] || `${SITE_URL}/og-image.svg`,
+        ...(p.price_from ? { priceRange: `${Math.round(p.price_from)} ${p.currency || 'ILS'}` } : {}),
+      },
+    })),
+  };
+  const breadcrumbList = {
+    '@type': 'BreadcrumbList',
+    itemListElement: data.breadcrumbs.map((b, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: esc(b.name),
+      ...(b.path ? { item: `${SITE_URL}${b.path}` } : {}),
+    })),
+  };
+  const faqPage = {
+    '@type': 'FAQPage',
+    mainEntity: data.faq.map((f) => ({
+      '@type': 'Question',
+      name: esc(f.q),
+      acceptedAnswer: { '@type': 'Answer', text: esc(f.a) },
+    })),
+  };
+  return { '@context': 'https://schema.org', '@graph': [itemList, breadcrumbList, faqPage] };
+}
+
+function buildSeoPageBody(data) {
+  const propertyListHtml = data.properties.map((p) => {
+    const name = esc(p.name || 'נכס');
+    const price = p.price_from ? ` — ${Math.round(p.price_from)} ${p.currency || 'ILS'}/לילה` : '';
+    return `<li><a href="/property/${p.id}">${name}${price}</a></li>`;
+  }).join('');
+  const faqHtml = data.faq.map((f) => `<h3 style="font-size:.95rem;margin:.6rem 0 .2rem">${esc(f.q)}</h3><p style="font-size:.88rem;color:#475569;margin:0">${esc(f.a)}</p>`).join('');
+  const relatedHtml = data.relatedLinks.slice(0, 12).map((l) => `<a href="${l.path}" style="color:#2563eb;font-size:.82rem">${esc(l.label)}</a>`).join(' · ');
+  const breadcrumbHtml = data.breadcrumbs.map((b, i) => (
+    i < data.breadcrumbs.length - 1 && b.path ? `<a href="${b.path}" style="color:#64748b">${esc(b.name)}</a> › ` : `<span>${esc(b.name)}</span>`
+  )).join('');
+
+  return `<div id="ssr" style="font-family:system-ui,sans-serif;direction:rtl;padding:1.25rem 1.5rem;max-width:900px;margin:0 auto;color:#1e293b">
+<nav style="font-size:.82rem;color:#64748b;margin-bottom:.75rem">${breadcrumbHtml}</nav>
+<h1 style="font-size:1.6rem;line-height:1.3;margin:0 0 .5rem">${esc(data.h1)}</h1>
+<p style="font-size:.93rem;color:#475569;margin:0 0 1rem">${esc(data.intro)}</p>
+${data.properties.length ? `<h2 style="font-size:1.05rem;margin:0 0 .5rem">נכסים</h2><ul style="list-style:disc;padding-right:1.2rem;column-count:2;font-size:.9rem;margin:0 0 1rem">${propertyListHtml}</ul>` : '<p style="font-size:.9rem;color:#94a3b8">אין עדיין נכסים תואמים — בעלי צימרים ווילות מצטרפים כל הזמן.</p>'}
+${relatedHtml ? `<h2 style="font-size:1rem;margin:1rem 0 .4rem">חיפושים קרובים</h2><p style="margin:0 0 1rem">${relatedHtml}</p>` : ''}
+<h2 style="font-size:1.05rem;margin:1rem 0 .4rem">שאלות נפוצות</h2>
+${faqHtml}
+</div>`;
+}
+
+function buildSeoPageHtml(data, requestPath, baseHtml) {
+  const pageUrl = `${SITE_URL}${requestPath}`;
+  const jsonLdStr = JSON.stringify(seoJsonLd(data, pageUrl)).replace(/<\//g, '<\\/');
+  const robotsTag = data.indexable
+    ? `<meta name="robots" content="index, follow" />`
+    : `<meta name="robots" content="noindex, follow" />`;
+  const tags = [
+    `<title>${esc(data.title)}</title>`,
+    `<meta name="description" content="${esc(data.description)}" />`,
+    robotsTag,
+    `<meta property="og:type" content="website" />`,
+    `<meta property="og:site_name" content="Dealim" />`,
+    `<meta property="og:title" content="${esc(data.title)}" />`,
+    `<meta property="og:description" content="${esc(data.description)}" />`,
+    `<meta property="og:url" content="${esc(pageUrl)}" />`,
+    `<meta property="og:image" content="${SITE_URL}/og-image.svg" />`,
+    `<meta property="og:locale" content="he_IL" />`,
+    `<meta name="twitter:card" content="summary_large_image" />`,
+    `<meta name="twitter:title" content="${esc(data.title)}" />`,
+    `<meta name="twitter:description" content="${esc(data.description)}" />`,
+    `<link rel="canonical" href="${esc(pageUrl)}" />`,
+    `<script type="application/ld+json">${jsonLdStr}</script>`,
+  ].join('\n    ');
+
+  return baseHtml
+    .replace(/<title>[^<]*<\/title>/gi, '')
+    .replace(/<meta[^>]*name="description"[^>]*>/gi, '')
+    .replace(/<meta[^>]*name="robots"[^>]*>/gi, '')
+    .replace(/<meta[^>]*property="og:[^"]*"[^>]*>/gi, '')
+    .replace(/<meta[^>]*name="twitter:[^"]*"[^>]*>/gi, '')
+    .replace(/<link[^>]*rel="canonical"[^>]*>/gi, '')
+    .replace(/<script\s+type="application\/ld\+json">[\s\S]*?<\/script>/gi, '')
+    .replace('</head>', `    ${tags}\n  </head>`)
+    .replace('<div id="root"></div>', `<div id="root">${buildSeoPageBody(data)}</div>`);
+}
+
 // ── App factory ───────────────────────────────────────────────────────────────
 
 export function createApp() {
@@ -647,6 +748,37 @@ export function createApp() {
 
     // Static assets (JS, CSS, images)
     app.use(express.static(WEB_DIST_DIR));
+
+    // ── 9.7 Programmatic SEO landing pages ─────────────────────────────────────
+    // /אזור/:region, /עיר/:city, /קטגוריה/:category, and the two-dimension combos, all through
+    // ONE route with plain ASCII :seg1/:seg2 params — dispatch on the literal prefix happens in
+    // JS below, not in the Express route pattern.
+    //
+    // Why: Express 4 bundles path-to-regexp@0.1.13, which silently fails to match a *literal*
+    // non-ASCII path segment in a route pattern (confirmed directly — app.get('/אזור/:x', ...)
+    // never matched a request for /אזור/הגליל, even though req.params values decode to correct
+    // Hebrew text just fine). Comparing the decoded param against a Hebrew string in plain JS
+    // sidesteps the bug entirely. Registered after static assets so /assets/*.js never reaches
+    // it, and never shadows /property/:id, /owner/:slug etc. (all literal-ASCII, registered
+    // earlier, and path-to-regexp matches those correctly).
+    app.get('/:seg1/:seg2?', async (req, res, next) => {
+      try {
+        const { seg1, seg2 } = req.params;
+        let data = null;
+        if (seg2 && seg1 === 'אזור') data = await buildSeoLandingData({ regionSlug: seg2 });
+        else if (seg2 && seg1 === 'עיר') data = await buildSeoLandingData({ citySlug: seg2 });
+        else if (seg2 && seg1 === 'קטגוריה') data = await buildSeoLandingData({ categorySlug: seg2 });
+        else if (seg2) {
+          data = await buildSeoLandingData({ regionSlug: seg1, categorySlug: seg2 });
+          if (!data) data = await buildSeoLandingData({ citySlug: seg1, categorySlug: seg2 });
+        }
+        if (!data) return next();
+        res.type('text/html').send(buildSeoPageHtml(data, req.originalUrl, indexHtml));
+      } catch (err) {
+        console.error('[seo] SSR render error:', err.message);
+        next();
+      }
+    });
   }
 
   // ── CORS (API only) ─────────────────────────────────────────────────────────
@@ -684,56 +816,76 @@ export function createApp() {
     );
   });
 
-  // ── Sitemap ────────────────────────────────────────────────────────────────
-  app.get('/sitemap.xml', async (_req, res) => {
+  // ── Sitemap — 9.7: split index + per-type sub-sitemaps, each with lastmod ─────────────────
+  function urlsetXml(urls) {
+    return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`;
+  }
+
+  app.get('/sitemap.xml', (_req, res) => {
+    const today = new Date().toISOString().slice(0, 10);
+    const sitemaps = ['static', 'properties', 'owners', 'landing-pages']
+      .map((name) => `  <sitemap><loc>${SITE_URL}/sitemap-${name}.xml</loc><lastmod>${today}</lastmod></sitemap>`);
+    res.type('application/xml').send(
+      `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${sitemaps.join('\n')}\n</sitemapindex>\n`
+    );
+  });
+
+  app.get('/sitemap-static.xml', (_req, res) => {
+    const staticPages = [
+      { loc: `${SITE_URL}/`, freq: 'hourly', priority: '1.0' },
+      { loc: `${SITE_URL}/register`, freq: 'monthly', priority: '0.5' },
+      { loc: `${SITE_URL}/terms`, freq: 'yearly', priority: '0.2' },
+      { loc: `${SITE_URL}/privacy`, freq: 'yearly', priority: '0.2' },
+      { loc: `${SITE_URL}/accessibility`, freq: 'yearly', priority: '0.2' },
+    ];
+    res.type('application/xml').send(urlsetXml(
+      staticPages.map((p) => `  <url><loc>${p.loc}</loc><changefreq>${p.freq}</changefreq><priority>${p.priority}</priority></url>`)
+    ));
+  });
+
+  app.get('/sitemap-properties.xml', async (_req, res) => {
     try {
-      const pool = getPool();
       // Flight deals/agents are retired (see README) — no longer promoted for crawling.
-      // Properties: unclaimed listings are still real, useful content (factual info + source
-      // link), so they're included same as claimed/active — only hidden/opted-out are excluded.
-      const [properties] = await pool.query(
-        `SELECT id, updated_at, status FROM properties
-         WHERE status != 'hidden' AND opted_out = 0
-         ORDER BY updated_at DESC LIMIT 1000`
+      // Unclaimed listings are still real, useful content (factual info + source link), so
+      // they're included same as claimed/active — only hidden/opted-out are excluded.
+      const [properties] = await getPool().query(
+        `SELECT id, updated_at, status FROM properties WHERE status != 'hidden' AND opted_out = 0 ORDER BY updated_at DESC LIMIT 1000`
       );
-      const [owners] = await pool.query(
-        `SELECT DISTINCT a.slug, a.updated_at FROM agents a
-         JOIN properties p ON p.owner_id = a.id
-         WHERE a.status='approved' AND a.account_type='property_owner'
-         ORDER BY a.updated_at DESC LIMIT 500`
-      );
-
-      const staticPages = [
-        { loc: `${SITE_URL}/`, freq: 'hourly', priority: '1.0' },
-        { loc: `${SITE_URL}/register`, freq: 'monthly', priority: '0.5' },
-        { loc: `${SITE_URL}/terms`, freq: 'yearly', priority: '0.2' },
-        { loc: `${SITE_URL}/privacy`, freq: 'yearly', priority: '0.2' },
-        { loc: `${SITE_URL}/accessibility`, freq: 'yearly', priority: '0.2' },
-      ];
-
-      const urls = [
-        ...staticPages.map(p =>
-          `  <url><loc>${p.loc}</loc><changefreq>${p.freq}</changefreq><priority>${p.priority}</priority></url>`
-        ),
-        ...properties.map(p => {
-          const lastmod = p.updated_at ? new Date(p.updated_at).toISOString().slice(0, 10) : '';
-          const priority = p.status === 'active' || p.status === 'claimed' ? '0.8' : '0.5';
-          return `  <url><loc>${SITE_URL}/property/${p.id}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}<changefreq>daily</changefreq><priority>${priority}</priority></url>`;
-        }),
-        ...owners.map(o => {
-          const lastmod = o.updated_at ? new Date(o.updated_at).toISOString().slice(0, 10) : '';
-          return `  <url><loc>${SITE_URL}/owner/${o.slug}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}<changefreq>weekly</changefreq><priority>0.65</priority></url>`;
-        }),
-      ];
-
-      res.type('application/xml').send(
-        `<?xml version="1.0" encoding="UTF-8"?>\n` +
-        `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
-        urls.join('\n') + '\n' +
-        `</urlset>\n`
-      );
+      res.type('application/xml').send(urlsetXml(properties.map((p) => {
+        const lastmod = p.updated_at ? new Date(p.updated_at).toISOString().slice(0, 10) : '';
+        const priority = p.status === 'active' || p.status === 'claimed' ? '0.8' : '0.5';
+        return `  <url><loc>${SITE_URL}/property/${p.id}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}<changefreq>daily</changefreq><priority>${priority}</priority></url>`;
+      })));
     } catch (err) {
-      console.error('[sitemap] error:', err.message);
+      console.error('[sitemap-properties] error:', err.message);
+      res.status(500).type('text/plain').send('Sitemap temporarily unavailable');
+    }
+  });
+
+  app.get('/sitemap-owners.xml', async (_req, res) => {
+    try {
+      const [owners] = await getPool().query(
+        `SELECT DISTINCT a.slug, a.updated_at FROM agents a JOIN properties p ON p.owner_id = a.id
+         WHERE a.status='approved' AND a.account_type='property_owner' ORDER BY a.updated_at DESC LIMIT 500`
+      );
+      res.type('application/xml').send(urlsetXml(owners.map((o) => {
+        const lastmod = o.updated_at ? new Date(o.updated_at).toISOString().slice(0, 10) : '';
+        return `  <url><loc>${SITE_URL}/owner/${o.slug}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}<changefreq>weekly</changefreq><priority>0.65</priority></url>`;
+      })));
+    } catch (err) {
+      console.error('[sitemap-owners] error:', err.message);
+      res.status(500).type('text/plain').send('Sitemap temporarily unavailable');
+    }
+  });
+
+  // Region/city/category programmatic landing pages — only ones that cross the >=3-listing
+  // indexable threshold ever appear here (see server/seo/sitemapBuilder.js).
+  app.get('/sitemap-landing-pages.xml', async (_req, res) => {
+    try {
+      const urls = await buildRegionAndCategoryUrls(SITE_URL);
+      res.type('application/xml').send(urlsetXml(urls));
+    } catch (err) {
+      console.error('[sitemap-landing-pages] error:', err.message);
       res.status(500).type('text/plain').send('Sitemap temporarily unavailable');
     }
   });
@@ -755,6 +907,7 @@ export function createApp() {
   app.use('/api/users', usersRouter);
   app.use('/api/contact', contactRouter);
   app.use('/api/uploads', uploadsRouter);
+  app.use('/api/seo', seoRouter);
 
   app.use('/api', (_req, res) => {
     res.status(404).json({ error: 'Not found' });

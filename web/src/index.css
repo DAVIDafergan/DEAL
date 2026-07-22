@@ -6063,3 +6063,40 @@ html[dir="rtl"] .auth-form__input { text-align: right; direction: rtl; }
 .cmp__location { font-size: 0.76rem; color: var(--ds-ash); }
 .cmp__yes { color: var(--ds-olive); }
 .cmp__no { color: var(--ds-ash); opacity: 0.4; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   9.7 — Programmatic SEO landing pages (region / city / category)
+   ══════════════════════════════════════════════════════════════════════════ */
+.seo-lp__header { padding: 8px 20px 20px; }
+.seo-lp__title {
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 3.5vw, 2rem);
+  font-weight: 700;
+  color: var(--ds-bone);
+  margin: 0 0 10px;
+}
+.seo-lp__intro { font-size: 0.95rem; color: var(--ds-ash); max-width: 720px; margin: 0; line-height: 1.6; }
+.seo-lp__section-title {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--ds-bone);
+  margin: 0 0 14px;
+}
+.seo-lp__related { padding: 30px 20px; }
+.seo-lp__related-links { display: flex; flex-wrap: wrap; gap: 8px; }
+.seo-lp__related-link {
+  border: 1px solid var(--ds-ghost);
+  background: var(--ds-ink);
+  color: var(--ds-bone);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  text-decoration: none;
+}
+.seo-lp__related-link:hover { border-color: var(--ds-hearth); color: var(--ds-hearth); }
+.seo-lp__faq { padding: 10px 20px 40px; max-width: 760px; }
+.seo-lp__faq-item { padding: 14px 0; border-bottom: 1px solid var(--ds-ghost); }
+.seo-lp__faq-q { font-size: 0.95rem; font-weight: 700; color: var(--ds-bone); margin: 0 0 6px; }
+.seo-lp__faq-a { font-size: 0.86rem; color: var(--color-text-secondary); line-height: 1.6; margin: 0; }

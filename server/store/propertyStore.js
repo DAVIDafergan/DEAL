@@ -499,6 +499,31 @@ export async function getFacetCounts(filters = {}) {
   return { amenities: amenityCounts, kosherLevel: kosherCounts, propertyType: typeCounts, region: regionCounts };
 }
 
+/** 9.7 sitemap generation: counts matching properties grouped by region or by city, for a given
+ * set of extra filters (amenity/kosher/propertyType/minGuests) — one query covers every
+ * region (or city) at once instead of querying each region/city combo individually. Used to
+ * decide which /:region/:category and /:city/:category pages have crossed the >=3-listing
+ * indexable threshold, without a query-per-combination. */
+export async function countPropertiesGroupedBy(groupField, filters = {}) {
+  const pool = getPool();
+  const where = [`status NOT IN ('hidden','draft')`, 'opted_out = 0', 'deleted_at IS NULL', NOT_BLOCKLISTED_SQL, confidencePublishableSql()];
+  const vals = [];
+  if (filters.propertyType) { where.push('property_type = ?'); vals.push(filters.propertyType); }
+  if (filters.minGuests) { where.push('units_agg.total_guest_capacity >= ?'); vals.push(Number(filters.minGuests)); }
+  if (filters.kosherLevel) { where.push('kosher_level = ?'); vals.push(filters.kosherLevel); }
+  for (const amenity of filters.amenities || []) {
+    if (AMENITY_FIELDS.includes(amenity)) where.push(`${amenity} = 1`);
+  }
+  const column = groupField === 'city' ? 'city' : 'region';
+  const [rows] = await pool.query(
+    `SELECT ${column} AS key_value, COUNT(*) AS count, MAX(updated_at) AS lastmod
+     FROM properties ${UNITS_AGG_JOIN} WHERE ${where.join(' AND ')} AND ${column} IS NOT NULL AND ${column} != ''
+     GROUP BY ${column}`,
+    vals
+  );
+  return rows.map((r) => ({ key: r.key_value, count: Number(r.count), lastmod: r.lastmod }));
+}
+
 /** GET /api/properties/cities?region= — distinct cities with a listed property in that region,
  * for the staged filter's "where" step (7.2: "רק ערים שיש בהן נכסים בפועל"). Same visibility
  * guard as searchProperties so the count a traveler sees matches what they'll actually get. */
