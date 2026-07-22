@@ -312,6 +312,20 @@ const MIGRATIONS = [
        WHERE source = 'auto' AND auto_review_status IS NULL`
     );
   },
+  // 9.6 — "track a booking request via a unique link, even without registering". A random,
+  // unguessable token (not the sequential `id`) is what the public tracking route looks up by —
+  // exposing booking status/customer details keyed by a guessable auto-increment id would let
+  // anyone enumerate other customers' bookings.
+  (connection) => ensureColumn(connection, 'booking_requests', 'tracking_token', 'VARCHAR(48) NULL'),
+  async (connection) => {
+    const [rows] = await connection.query(
+      `SELECT COUNT(*) AS count FROM information_schema.statistics
+       WHERE table_schema = DATABASE() AND table_name = 'booking_requests' AND index_name = 'idx_booking_requests_tracking_token'`
+    );
+    if (rows[0].count === 0) {
+      await connection.query('ALTER TABLE booking_requests ADD INDEX idx_booking_requests_tracking_token (tracking_token)');
+    }
+  },
 ];
 
 const SCHEMA_STATEMENTS = [

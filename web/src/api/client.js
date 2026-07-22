@@ -180,6 +180,7 @@ export const propertyApi = {
   getAvailability: (id, range = {}) => getJson(`/properties/${id}/availability${buildQuery(range)}`),
   setAvailability: (token, id, dates) => patchJson(`/properties/${id}/availability`, { dates }, token),
   requestBooking: (id, data) => postJson(`/properties/${id}/booking-requests`, data),
+  trackBooking: (token) => getJson(`/properties/booking-requests/track/${token}`),
   getBookingRequests: (token, id) => getJson(`/properties/${id}/booking-requests`, token),
   getMyBookingRequests: (token) => getJson('/properties/booking-requests/mine', token),
   setBookingRequestStatus: (token, bookingId, status) => patchJson(`/properties/booking-requests/${bookingId}/status`, { status }, token),

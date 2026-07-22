@@ -1,56 +1,50 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Heart } from 'lucide-react';
+import { ArrowLeft, Heart, Scale } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useFavorites } from '../hooks/useFavorites.js';
-import { AgentDealCard } from '../components/agent/AgentDealCard.jsx';
-import { DealDetailModal } from '../components/DealDetailModal.jsx';
-import '../styles/agentPortal.css';
+import { PropertyGrid } from '../components/PropertyGrid.jsx';
+import { usePropertyDetails } from '../hooks/usePropertyDetails.js';
 
+/** FavoritesPage — 9.6: shows saved properties (the only thing favoritable on the live site
+ * today — see DECISIONS.md 9.3/9.6). Fetches full current data for each saved id rather than
+ * trusting the small snapshot useFavorites stored at save-time (price/photos may have changed
+ * since, or the listing may have been unpublished). */
 export function FavoritesPage() {
   const { favorites } = useFavorites();
-  const [selectedDeal, setSelectedDeal] = useState(null);
+  const propertyFavorites = favorites.filter((f) => f.deal_source === 'property');
+  const { properties, isLoading } = usePropertyDetails(propertyFavorites.map((f) => f.id));
 
   return (
-    <div className="favorites-page">
-      {selectedDeal && <DealDetailModal deal={selectedDeal} onClose={() => setSelectedDeal(null)} />}
-
+    <div className="favorites-page" dir="rtl">
       <div className="favorites-page__header">
         <Link to="/" className="favorites-page__back">
           <ArrowLeft size={16} /> חזרה
         </Link>
         <h1 className="favorites-page__title">
-          <Heart size={20} style={{ color: '#ef4444', marginInlineEnd: 8, verticalAlign: 'middle' }} />
+          <Heart size={20} style={{ color: 'var(--ds-wine)', marginInlineEnd: 8, verticalAlign: 'middle' }} />
           המועדפים שלי
         </h1>
+        {properties.length >= 2 && (
+          <Link to={`/my/compare?ids=${properties.map((p) => p.id).join(',')}`} className="favorites-page__compare-btn">
+            <Scale size={15} /> השווה נכסים
+          </Link>
+        )}
       </div>
 
-      {favorites.length === 0 ? (
+      {propertyFavorites.length === 0 ? (
         <div className="favorites-page__empty">
-          <div className="favorites-page__empty-icon">✈️</div>
-          <p className="favorites-page__empty-text">עדיין לא שמרת דילים</p>
+          <div className="favorites-page__empty-icon">🏡</div>
+          <p className="favorites-page__empty-text">עדיין לא שמרת נכסים</p>
           <p className="favorites-page__empty-sub">
-            לחץ על ❤️ על כל דיל שאהבת — הוא ישמר כאן, מוכן לשיתוף או הזמנה
+            לחצו על ❤️ על כל נכס שאהבתם — הוא יישמר כאן, מוכן להשוואה או הזמנה
           </p>
-          <Link to="/" style={{ marginTop: 20, display: 'inline-block', color: 'var(--ds-teal, #17c3b2)', fontWeight: 700 }}>
-            מצא דיל עכשיו →
+          <Link to="/" style={{ marginTop: 20, display: 'inline-block', color: 'var(--ds-hearth)', fontWeight: 700 }}>
+            חפשו נכס עכשיו →
           </Link>
         </div>
       ) : (
-        <motion.div
-          className="deals-grid"
-          initial="hidden"
-          animate="visible"
-          variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.07 } } }}
-        >
-          {favorites.map(deal => (
-            <motion.div
-              key={`${deal.deal_source || 'agent'}_${deal.id}`}
-              variants={{ hidden: { opacity: 0, y: 18 }, visible: { opacity: 1, y: 0 } }}
-            >
-              <AgentDealCard deal={deal} />
-            </motion.div>
-          ))}
+        <motion.div className="container" initial="hidden" animate="visible">
+          <PropertyGrid properties={properties} isLoading={isLoading} hasActiveFilters={false} />
         </motion.div>
       )}
     </div>

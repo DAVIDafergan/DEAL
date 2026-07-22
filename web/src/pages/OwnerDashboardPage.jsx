@@ -256,7 +256,7 @@ export function OwnerDashboardPage() {
             {pendingRequests.slice(0, 3).map((r) => (
               <motion.div key={r.id} className="dash-deal-card dash-deal-card--pending" layout>
                 <div className="dash-deal-card__body">
-                  <div className="dash-deal-card__dest">{r.property_name}{r.unit_name ? ` — ${r.unit_name}` : ''}</div>
+                  <div className="dash-deal-card__dest">{r.property_name}{r.unit_name && r.unit_name !== r.property_name ? ` — ${r.unit_name}` : ''}</div>
                   <div className="dash-deal-card__meta">
                     <span><Calendar size={12} style={{ verticalAlign: 'middle' }} /> {String(r.check_in).slice(0, 10)} – {String(r.check_out).slice(0, 10)}</span>
                     <span><Users size={12} style={{ verticalAlign: 'middle' }} /> {r.guest_count} אורחים</span>

@@ -16,6 +16,9 @@ import { OwnerPublicProfilePage } from './pages/OwnerPublicProfilePage.jsx';
 import { PropertyPage } from './pages/PropertyPage.jsx';
 import { RemovePage } from './pages/RemovePage.jsx';
 import { FavoritesPage } from './pages/FavoritesPage.jsx';
+import { BookingStatusPage } from './pages/BookingStatusPage.jsx';
+import { MyBookingsPage } from './pages/MyBookingsPage.jsx';
+import { ComparePage } from './pages/ComparePage.jsx';
 import { AccountPage } from './pages/AccountPage.jsx';
 import { TermsPage } from './pages/TermsPage.jsx';
 import { PrivacyPage } from './pages/PrivacyPage.jsx';
@@ -49,6 +52,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               <Route path="/property/:id" element={<PropertyPage />} />
               <Route path="/remove" element={<RemovePage />} />
               <Route path="/my/favorites" element={<FavoritesPage />} />
+              <Route path="/my/bookings" element={<MyBookingsPage />} />
+              <Route path="/my/compare" element={<ComparePage />} />
+              <Route path="/booking/:token" element={<BookingStatusPage />} />
               <Route path="/account" element={<AccountPage />} />
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />

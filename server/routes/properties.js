@@ -3,7 +3,7 @@ import {
   searchProperties, getPropertyById, getPropertyByIdForOwner, getPropertyByIdRaw, listPropertiesByOwner,
   createProperty, updateProperty,
   getAvailability, setAvailability,
-  createBookingRequest, getBookingRequestById, listBookingRequestsForOwner,
+  createBookingRequest, getBookingRequestById, getBookingRequestByTrackingToken, listBookingRequestsForOwner,
   listBookingRequestsAcrossOwner, updateBookingRequestStatus, getUnitById,
   listPublicPropertiesByOwner, listCitiesForRegion, getFacetCounts,
   listDeletedPropertiesByOwner, softDeleteProperty, restoreProperty,
@@ -356,6 +356,19 @@ router.patch('/:id/availability', requireAgentAuth, async (req, res) => {
   }
 });
 
+/** GET /api/properties/booking-requests/track/:token — 9.6: public status lookup for a
+ * customer's own booking request, no login required. Keyed by the random tracking_token, never
+ * the sequential id (see core/db/index.js migration comment for why). */
+router.get('/booking-requests/track/:token', async (req, res) => {
+  try {
+    const booking = await getBookingRequestByTrackingToken(req.params.token);
+    if (!booking) return res.status(404).json({ error: 'Not found' });
+    res.json({ booking });
+  } catch (err) {
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
 // ── Booking requests ─────────────────────────────────────────────────────────
 
 /** POST /api/properties/:id/booking-requests — public: a customer requests to book.
@@ -373,8 +386,9 @@ router.post('/:id/booking-requests', async (req, res) => {
     if (!check_in || !check_out || !customer_name || !customer_phone) {
       return res.status(400).json({ error: 'check_in, check_out, customer_name, and customer_phone are required' });
     }
-    const id = await createBookingRequest(req.params.id, req.body);
-    if (!id) return res.status(400).json({ error: 'Invalid unit for this property' });
+    const created = await createBookingRequest(req.params.id, req.body);
+    if (!created) return res.status(400).json({ error: 'Invalid unit for this property' });
+    const { id, trackingToken } = created;
     const booking = await getBookingRequestById(id);
     const unit = await getUnitById(booking.unit_id);
 
@@ -392,7 +406,7 @@ router.post('/:id/booking-requests', async (req, res) => {
     }
 
     const priceEstimate = estimateBookingPrice({ unit, currency: property.currency, checkIn: check_in, checkOut: check_out });
-    res.status(201).json({ id, priceEstimate });
+    res.status(201).json({ id, trackingToken, priceEstimate });
   } catch (err) {
     console.error('[properties] booking request error:', err.message);
     res.status(500).json({ error: 'Failed to submit booking request' });

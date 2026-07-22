@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { getPool } from '../../core/db/index.js';
 import { normalizePhone, addToBlocklist } from '../../core/compliance/blocklist.js';
 
@@ -846,11 +847,12 @@ export async function createBookingRequest(propertyId, fields) {
   const ts = nowStr();
   const unitId = await resolveUnitId(propertyId, fields.unit_id);
   if (!unitId) return null;
+  const trackingToken = randomBytes(24).toString('hex');
   const [result] = await pool.query(
     `INSERT INTO booking_requests
       (property_id, unit_id, check_in, check_out, guest_count, customer_name, customer_phone, customer_email,
-       message, status, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
+       message, status, tracking_token, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)`,
     [
       propertyId,
       unitId,
@@ -861,16 +863,34 @@ export async function createBookingRequest(propertyId, fields) {
       fields.customer_phone,
       fields.customer_email || null,
       fields.message || null,
+      trackingToken,
       ts, ts,
     ]
   );
-  return result.insertId;
+  return { id: result.insertId, trackingToken };
 }
 
 export async function getBookingRequestById(id) {
   const pool = getPool();
   const [rows] = await pool.query('SELECT * FROM booking_requests WHERE id = ? LIMIT 1', [id]);
   return rows[0] || null;
+}
+
+/** 9.6: public booking-status tracking, keyed by the unguessable token (not the plain id) —
+ * "מעקב אחרי בקשת הזמנה עם קישור ייחודי, גם ללא הרשמה". Joins in just enough property/unit
+ * context to render a friendly status page without a second round-trip. */
+export async function getBookingRequestByTrackingToken(token) {
+  const pool = getPool();
+  const [rows] = await pool.query(
+    `SELECT br.*, p.name AS property_name, p.region, p.city, p.owner_images, pu.name AS unit_name
+     FROM booking_requests br
+     JOIN properties p ON p.id = br.property_id
+     LEFT JOIN property_units pu ON pu.id = br.unit_id
+     WHERE br.tracking_token = ? LIMIT 1`,
+    [token]
+  );
+  if (!rows[0]) return null;
+  return { ...rows[0], owner_images: parseJsonField(rows[0].owner_images) };
 }
 
 /** Plain unit lookup, no ownership check — used server-side to compose notification emails

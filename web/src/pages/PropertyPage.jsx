@@ -12,6 +12,7 @@ import { PropertyAmenitiesBar } from '../components/property/PropertyAmenitiesBa
 import { PropertyUnitsTable } from '../components/property/PropertyUnitsTable.jsx';
 import { PublicAvailabilityCalendar } from '../components/property/PublicAvailabilityCalendar.jsx';
 import { OwnerCard } from '../components/property/OwnerCard.jsx';
+import { saveTrackedBooking } from '../utils/myBookings.js';
 import { PropertyPageSkeleton } from '../components/property/PropertyPageSkeleton.jsx';
 import { PropertyGrid } from '../components/PropertyGrid.jsx';
 
@@ -141,7 +142,7 @@ function validateBookingForm(form) {
   return errors;
 }
 
-function BookingRequestForm({ propertyId, unit, unitName, currency }) {
+function BookingRequestForm({ propertyId, propertyName, unit, unitName, currency }) {
   const [form, setForm] = useState({ check_in: '', check_out: '', guest_count: 2, customer_name: '', customer_phone: '', customer_email: '', message: '' });
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null); // 'success' | 'error' | null
@@ -183,6 +184,9 @@ function BookingRequestForm({ propertyId, unit, unitName, currency }) {
       const res = await propertyApi.requestBooking(propertyId, { ...form, unit_id: unit?.id });
       setConfirmation(res);
       setResult('success');
+      if (res.trackingToken) {
+        saveTrackedBooking({ trackingToken: res.trackingToken, propertyName, checkIn: form.check_in, checkOut: form.check_out });
+      }
     } catch {
       setResult('error');
     } finally {
@@ -220,6 +224,11 @@ function BookingRequestForm({ propertyId, unit, unitName, currency }) {
           )}
         </div>
         {form.customer_email && <p className="agent-form__hint" style={{ marginTop: 8 }}>אישור נשלח גם לאימייל שלך.</p>}
+        {confirmation?.trackingToken && (
+          <p className="agent-form__hint" style={{ marginTop: 8 }}>
+            <Link to={`/booking/${confirmation.trackingToken}`}>למעקב אחר סטטוס הבקשה — בלי צורך בהרשמה ←</Link>
+          </p>
+        )}
       </div>
     );
   }
@@ -523,6 +532,7 @@ export function PropertyPage() {
           {selectedUnit && (
             <BookingRequestForm
               propertyId={property.id}
+              propertyName={property.name}
               unit={selectedUnit}
               unitName={isMultiUnit ? selectedUnit.name : null}
               currency={property.currency}

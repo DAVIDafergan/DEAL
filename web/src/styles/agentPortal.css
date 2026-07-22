@@ -1907,11 +1907,11 @@ a.opp__item:hover { background: rgba(193,89,43,0.1); color: var(--ds-hearth); }
 .dash-quick-pill:hover { background: #F8FAFC; box-shadow: 0 3px 12px rgba(0,0,0,0.1); }
 
 .dash-quick-pill--primary {
-  background: #2563EB;
+  background: var(--ds-hearth);
   color: #FFFFFF;
   border-color: transparent;
 }
-.dash-quick-pill--primary:hover { background: #1D4ED8; }
+.dash-quick-pill--primary:hover { background: var(--ds-hearth-dark); }
 
 .dash-quick-pill__dot {
   width: 26px; height: 26px;

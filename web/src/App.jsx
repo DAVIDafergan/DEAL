@@ -11,7 +11,9 @@ import { PropertyActiveChips } from './components/PropertyActiveChips.jsx';
 import { PropertyEmptyState } from './components/PropertyEmptyState.jsx';
 import { PropertyGrid } from './components/PropertyGrid.jsx';
 import { SiteFooter } from './components/SiteFooter.jsx';
+import { RecentSearches } from './components/RecentSearches.jsx';
 import { usePropertyFilters } from './hooks/usePropertyFilters.js';
+import { saveRecentSearch, listRecentSearches } from './utils/recentSearches.js';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { UserPlus } from 'lucide-react';
@@ -24,6 +26,7 @@ export function App() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const RESULTS_PAGE_SIZE = 12;
   const [resultsLimit, setResultsLimit] = useState(RESULTS_PAGE_SIZE);
+  const [recentSearches, setRecentSearches] = useState(() => listRecentSearches());
 
   // Any real filter change resets pagination back to page 1 — only "load more" grows the limit.
   useEffect(() => {
@@ -38,6 +41,20 @@ export function App() {
       .catch(() => setProperties([]))
       .finally(() => { setIsLoading(false); setIsLoadingMore(false); });
   }, [apiFilters, resultsLimit]);
+
+  // 9.6: record a search once it's resolved with at least one filter set — avoids logging every
+  // keystroke, only "searches the visitor actually ran".
+  useEffect(() => {
+    if (!hasActiveFilters || isLoading) return;
+    saveRecentSearch(filters);
+    setRecentSearches(listRecentSearches());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiFilters, isLoading]);
+
+  function handlePickRecentSearch(s) {
+    setFilter({ region: s.region || '', city: s.city || '', checkIn: s.checkIn || '', checkOut: s.checkOut || '', guests: s.guests || '' });
+    scrollToResults();
+  }
 
   const canLoadMore = !isLoading && properties.length === resultsLimit && resultsLimit < 100;
 
@@ -85,6 +102,7 @@ export function App() {
             >
               <HeroSearch filters={filters} setFilter={setFilter} onSearch={scrollToResults} />
             </motion.div>
+            <RecentSearches searches={recentSearches} onPick={handlePickRecentSearch} />
           </div>
         </section>
 

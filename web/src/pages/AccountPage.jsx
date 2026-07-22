@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Heart, LayoutDashboard, LogOut, ArrowLeft, User, Settings, Trash2 } from 'lucide-react';
+import { Heart, LayoutDashboard, LogOut, ArrowLeft, User, Settings, Trash2, CalendarCheck } from 'lucide-react';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { useTravelerAuth } from '../context/TravelerAuthContext.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
@@ -106,7 +106,19 @@ export function AccountPage() {
             </div>
             <div className="account-card__text">
               <span className="account-card__label">{t.favoritesLink || 'המועדפים שלי'}</span>
-              <span className="account-card__sub">{favorites.length} {t.savedDeals || 'דילים שמורים'}</span>
+              <span className="account-card__sub">{favorites.length} נכסים שמורים</span>
+            </div>
+          </Link>
+        </motion.div>
+
+        <motion.div variants={cardIn}>
+          <Link to="/my/bookings" className="account-card account-card--action">
+            <div className="account-card__icon account-card__icon--dash">
+              <CalendarCheck size={22} />
+            </div>
+            <div className="account-card__text">
+              <span className="account-card__label">ההזמנות שלי</span>
+              <span className="account-card__sub">מעקב אחרי בקשות הזמנה לפי סטטוס</span>
             </div>
           </Link>
         </motion.div>
