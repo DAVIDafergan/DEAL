@@ -6,6 +6,7 @@ import { regionLabel, propertyTypeLabel, AMENITIES, amenityLabel } from '../data
 import { getCurrencySymbol } from '../utils/currency.js';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { optimizedImageUrl } from '../utils/imageUrl.js';
+import { RouteLoading } from '../components/RouteLoading.jsx';
 
 /** ComparePage — 9.6 "השוואה בין נכסים שמורים": a simple side-by-side table (region/city,
  * capacity, price, amenities) for up to 4 properties, driven entirely by ?ids= in the URL so
@@ -24,7 +25,7 @@ export function ComparePage() {
       </div>
 
       <div className="container">
-        {isLoading && <p className="bsp__loading">{t.loadingButton}</p>}
+        {isLoading && <RouteLoading text={t.friendlyLoadingProperties} />}
         {!isLoading && properties.length < 2 && (
           <p className="agent-form__hint">{t.compareNeedTwo} <Link to="/my/favorites">{t.compareBackToFavorites}</Link></p>
         )}

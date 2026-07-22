@@ -14,6 +14,7 @@ import { DeletePropertyModal } from '../components/property/DeletePropertyModal.
 import { PropertyTrashPanel } from '../components/property/PropertyTrashPanel.jsx';
 import { DashListSkeleton } from '../components/DashListSkeleton.jsx';
 import { OwnerProfileProgress } from '../components/OwnerProfileProgress.jsx';
+import { RouteLoading } from '../components/RouteLoading.jsx';
 import { getGreeting } from '../utils/greeting.js';
 import { regionLabel, propertyTypeLabel } from '../data/propertyOptions.js';
 import { optimizedImageUrl } from '../utils/imageUrl.js';
@@ -154,11 +155,7 @@ export function OwnerDashboardPage() {
   const draftCount = properties.filter((p) => p.status === 'draft').length;
   const greeting = getGreeting(agent?.business_name || agent?.contact_name || '');
 
-  if (loading) return (
-    <div className="dash-loading">
-      <motion.div className="dash-loading__spinner" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.9, ease: 'linear' }} />
-    </div>
-  );
+  if (loading) return <RouteLoading />;
 
   return (
     <div className="dash-page" dir="rtl">

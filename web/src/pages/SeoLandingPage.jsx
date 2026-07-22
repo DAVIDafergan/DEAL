@@ -6,6 +6,7 @@ import { propertyApi } from '../api/client.js';
 import { PropertyGrid } from '../components/PropertyGrid.jsx';
 import { PropertyEmptyState } from '../components/PropertyEmptyState.jsx';
 import { SiteFooter } from '../components/SiteFooter.jsx';
+import { RouteLoading } from '../components/RouteLoading.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
 
 /** SeoLandingPage — 9.7: the real, navigable React version of the region/city/category pages
@@ -57,7 +58,7 @@ export function SeoLandingPage() {
     return () => { tag?.remove(); };
   }, [data]);
 
-  if (loading) return <div className="pp__loading-page container" dir={dir}><p className="bsp__loading">{t.loadingButton}</p></div>;
+  if (loading) return <div className="pp__loading-page container" dir={dir}><RouteLoading text={t.friendlyLoadingProperties} /></div>;
 
   if (notFound || !data) {
     // Combo route couldn't resolve seg1 as a region or city — this is genuinely a 404, not

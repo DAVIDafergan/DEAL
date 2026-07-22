@@ -9,6 +9,7 @@ import { PropertyFilterPanel } from './components/PropertyFilterPanel.jsx';
 import { PropertyFilterSheet } from './components/PropertyFilterSheet.jsx';
 import { PropertyActiveChips } from './components/PropertyActiveChips.jsx';
 import { PropertyEmptyState } from './components/PropertyEmptyState.jsx';
+import { PropertyErrorState } from './components/PropertyErrorState.jsx';
 import { PropertyGrid } from './components/PropertyGrid.jsx';
 import { SiteFooter } from './components/SiteFooter.jsx';
 import { RecentSearches } from './components/RecentSearches.jsx';
@@ -26,23 +27,29 @@ export function App() {
   const [properties, setProperties] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const RESULTS_PAGE_SIZE = 12;
   const [resultsLimit, setResultsLimit] = useState(RESULTS_PAGE_SIZE);
   const [recentSearches, setRecentSearches] = useState(() => listRecentSearches());
+  const [retryTick, setRetryTick] = useState(0);
 
   // Any real filter change resets pagination back to page 1 — only "load more" grows the limit.
   useEffect(() => {
     setResultsLimit(RESULTS_PAGE_SIZE);
   }, [apiFilters]);
 
+  // 10.3: a fetch failure used to just set properties=[] — visually identical to a genuine
+  // "no results" empty state. Now tracked separately so a real error gets PropertyErrorState
+  // (with a retry button) instead of silently looking like nothing matched the filters.
   useEffect(() => {
     const isLoadMore = resultsLimit > RESULTS_PAGE_SIZE;
     if (isLoadMore) setIsLoadingMore(true); else setIsLoading(true);
+    setHasError(false);
     propertyApi.search({ ...apiFilters, limit: resultsLimit })
       .then(({ properties: p }) => setProperties(p || []))
-      .catch(() => setProperties([]))
+      .catch(() => { setProperties([]); setHasError(true); })
       .finally(() => { setIsLoading(false); setIsLoadingMore(false); });
-  }, [apiFilters, resultsLimit]);
+  }, [apiFilters, resultsLimit, retryTick]);
 
   // 9.6: record a search once it's resolved with at least one filter set — avoids logging every
   // keystroke, only "searches the visitor actually ran".
@@ -159,7 +166,9 @@ export function App() {
 
               <PropertyActiveChips filters={filters} setFilter={setFilter} toggleAmenity={toggleAmenity} onClearAll={clearAll} />
 
-              {!isLoading && properties.length === 0 ? (
+              {!isLoading && hasError ? (
+                <PropertyErrorState onRetry={() => setRetryTick((n) => n + 1)} />
+              ) : !isLoading && properties.length === 0 ? (
                 <PropertyEmptyState filters={filters} setFilter={setFilter} toggleAmenity={toggleAmenity} onClearAll={clearAll} hasActiveFilters={hasActiveFilters} />
               ) : (
                 <>
