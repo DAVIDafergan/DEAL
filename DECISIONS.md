@@ -894,3 +894,26 @@ Navigation Timing, גודל build) שלא תלויות בהדמיית Lighthouse
   זה יהיה הרחבה שלו), #40 PWA.
 - **#13 תחזית מזג אוויר (Open-Meteo)** — הספציפי ביותר מהרשימה הזו, ללא מפתח API, קל יחסית.
   נדחה בפועל רק בגלל שהזמן נגמר, לא בגלל מורכבות — המועמד הראשון להמשך אם חוזרים לשלב הזה.
+
+## 11.1 — פונט אחיד באתר + חיפוש היירו מחדש
+
+**פונט**: Ploni לא נמצא ב-`web/public/fonts` — נבחר Assistant (Google Fonts, משקלים
+400/500/600/700) עם Heebo כ-fallback ואז `system-ui`, בטעינה לא-חוסמת (loadCSS pattern).
+הוגדר במקום אחד (`--font-hebrew`/`--font-display` ב-`theme.css`); כל שימוש קשיח בשם פונט
+אחר בקוד תוקן להפנות למשתנים האלה. תוקן גם באג קיים מלפני 11.1: הסלקטור
+`[data-lang='he'] body` לא יכול היה להתאים אף פעם (מבנה DOM: `body > .app-shell`, לא
+להפך) — הוחלף ב-`html[lang='he'] body`, שמסתמך על אותו מקור-אמת (`document.documentElement.lang`)
+שכבר אומת כאמין ב-9.8.
+
+**באג עומק — חיפוש ההיירו נשבר במובייל (590px+ רוחב על viewport של 390px):** כל ה-CSS על
+`.hero-search-wrap`/`.hero-search` היה תקין (`width:100%; min-width:0`), אבל האב הישיר שלהם
+ב-DOM היה `<motion.div>` של Framer Motion (עוטף את `<HeroSearch>` ב-`App.jsx` לאנימציית
+כניסה) — `motion.div` ללא `className` מרנדר `<div>` רגיל בלי רוחב מוגדר. בתוך flex column
+עם `align-items:center` (לא `stretch`), div כזה משתמש בחישוב shrink-to-fit, וכיוון ששורת
+הצ'יפים המהירים (`hero-search__quick-row`) משתמשת ב-`flex-wrap:nowrap` (בכוונה — פס גלילה
+אופקי במובייל), ה-min-content שלה (כ-740px, סכום כל הצ'יפים בלי אפשרות לגלוש שורה) נדחף
+מעלה ב-DOM וכפה את כל תיבת החיפוש להיות ברוחב הזה, גם כשה-`width:100%` על `hero-search-wrap`
+עצמו היה תקין — כי 100% התייחס לרוחב ה-`motion.div` התפוח, לא לרוחב ה-viewport. תוקן ב-3
+שורות: `className` על ה-`motion.div` עם `width:100%; min-width:0`, ו-`min-width:0` הגנתי גם
+על `hero-search__quick-row` עצמו. אומת ישירות (Playwright, viewport 390×844): `.hero-search`
+ירד מ-648px ל-362px, שדות "איפה" ו"כמה אורחים" גלויים ותקינים.

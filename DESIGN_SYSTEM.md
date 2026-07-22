@@ -43,25 +43,38 @@ leads per screen (hearth for marketing/booking flows, olive for dashboards).
 
 ## 2. Typography
 
-**Display:** `Fraunces` (a warm, slightly-serif display face with real character — used for
-H1s, hero headlines, property names on cards). Falls back to `Plus Jakarta Sans` 800 for Hebrew,
-since Fraunces has no Hebrew glyphs — Hebrew headlines use the Jakarta fallback directly, so no
-missing-glyph flash occurs.
+**11.1 update — one font, everywhere, no exceptions.** The v3 launch (9.0) used `Fraunces` as
+a display face for headings, with a Jakarta/Noto Sans Hebrew split for body text — three font
+families in play, and Fraunces has no Hebrew glyphs at all (Hebrew headlines silently fell back
+to Jakarta 800, meaning "one warm display face" was never actually true for the majority-Hebrew
+site). Explicit instruction to unify: `--font-display` and `--font-hebrew` (and `--font-latin`)
+now all resolve to the same family — **`Assistant`** (400/500/600/700), with **`Heebo`** as a
+same-weight-feel fallback, then `system-ui`. Both are clean, Hebrew-native grotesques designed
+for UI legibility rather than editorial character — the deliberate trade here is warmth (what
+Fraunces gave the brand) for consistency and Hebrew-first clarity (what the site actually is).
+No Ploni font files were found in `web/public/fonts` (checked directly) — see DECISIONS.md 11.1.
 
-**Body:** `Plus Jakarta Sans` (Latin) / `Noto Sans Hebrew` (Hebrew) — unchanged from v2, both
-already loaded and battle-tested for RTL.
+**Body:** same `Assistant`/`Heebo` stack. One less font family to load, one less thing that can
+visually clash between a Latin-fallback heading and a Hebrew-native body face.
 
 **Numbers:** `font-variant-numeric: tabular-nums` on all prices/counts/dates.
 
-### Scale
+### Scale (retuned for Assistant — 11.1)
+Assistant is a grotesque and reads visually larger/heavier than Fraunces at an identical rem
+size, so sizes came down slightly to keep the same felt hierarchy instead of the whole site
+suddenly reading louder.
 ```
---ts-hero:    clamp(2rem, 5vw, 3.5rem) / 800   — page heroes
---ts-display: 1.4rem / 700                     — card title overlay
---ts-title:   1.05rem / 700                    — card body title
---ts-price:   1.75rem / 800 / tabular-nums / --ds-gold
+--ts-hero:    clamp(1.9rem, 4.6vw, 3.2rem) / 800  — page heroes
+--ts-display: 1.3rem / 700                        — card title overlay
+--ts-title:   1rem / 700                          — card body title
+--ts-price:   1.7rem / 800 / tabular-nums / --ds-gold
 --ts-label:   0.72rem / 600 / uppercase / letter-spacing 0.06em
 --ts-body:    0.875rem / 400
 --ts-micro:   0.7rem / 500
+
+--lh-hebrew:  1.7   — Hebrew line-height (dense script, needs the room)
+--lh-latin:   1.5   — Latin line-height (ascenders/descenders give it breathing room for free)
+--ls-heading: -0.01em — slight negative tracking on large headings only
 ```
 
 ## 3. Spacing / radius / shadow

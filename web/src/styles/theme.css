@@ -70,18 +70,35 @@
   --color-heat-blazing: #ef4444;
 
   /* ── Typography ──────────────────────────────────────────────────────── */
-  --font-display: 'Fraunces', 'Plus Jakarta Sans', system-ui, serif;
-  --font-latin:   'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
-  --font-hebrew:  'Noto Sans Hebrew', 'Plus Jakarta Sans', system-ui, sans-serif;
+  /* 11.1: one clean, highly-legible font everywhere — headings, body, buttons, forms, admin,
+     footer, no exceptions. Every component consumes these two variables, never a hardcoded
+     family name (verified — see DECISIONS.md 11.1). Single source of truth: change the font
+     once here and the whole site (including emails, which share these tokens via inline
+     styles built from the same values) follows. Assistant chosen per spec (no Ploni font
+     files present in web/public/fonts — checked directly, none exist); Heebo as a same-family
+     -feel fallback since it's also a clean, Hebrew-native, widely-supported grotesque, then
+     system-ui so a slow/blocked font request never leaves bare serif fallback text. */
+  --font-display: 'Assistant', 'Heebo', system-ui, sans-serif;
+  --font-latin:   'Assistant', 'Heebo', system-ui, sans-serif;
+  --font-hebrew:  'Assistant', 'Heebo', system-ui, sans-serif;
 
-  /* Type scale */
-  --ts-hero:    clamp(2rem, 5vw, 3.5rem);
-  --ts-display: 1.4rem;
-  --ts-title:   1.05rem;
-  --ts-price:   1.75rem;
+  /* Type scale — retuned for Assistant, which runs visually larger/heavier than Fraunces at
+     the same rem size (it's a grotesque, not a display serif), so sizes came down slightly
+     to keep the same felt hierarchy rather than everything reading "shouty". */
+  --ts-hero:    clamp(1.9rem, 4.6vw, 3.2rem);
+  --ts-display: 1.3rem;
+  --ts-title:   1rem;
+  --ts-price:   1.7rem;
   --ts-label:   0.72rem;
   --ts-body:    0.875rem;
   --ts-micro:   0.7rem;
+
+  /* Hebrew reads denser than Latin at the same line-height (no ascenders/descenders to force
+     extra breathing room the way Latin text does) — needs a visibly larger line-height to
+     avoid feeling cramped; Latin can stay tighter without looking sparse. */
+  --lh-hebrew: 1.7;
+  --lh-latin: 1.5;
+  --ls-heading: -0.01em;
 
   /* ── Spacing scale ───────────────────────────────────────────────────── */
   --sp-1: 4px;

@@ -122,10 +122,25 @@
     <link rel="dns-prefetch" href="https://accounts.google.com" />
     <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
 
+    <!-- 11.1: one font everywhere — Assistant (400/500/600/700), Heebo as a same-weight
+         fallback. Loaded non-render-blocking: preload the stylesheet as a low-priority
+         resource, swap its rel to "stylesheet" once fetched (the standard "loadCSS" pattern)
+         instead of a plain blocking <link rel="stylesheet">, which would otherwise hold up
+         first paint waiting on a network round trip to Google Fonts. <noscript> covers the
+         no-JS case. font-display=swap on the Google Fonts side means text still renders
+         immediately in a fallback font and swaps in, rather than staying invisible. -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Noto+Sans+Hebrew:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;500;600;700&family=Heebo:wght@400;500;600;700&display=swap"
+      onload="this.onload=null;this.rel='stylesheet'"
     />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;500;600;700&family=Heebo:wght@400;500;600;700&display=swap"
+      />
+    </noscript>
 
     <!-- Google Identity Services -->
     <script src="https://accounts.google.com/gsi/client" async onload="window.__googleSignInCallback && window.__googleSignInCallback()"></script>

@@ -47,3 +47,13 @@ export function townsForRegion(region) {
 }
 
 export const ALL_TOWNS = Object.values(ISRAELI_TOWNS).flat();
+
+// 11.1 — hero search "where" autocomplete needs to go from a picked town straight to its
+// region (so picking a city also sets the region filter, not just the city).
+const TOWN_TO_REGION = Object.fromEntries(
+  Object.entries(ISRAELI_TOWNS).flatMap(([region, towns]) => towns.map((town) => [town, region]))
+);
+
+export function regionForTown(town) {
+  return TOWN_TO_REGION[town] || null;
+}

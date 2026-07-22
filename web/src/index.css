@@ -37,12 +37,16 @@ body {
   /* 10.2: no baseline was set anywhere — text fell back to the browser default (~1.15),
      which reads as cramped, especially in Hebrew. Most components already set their own
      line-height explicitly (1.4-1.75) and keep it; this only affects text that didn't. */
-  line-height: 1.6;
+  line-height: var(--lh-latin);
 }
 
-[data-lang='he'] body,
-.app-shell[data-lang='he'] {
+/* 11.1: html[lang] is the single source of truth for the active language (set on
+   document.documentElement by LanguageContext, always in sync — see the 9.8 StrictMode fix
+   in DECISIONS.md). Hebrew gets a visibly more generous line-height site-wide — dense script,
+   no ascenders/descenders to force natural breathing room the way Latin text gets for free. */
+html[lang='he'] body {
   font-family: var(--font-hebrew);
+  line-height: var(--lh-hebrew);
 }
 
 a {
@@ -2321,11 +2325,11 @@ label { color: var(--color-text-secondary); }
    Applied systematically across all screens per DESIGN_SYSTEM.md
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-/* ── 1. Global body: use Plus Jakarta Sans ────────────────────────────────── */
-body {
-  font-family: var(--font-latin);
-}
-[lang="he"] body, [data-lang="he"] body, [data-lang="he"] * {
+/* ── 1. Global body font — see the html[lang='he'] rule near the top of this file for the
+   single authoritative language/font switch (11.1); this legacy block only needs to keep
+   .app-shell's descendants in sync, since some deep-nested components read font-family from
+   their nearest ancestor rather than inheriting cleanly through certain flex/grid contexts. */
+[data-lang="he"] * {
   font-family: var(--font-hebrew);
 }
 
@@ -3642,6 +3646,8 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 14px;
+  width: 100%;
+  min-width: 0;
 }
 
 .home-hero__title {
@@ -3652,6 +3658,7 @@ body {
   margin: 0;
   max-width: 720px;
   line-height: 1.25;
+  letter-spacing: var(--ls-heading);
 }
 
 .home-hero__sub {
@@ -3661,19 +3668,43 @@ body {
   max-width: 520px;
 }
 
+/* Framer Motion's <motion.div> renders a plain unstyled div — without an explicit width it
+   shrink-wraps to its content's min-content, and the nowrap quick-chip row's large min-content
+   was blowing the whole hero search out past the viewport on mobile (see DECISIONS.md 11.1). */
+.home-hero__search-motion { width: 100%; min-width: 0; }
+
+.hero-search-wrap {
+  width: 100%;
+  max-width: min(820px, 100%);
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
 .hero-search {
   width: 100%;
-  max-width: 760px;
+  max-width: 100%;
+  min-width: 0;
   display: flex;
+  flex-wrap: wrap;
   align-items: stretch;
   background: var(--ds-ink);
   border-radius: var(--radius-pill);
   box-shadow: var(--shadow-popover);
   padding: 6px;
   gap: 4px;
+  border: 1px solid transparent;
+  transition: box-shadow var(--transition-base), border-color var(--transition-base);
+}
+.hero-search:focus-within {
+  border-color: var(--ds-hearth);
+  box-shadow: var(--shadow-popover), 0 0 0 3px rgba(193,89,43,0.14);
 }
 
 .hero-search__field {
+  position: relative;
   flex: 1;
   min-width: 0;
   display: flex;
@@ -3681,9 +3712,17 @@ body {
   justify-content: center;
   padding: 6px 18px;
   text-align: start;
+  border-radius: var(--radius-pill);
+  transition: background var(--transition-base);
 }
+.hero-search__field:focus-within { background: var(--ds-slate); }
+.hero-search__field--where { flex: 1.3; }
+.hero-search__field--dates { flex: 1.4; }
 
 .hero-search__label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   font-size: 0.68rem;
   font-weight: 700;
   color: var(--ds-ash);
@@ -3703,6 +3742,10 @@ body {
 }
 
 .hero-search__input:focus { outline: none; }
+
+.hero-search__date-pair { display: flex; align-items: center; gap: 4px; }
+.hero-search__input--date { font-size: 0.82rem; }
+.hero-search__date-sep { color: var(--ds-ash); flex-shrink: 0; }
 
 .hero-search__divider {
   width: 1px;
@@ -3724,10 +3767,85 @@ body {
   font-size: 0.92rem;
   flex-shrink: 0;
   cursor: pointer;
-  transition: opacity var(--transition-base);
+  transition: opacity var(--transition-base), transform var(--transition-base);
 }
 
-.hero-search__submit:hover { opacity: 0.9; }
+.hero-search__submit:hover { opacity: 0.9; transform: scale(1.02); }
+
+/* ── "Where" autocomplete listbox ─────────────────────────────────────────── */
+.hero-search__listbox {
+  position: absolute;
+  top: calc(100% + 10px);
+  inset-inline-start: -6px;
+  inset-inline-end: -6px;
+  background: var(--ds-ink);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-popover);
+  border: 1px solid var(--ds-ghost);
+  padding: 6px;
+  margin: 0;
+  list-style: none;
+  max-height: 320px;
+  overflow-y: auto;
+  z-index: 40;
+  animation: hero-listbox-in 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes hero-listbox-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.hero-search__listbox-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.86rem;
+  color: var(--ds-bone);
+  cursor: pointer;
+}
+.hero-search__listbox-item.is-highlighted,
+.hero-search__listbox-item:hover { background: var(--ds-slate); }
+.hero-search__listbox-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  font-size: 0.66rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.hero-search__listbox-badge--region { background: rgba(193,89,43,0.14); color: var(--ds-hearth); }
+.hero-search__listbox-badge--city { background: rgba(91,107,78,0.14); color: var(--ds-olive); }
+.hero-search__listbox-empty { padding: 12px; text-align: center; font-size: 0.82rem; color: var(--ds-ash); }
+
+/* ── Quick-shortcut chip row under the search box ─────────────────────────── */
+.hero-search__quick-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+}
+.hero-search__quick-label { font-size: 0.78rem; color: var(--ds-bone); font-weight: 600; opacity: 0.8; }
+.hero-search__quick-divider { width: 1px; height: 16px; background: var(--ds-ghost); margin: 0 2px; }
+.hero-search__quick-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--ds-ghost);
+  background: var(--ds-ink);
+  color: var(--ds-bone);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 6px 13px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: border-color var(--transition-base), color var(--transition-base);
+}
+.hero-search__quick-chip:hover { border-color: var(--ds-hearth); color: var(--ds-hearth); }
 
 @media (max-width: 720px) {
   .hero-search {
@@ -3736,7 +3854,21 @@ body {
   }
   .hero-search__divider { width: auto; height: 1px; margin: 0 14px; }
   .hero-search__field { padding: 10px 16px; }
+  .hero-search__field:focus-within { background: none; }
   .hero-search__submit { min-height: 48px; margin: 4px; border-radius: var(--radius-md); }
+  .hero-search__listbox { position: static; margin-top: 8px; box-shadow: none; border: 1px solid var(--ds-ghost); }
+  .hero-search__quick-row { justify-content: flex-start; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 2px; }
+  .hero-search__quick-chip { flex-shrink: 0; }
+  /* Two native date inputs side by side don't have room to shrink on a narrow phone screen —
+     stack them instead of squeezing (this was the actual cause of the mobile overflow bug). */
+  .hero-search__date-pair { flex-direction: column; align-items: stretch; gap: 8px; }
+  .hero-search__date-sep { display: none; }
+  .hero-search__input--date { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-search__listbox { animation: none; }
+  .hero-search__submit:hover { transform: none; }
 }
 
 /* ── 9.2 shared home section title ───────────────────────────────────────── */
@@ -5112,7 +5244,7 @@ body {
   border-radius: 20px;
   box-shadow: 0 12px 50px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08);
   overflow: hidden;
-  font-family: var(--font-hebrew, 'Noto Sans Hebrew', sans-serif);
+  font-family: var(--font-hebrew);
   direction: rtl;
 }
 
