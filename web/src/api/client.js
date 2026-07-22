@@ -176,6 +176,7 @@ export const propertyApi = {
   get: (id) => getJson(`/properties/${id}`),
   getBatch: (ids) => getJson(`/properties/batch${buildQuery({ ids: ids.join(',') })}`),
   getMine: (token) => getJson('/properties/mine', token),
+  getMineEventSummary: (token) => getJson('/properties/mine/event-summary', token),
   getOneMine: (token, id) => getJson(`/properties/${id}/mine`, token),
   create: (token, data) => postJson('/properties', data, token),
   update: (token, id, data) => patchJson(`/properties/${id}`, data, token),
@@ -199,6 +200,8 @@ export const propertyApi = {
   delete: (token, id) => deleteReq(`/properties/${id}`, token),
   restore: (token, id) => postJson(`/properties/${id}/restore`, {}, token),
   getTrash: (token) => getJson('/properties/trash/mine', token),
+  trackEvent: (id, data) => postJson(`/properties/${id}/events`, data),
+  getStats: (token, id, days) => getJson(`/properties/${id}/stats${buildQuery({ days })}`, token),
 };
 
 export const uploadApi = {
@@ -247,6 +250,7 @@ export const adminApi = {
   approveAutoProperty: (tok, id) => postJson(`/admin/properties/${id}/approve-auto`, {}, tok),
   rejectAutoProperty: (tok, id) => postJson(`/admin/properties/${id}/reject-auto`, {}, tok),
   getPropertyStats: (tok) => getJson('/admin/properties/stats', tok),
+  getPropertyEventStats: (tok, days) => getJson(`/admin/property-events${buildQuery({ days })}`, tok),
   runEngine: (tok) => postJson('/admin/engine/run', {}, tok),
   runEngineLive: (tok, roundSize) => postJson('/admin/engine/run-live', { roundSize }, tok),
   getEngineStatus: (tok) => getJson('/admin/engine/status', tok),

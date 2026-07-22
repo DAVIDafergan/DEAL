@@ -202,6 +202,70 @@ function AnalyticsTab({ token }) {
   );
 }
 
+/** 10.5: site-wide property view/click aggregate — distinct from AnalyticsTab above, which is
+ * the pre-pivot flight/agent-deals analytics (still live for whatever residual data exists
+ * there, not touched). */
+function PropertyAnalyticsTab({ token }) {
+  const [days, setDays] = useState(30);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setLoading(true);
+    adminApi.getPropertyEventStats(token, days)
+      .then((d) => setData(d))
+      .catch(() => setData(null))
+      .finally(() => setLoading(false));
+  }, [token, days]);
+
+  const EVENT_LABELS = {
+    view: 'צפיות', whatsapp_click: 'קליקים לוואטסאפ', call_click: 'קליקים לחיוג', share: 'שיתופים', favorite: 'מועדפים',
+  };
+
+  return (
+    <div className="adm-analytics" dir="rtl">
+      <div className="adm-analytics__filters">
+        <select className="adm-analytics__select" value={days} onChange={(e) => setDays(Number(e.target.value))}>
+          <option value={7}>7 ימים אחרונים</option>
+          <option value={30}>30 ימים אחרונים</option>
+          <option value={90}>90 ימים אחרונים</option>
+        </select>
+      </div>
+
+      {loading && <p style={{ textAlign: 'center', padding: 32, color: 'var(--color-text-muted)' }}>טוען…</p>}
+
+      {!loading && data && (
+        <>
+          <div className="adm-analytics__grid">
+            {Object.entries(EVENT_LABELS).map(([key, label]) => (
+              <div className="adm-analytics-kpi" key={key}>
+                <div className="adm-analytics-kpi__value">{data.totals[key]?.total || 0}</div>
+                <div className="adm-analytics-kpi__label">{label}</div>
+                <div className="adm-analytics-kpi__sub">{data.totals[key]?.unique || 0} ייחודיים</div>
+              </div>
+            ))}
+          </div>
+
+          <h3 style={{ margin: '24px 0 12px' }}>10 הנכסים הנצפים ביותר</h3>
+          <table className="adm-table">
+            <thead><tr><th>נכס</th><th>צפיות</th></tr></thead>
+            <tbody>
+              {data.topProperties.length === 0 ? (
+                <tr><td colSpan={2} style={{ textAlign: 'center', color: 'var(--color-text-muted)' }}>אין עדיין נתונים</td></tr>
+              ) : data.topProperties.map((p) => (
+                <tr key={p.propertyId}>
+                  <td><a href={`/property/${p.propertyId}`} target="_blank" rel="noopener noreferrer">{p.name}</a></td>
+                  <td>{p.views}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+    </div>
+  );
+}
+
 function ComplianceReportBlock({ report }) {
   if (!report) return null;
   return (
@@ -781,6 +845,9 @@ export function AdminPage() {
         <button className={`adm-tabs__btn${tab === 'property-review' ? ' is-active' : ''}`} onClick={() => setTab('property-review')}>
           <ShieldCheck size={14} /> נכסים לאישור
         </button>
+        <button className={`adm-tabs__btn${tab === 'property-analytics' ? ' is-active' : ''}`} onClick={() => setTab('property-analytics')}>
+          <BarChart3 size={14} /> סטטיסטיקת נכסים
+        </button>
         <button className={`adm-tabs__btn${tab === 'engine' ? ' is-active' : ''}`} onClick={() => setTab('engine')}>
           <Bot size={14} /> מנוע איסוף
         </button>
@@ -853,6 +920,7 @@ export function AdminPage() {
           regardless of confidence (8.6); once enabled, only the 60-79 band plus >=80 without a
           usable phone. See propertyStore.listPropertiesPendingReview. */}
       {tab === 'property-review' && <PropertyReviewTab token={token} notify={notify} />}
+      {tab === 'property-analytics' && <PropertyAnalyticsTab token={token} />}
 
       {/* Collection engine (Step 3/4) */}
       {tab === 'engine' && <EngineTab token={token} notify={notify} />}

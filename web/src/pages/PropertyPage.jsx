@@ -14,6 +14,7 @@ import { PropertyUnitsTable } from '../components/property/PropertyUnitsTable.js
 import { PublicAvailabilityCalendar } from '../components/property/PublicAvailabilityCalendar.jsx';
 import { OwnerCard } from '../components/property/OwnerCard.jsx';
 import { buildPropertyWhatsAppUrl, buildTelUrl } from '../utils/contactLinks.js';
+import { trackPropertyEvent } from '../utils/eventTracking.js';
 import { PropertyPageSkeleton } from '../components/property/PropertyPageSkeleton.jsx';
 import { PropertyGrid } from '../components/PropertyGrid.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
@@ -129,6 +130,7 @@ export function PropertyPage() {
       .then(({ property: p }) => {
         setProperty(p);
         setSelectedUnitId(p.units?.[0]?.id ?? null);
+        trackPropertyEvent(id, 'view');
         propertyApi.search({ region: p.region, limit: 5 })
           .then(({ properties: list }) => setSimilar((list || []).filter((x) => x.id !== p.id).slice(0, 4)))
           .catch(() => setSimilar([]));
@@ -138,6 +140,7 @@ export function PropertyPage() {
   }, [id]);
 
   async function handleShare() {
+    trackPropertyEvent(id, 'share');
     const url = window.location.href;
     if (navigator.share) {
       try { await navigator.share({ title: property.name, url }); return; } catch { /* fall through to clipboard */ }
@@ -226,7 +229,12 @@ export function PropertyPage() {
               )}
             </div>
             <div className="pp__header-actions">
-              <button type="button" className={`pp__icon-btn${isFavorite(favKey) ? ' is-fav' : ''}`} onClick={() => toggleFavorite(favKey)} aria-label={t.addToFavorites}>
+              <button
+                type="button"
+                className={`pp__icon-btn${isFavorite(favKey) ? ' is-fav' : ''}`}
+                onClick={() => { if (!isFavorite(favKey)) trackPropertyEvent(id, 'favorite'); toggleFavorite(favKey); }}
+                aria-label={t.addToFavorites}
+              >
                 <Heart size={18} />
               </button>
               <button type="button" className="pp__icon-btn" onClick={handleShare} aria-label={t.shareButtonLabel}>
@@ -275,6 +283,7 @@ export function PropertyPage() {
                 currency={property.currency}
                 selectedUnitId={selectedUnitId}
                 onSelectUnit={setSelectedUnitId}
+                propertyId={property.id}
                 propertyName={property.name}
                 propertyPhone={property.phone}
                 propertyWhatsapp={property.whatsapp}
@@ -350,12 +359,12 @@ export function PropertyPage() {
           {hasContact ? (
             <div className="pp__contact-actions">
               {waUrl && (
-                <a className="deal-modal__btn deal-modal__btn--wa" href={waUrl} target="_blank" rel="noopener noreferrer">
+                <a className="deal-modal__btn deal-modal__btn--wa" href={waUrl} target="_blank" rel="noopener noreferrer" onClick={() => trackPropertyEvent(id, 'whatsapp_click')}>
                   <MessageCircle size={18} /> {t.contactWhatsAppButton}
                 </a>
               )}
               {telUrl && (
-                <a className="deal-modal__btn deal-modal__btn--book" href={telUrl}>
+                <a className="deal-modal__btn deal-modal__btn--book" href={telUrl} onClick={() => trackPropertyEvent(id, 'call_click')}>
                   <Phone size={18} /> {t.contactCallButton}
                 </a>
               )}
@@ -378,12 +387,12 @@ export function PropertyPage() {
           )}
           <div className="pp__mobile-bar-actions">
             {waUrl && (
-              <a className="pp__mobile-bar-btn pp__mobile-bar-btn--wa" href={waUrl} target="_blank" rel="noopener noreferrer" aria-label={t.contactWhatsAppButton}>
+              <a className="pp__mobile-bar-btn pp__mobile-bar-btn--wa" href={waUrl} target="_blank" rel="noopener noreferrer" aria-label={t.contactWhatsAppButton} onClick={() => trackPropertyEvent(id, 'whatsapp_click')}>
                 <MessageCircle size={18} />
               </a>
             )}
             {telUrl && (
-              <a className="pp__mobile-bar-btn pp__mobile-bar-btn--call" href={telUrl} aria-label={t.contactCallButton}>
+              <a className="pp__mobile-bar-btn pp__mobile-bar-btn--call" href={telUrl} aria-label={t.contactCallButton} onClick={() => trackPropertyEvent(id, 'call_click')}>
                 <Phone size={18} />
               </a>
             )}

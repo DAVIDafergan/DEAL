@@ -21,6 +21,7 @@ const OwnerRegisterPage = lazy(() => import('./pages/OwnerRegisterPage.jsx').the
 const OwnerLoginPage = lazy(() => import('./pages/OwnerLoginPage.jsx').then((m) => ({ default: m.OwnerLoginPage })));
 const OwnerDashboardPage = lazy(() => import('./pages/OwnerDashboardPage.jsx').then((m) => ({ default: m.OwnerDashboardPage })));
 const OwnerSettingsPage = lazy(() => import('./pages/OwnerSettingsPage.jsx').then((m) => ({ default: m.OwnerSettingsPage })));
+const PropertyStatsPage = lazy(() => import('./pages/PropertyStatsPage.jsx').then((m) => ({ default: m.PropertyStatsPage })));
 const OwnerPublicProfilePage = lazy(() => import('./pages/OwnerPublicProfilePage.jsx').then((m) => ({ default: m.OwnerPublicProfilePage })));
 const PropertyPage = lazy(() => import('./pages/PropertyPage.jsx').then((m) => ({ default: m.PropertyPage })));
 const RemovePage = lazy(() => import('./pages/RemovePage.jsx').then((m) => ({ default: m.RemovePage })));
@@ -52,6 +53,7 @@ function RouteTree() {
         <Route path="owner/register" element={<OwnerRegisterPage />} />
         <Route path="owner/login" element={<OwnerLoginPage />} />
         <Route path="owner/dashboard/settings" element={<OwnerSettingsPage />} />
+        <Route path="owner/dashboard/stats/:id" element={<PropertyStatsPage />} />
         <Route path="owner/dashboard" element={<OwnerDashboardPage />} />
         <Route path="owner/:slug" element={<OwnerPublicProfilePage />} />
         <Route path="property/:id" element={<PropertyPage />} />

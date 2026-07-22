@@ -770,6 +770,23 @@ const SCHEMA_STATEMENTS = [
     setting_value VARCHAR(255) NOT NULL,
     updated_at DATETIME NOT NULL
   ) ENGINE=InnoDB`,
+  // 10.5 — per-property analytics. One row per event, never deduplicated at write time —
+  // "unique views" is computed at read time as COUNT(DISTINCT session_id), so the raw total
+  // (every page load) is preserved too ("views (unique/not unique)" needs both numbers).
+  // session_id is a hash of a random client-generated token (never anything identifying), so
+  // even this table alone can't be used to track a specific person across properties.
+  `CREATE TABLE IF NOT EXISTS property_events (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    property_id INT NOT NULL,
+    unit_id INT NULL,
+    event_type ENUM('view','whatsapp_click','call_click','share','favorite') NOT NULL,
+    session_id VARCHAR(64) NOT NULL,
+    source ENUM('search','direct','external') NOT NULL DEFAULT 'direct',
+    created_at DATETIME NOT NULL,
+    INDEX idx_property_events_property_type_date (property_id, event_type, created_at),
+    INDEX idx_property_events_session (property_id, session_id, event_type),
+    CONSTRAINT fk_property_events_property FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB`,
 ];
 
 /**

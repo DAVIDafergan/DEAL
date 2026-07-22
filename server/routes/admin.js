@@ -13,6 +13,7 @@ import { getQueryStats, listQueries } from '../store/engineQueryStore.js';
 import { isEmergencyStopped, setEmergencyStop } from '../store/engineSettingsStore.js';
 import { getSessionCost } from '../../engine/extractor/costLogger.js';
 import { authRateLimiter } from '../middleware/rateLimiter.js';
+import { getSiteEventStats } from '../store/propertyEventStore.js';
 
 const router = Router();
 
@@ -349,6 +350,20 @@ router.get('/analytics', async (req, res) => {
     res.json(data);
   } catch (err) {
     console.error('[admin] analytics error:', err.message);
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
+/** GET /api/admin/property-events — 10.5 site-wide aggregate (views/clicks/shares/favorites
+ * across every property, plus a top-10-by-views list) for the property-rental world, distinct
+ * from the /analytics route above (that one is the pre-pivot flight/agent-deals analytics). */
+router.get('/property-events', async (req, res) => {
+  try {
+    const days = Math.min(Number(req.query.days) || 30, 90);
+    const data = await getSiteEventStats({ days });
+    res.json(data);
+  } catch (err) {
+    console.error('[admin] property-events error:', err.message);
     res.status(500).json({ error: 'Internal error' });
   }
 });

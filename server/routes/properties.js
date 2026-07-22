@@ -15,9 +15,11 @@ import { findAgentBySlug, findAgentById } from '../store/agentStore.js';
 import { requireAgentAuth } from '../middleware/agentAuth.js';
 import { sendVerificationCode, notifyOwnerOfBookingRequest } from '../services/complianceMessaging.js';
 import { notifyCustomerBookingReceived, notifyOwnerNewBooking, notifyCustomerStatusChanged, estimateBookingPrice } from '../services/bookingNotifications.js';
-import { authRateLimiter } from '../middleware/rateLimiter.js';
+import { authRateLimiter, eventTrackingRateLimiter } from '../middleware/rateLimiter.js';
 import { geocodePropertyInBackground } from '../services/geocode.js';
 import { ttlCached } from '../utils/ttlCache.js';
+import { recordPropertyEvent, getPropertyStats, getOwnerEventSummary } from '../store/propertyEventStore.js';
+import { isBotUserAgent } from '../utils/isBotUserAgent.js';
 
 const cachedSearch = ttlCached('search', 30_000);
 const cachedFacetCounts = ttlCached('facet-counts', 30_000);
@@ -141,6 +143,18 @@ router.get('/mine', requireAgentAuth, async (req, res) => {
   try {
     const properties = await listPropertiesByOwner(req.agentId);
     res.json({ properties });
+  } catch (err) {
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
+/** GET /api/properties/mine/event-summary — 10.5: views/whatsapp-clicks/call-clicks per
+ * property for the dashboard cards, one query for all of them (not one per card). Registered
+ * before /:id/mine so "mine" isn't captured as an :id there. */
+router.get('/mine/event-summary', requireAgentAuth, async (req, res) => {
+  try {
+    const summary = await getOwnerEventSummary(req.agentId, { days: Math.min(Number(req.query.days) || 30, 90) });
+    res.json({ summary });
   } catch (err) {
     res.status(500).json({ error: 'Internal error' });
   }
@@ -360,6 +374,36 @@ router.get('/:id/availability', async (req, res) => {
     const { from, to, unit_id } = req.query;
     const availability = await getAvailability(req.params.id, { from, to, unitId: unit_id });
     res.json({ availability });
+  } catch (err) {
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
+/** POST /api/properties/:id/events — 10.5 analytics. Public (buyers aren't logged in),
+ * fire-and-forget from the client — never blocks page rendering. Skips bot user-agents and
+ * is rate-limited as a backstop against a scripted flood, not against real browsing. */
+router.post('/:id/events', eventTrackingRateLimiter, async (req, res) => {
+  try {
+    if (isBotUserAgent(req.headers['user-agent'])) return res.json({ ok: true });
+    const { eventType, unitId, sessionId, source } = req.body || {};
+    await recordPropertyEvent({ propertyId: Number(req.params.id), unitId, eventType, sessionId, source });
+    res.json({ ok: true });
+  } catch (err) {
+    // Never surface a tracking failure to the visitor as an error — it's not part of their task.
+    res.json({ ok: false });
+  }
+});
+
+/** GET /api/properties/:id/stats — owner-only. Views/whatsapp-clicks/call-clicks/shares/
+ * favorites for the requested window, plus the prior window of equal length for comparison,
+ * views-by-day, and traffic-source breakdown. */
+router.get('/:id/stats', requireAgentAuth, async (req, res) => {
+  try {
+    const property = await getPropertyByIdForOwner(req.params.id, req.agentId);
+    if (!property) return res.status(404).json({ error: 'Not found' });
+    const days = Math.min(Number(req.query.days) || 30, 90);
+    const stats = await getPropertyStats(req.params.id, { days });
+    res.json(stats);
   } catch (err) {
     res.status(500).json({ error: 'Internal error' });
   }

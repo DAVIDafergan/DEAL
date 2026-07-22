@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Link } from '../components/LocalizedLink.jsx';
 import {
   PlusCircle, Settings, LogOut, CheckCircle, AlertTriangle, MessageCircle,
-  LayoutDashboard, Trash2, Home, Pencil, MapPin, CalendarDays,
+  LayoutDashboard, Trash2, Home, Pencil, MapPin, CalendarDays, Eye, BarChart3,
 } from 'lucide-react';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { agentApi, propertyApi } from '../api/client.js';
@@ -42,6 +42,7 @@ export function OwnerDashboardPage() {
   const navigate = useNavigate();
   const [properties, setProperties] = useState([]);
   const [propsLoading, setPropsLoading] = useState(true);
+  const [eventSummary, setEventSummary] = useState({});
   const [notification, setNotification] = useState(null);
   const [showWizard, setShowWizard] = useState(false);
   const [editingProperty, setEditingProperty] = useState(null);
@@ -62,6 +63,9 @@ export function OwnerDashboardPage() {
       .then(({ properties: p }) => setProperties(p || []))
       .catch(() => setProperties([]))
       .finally(() => setPropsLoading(false));
+    propertyApi.getMineEventSummary(token)
+      .then(({ summary }) => setEventSummary(summary || {}))
+      .catch(() => {});
   }
 
   useEffect(() => {
@@ -290,6 +294,15 @@ export function OwnerDashboardPage() {
                 <div className="dash-deal-card__price">
                   {property.price_from ? `החל מ-${Math.round(property.price_from)} ${property.currency} / לילה` : 'ללא מחיר בסיס'}
                 </div>
+                {property.status !== 'draft' && (
+                  <div className="dash-deal-card__stats">
+                    <span title="צפיות ב-30 הימים האחרונים"><Eye size={12} /> {eventSummary[property.id]?.views || 0}</span>
+                    <span title="קליקים לוואטסאפ ב-30 הימים האחרונים"><MessageCircle size={12} /> {eventSummary[property.id]?.whatsappClicks || 0}</span>
+                    <Link to={`/owner/dashboard/stats/${property.id}`} className="dash-deal-card__stats-link" onClick={(e) => e.stopPropagation()}>
+                      <BarChart3 size={12} /> סטטיסטיקה מלאה
+                    </Link>
+                  </div>
+                )}
               </div>
               <div className="dash-deal-card__right">
                 <span className={`dash-deal-status dash-deal-status--${property.status === 'draft' ? 'draft' : property.status === 'active' ? 'approved' : 'pending'}`}>

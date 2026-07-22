@@ -1996,7 +1996,17 @@ a.opp__item:hover { background: rgba(193,89,43,0.1); color: var(--ds-hearth); }
 
 .dash-page .dash-deal-card__dest { color: #1E293B; }
 .dash-page .dash-deal-card__meta { color: #64748B; }
-.dash-page .dash-deal-card__price { color: #2563EB; }
+.dash-page .dash-deal-card__price { color: var(--ds-hearth); }
+.dash-deal-card__stats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+  font-size: 0.76rem;
+  color: var(--ds-ash);
+}
+.dash-deal-card__stats span { display: inline-flex; align-items: center; gap: 4px; }
+.dash-deal-card__stats-link { display: inline-flex; align-items: center; gap: 4px; color: var(--ds-hearth); font-weight: 700; }
 
 .dash-page .dash-deal-status--approved { background: rgba(5,150,105,0.1); color: #059669; }
 .dash-page .dash-deal-status--pending  { background: rgba(245,158,11,0.1); color: #d97706; }
@@ -2817,3 +2827,46 @@ img, svg { max-width: 100%; }
   .onb-tooltip__text  { color: #94a3b8; }
   .dash-daily-tip__text { color: #1e293b !important; }
 }
+
+/* ── 10.5: per-property stats page ────────────────────────────────────────── */
+.stats-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 14px;
+  margin-top: 20px;
+}
+.stats-metric-card {
+  background: var(--ds-ink);
+  border: 1px solid var(--ds-ghost);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.stats-metric-card--primary { border-color: var(--ds-hearth); box-shadow: 0 0 0 1px var(--ds-hearth); }
+.stats-metric-card__icon { color: var(--ds-hearth); }
+.stats-metric-card__value { font-size: 1.8rem; font-weight: 800; color: var(--ds-bone); line-height: 1; }
+.stats-metric-card__label { font-size: 0.8rem; color: var(--ds-ash); font-weight: 600; }
+.stats-metric-card__sub { font-size: 0.72rem; color: var(--ds-ash); }
+.stats-metric-card__change { display: flex; align-items: center; gap: 4px; font-size: 0.72rem; font-weight: 700; margin-top: 4px; }
+.stats-metric-card__change--up { color: var(--ds-olive); }
+.stats-metric-card__change--down { color: var(--ds-wine); }
+
+.stats-section { margin-top: 28px; }
+.stats-bar-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 140px;
+  padding-top: 10px;
+}
+.stats-bar-chart__col { flex: 1; height: 100%; display: flex; align-items: flex-end; }
+.stats-bar-chart__bar { width: 100%; background: var(--gradient-accent); border-radius: 4px 4px 0 0; min-height: 4px; }
+
+.stats-sources { display: flex; flex-direction: column; gap: 12px; }
+.stats-sources__row { display: flex; align-items: center; gap: 12px; }
+.stats-sources__label { font-size: 0.85rem; color: var(--ds-bone); width: 100px; flex-shrink: 0; }
+.stats-sources__bar-track { flex: 1; height: 10px; background: var(--ds-slate); border-radius: var(--radius-pill); overflow: hidden; }
+.stats-sources__bar-fill { height: 100%; background: var(--gradient-accent); border-radius: var(--radius-pill); }
+.stats-sources__count { font-size: 0.8rem; font-weight: 700; color: var(--ds-ash); width: 30px; text-align: end; }

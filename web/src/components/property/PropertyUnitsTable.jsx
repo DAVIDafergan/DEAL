@@ -4,6 +4,7 @@ import { unitAmenityLabel } from '../../data/propertyOptions.js';
 import { useLanguage } from '../../context/LanguageContext.jsx';
 import { optimizedImageUrl } from '../../utils/imageUrl.js';
 import { buildPropertyWhatsAppUrl, buildTelUrl } from '../../utils/contactLinks.js';
+import { trackPropertyEvent } from '../../utils/eventTracking.js';
 
 /** PropertyUnitsTable — 9.4 "טבלת יחידות", the Booking-style heart of the property page: one
  * row per bookable unit with photo/name/capacity/rooms/unique amenities/price, and (10.4) a
@@ -11,7 +12,7 @@ import { buildPropertyWhatsAppUrl, buildTelUrl } from '../../utils/contactLinks.
  * names the unit so the owner knows exactly which one the guest is asking about.
  * A CSS grid "table" (not a literal <table>) so it can collapse into stacked cards on mobile
  * without the usual table-responsiveness fight. */
-export function PropertyUnitsTable({ units, currency, selectedUnitId, onSelectUnit, propertyName, propertyPhone, propertyWhatsapp, pageUrl }) {
+export function PropertyUnitsTable({ units, currency, selectedUnitId, onSelectUnit, propertyId, propertyName, propertyPhone, propertyWhatsapp, pageUrl }) {
   const { t, lang } = useLanguage();
   return (
     <div className="ut" role="table" aria-label={t.ppUnitsTitle}>
@@ -65,12 +66,12 @@ export function PropertyUnitsTable({ units, currency, selectedUnitId, onSelectUn
 
             <div className="ut__action" role="cell" onClick={(e) => e.stopPropagation()}>
               {waUrl && (
-                <a className="ut__contact-btn ut__contact-btn--wa" href={waUrl} target="_blank" rel="noopener noreferrer" aria-label={t.contactUnitWhatsApp}>
+                <a className="ut__contact-btn ut__contact-btn--wa" href={waUrl} target="_blank" rel="noopener noreferrer" aria-label={t.contactUnitWhatsApp} onClick={() => trackPropertyEvent(propertyId, 'whatsapp_click', { unitId: unit.id })}>
                   <MessageCircle size={15} />
                 </a>
               )}
               {telUrl && (
-                <a className="ut__contact-btn ut__contact-btn--call" href={telUrl} aria-label={t.contactUnitCall}>
+                <a className="ut__contact-btn ut__contact-btn--call" href={telUrl} aria-label={t.contactUnitCall} onClick={() => trackPropertyEvent(propertyId, 'call_click', { unitId: unit.id })}>
                   <Phone size={15} />
                 </a>
               )}
