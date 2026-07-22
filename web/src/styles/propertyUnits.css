@@ -143,11 +143,33 @@
   .pp__layout {
     grid-template-columns: 1fr 360px;
   }
-  .pp__booking {
+  .pp__contact {
     position: sticky;
     top: 88px;
   }
 }
+
+/* ── 10.4: contact card — replaces the booking-request sidebar form ── */
+.pp__contact {
+  background: var(--ds-ink);
+  border: 1px solid var(--ds-ghost);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-6, 24px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4, 16px);
+  box-shadow: var(--shadow-card);
+}
+.pp__contact-title {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ds-bone);
+  margin: 0;
+}
+.pp__contact-price strong { font-size: var(--ts-price); color: var(--ds-gold); font-variant-numeric: tabular-nums; }
+.pp__contact-price span { font-size: 0.8rem; color: var(--ds-ash); margin-inline-start: 4px; }
+.pp__contact-actions { display: flex; flex-direction: column; gap: 10px; }
 
 /* ── Gallery ── */
 .pg {
@@ -359,6 +381,7 @@
   border: 1px solid var(--ds-ghost);
   border-radius: var(--radius-md);
   background: var(--ds-ink);
+  cursor: pointer;
 }
 .ut__row--selected { border-color: var(--ds-hearth); box-shadow: 0 0 0 1px var(--ds-hearth); }
 @media (min-width: 760px) {
@@ -381,18 +404,15 @@
 .ut__price strong { font-size: 1rem; font-weight: 800; color: var(--ds-gold); font-variant-numeric: tabular-nums; }
 .ut__price span { font-size: 0.72rem; color: var(--ds-ash); }
 .ut__price-inquire { font-size: 0.82rem; color: var(--ds-ash); }
-.ut__book-btn {
-  min-height: 40px;
-  padding: 0 18px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: var(--gradient-accent);
-  color: #fff;
-  font-weight: 700;
-  font-size: 0.84rem;
-  cursor: pointer;
-  white-space: nowrap;
+.ut__action { display: flex; gap: 8px; }
+.ut__contact-btn {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
 }
+.ut__contact-btn--wa { background: rgba(37,211,102,0.15); color: #25d366; border: 1px solid rgba(37,211,102,0.3); }
+.ut__contact-btn--call { background: var(--gradient-accent); color: #fff; }
 @media (max-width: 759px) {
   .ut__meta[data-label]::before,
   .ut__amenities[data-label]::before,
@@ -462,17 +482,15 @@
   }
   .pp__mobile-bar strong { font-size: 1.05rem; color: var(--ds-gold); font-variant-numeric: tabular-nums; }
   .pp__mobile-bar span { font-size: 0.72rem; color: var(--ds-ash); margin-inline-start: 4px; }
-  .pp__mobile-bar button {
-    min-height: 46px;
-    padding: 0 26px;
-    border: none;
-    border-radius: var(--radius-pill);
-    background: var(--gradient-accent);
-    color: #fff;
-    font-weight: 700;
-    font-size: 0.9rem;
-    cursor: pointer;
+  .pp__mobile-bar-actions { display: flex; gap: 10px; }
+  .pp__mobile-bar-btn {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
   }
+  .pp__mobile-bar-btn--wa { background: rgba(37,211,102,0.15); color: #25d366; border: 1px solid rgba(37,211,102,0.3); }
+  .pp__mobile-bar-btn--call { background: var(--gradient-accent); color: #fff; }
   /* clear the fixed bar so it never covers the footer/last content */
   .pp { padding-bottom: 74px; }
 }

@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { Link } from '../components/LocalizedLink.jsx';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Heart, LayoutDashboard, LogOut, ArrowLeft, User, Settings, Trash2, CalendarCheck } from 'lucide-react';
+import { Heart, LayoutDashboard, LogOut, ArrowLeft, User, Settings, Trash2 } from 'lucide-react';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { useTravelerAuth } from '../context/TravelerAuthContext.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
@@ -109,18 +109,6 @@ export function AccountPage() {
             <div className="account-card__text">
               <span className="account-card__label">{t.favoritesLink}</span>
               <span className="account-card__sub">{t.savedPropertiesCount(favorites.length)}</span>
-            </div>
-          </Link>
-        </motion.div>
-
-        <motion.div variants={cardIn}>
-          <Link to="/my/bookings" className="account-card account-card--action">
-            <div className="account-card__icon account-card__icon--dash">
-              <CalendarCheck size={22} />
-            </div>
-            <div className="account-card__text">
-              <span className="account-card__label">{t.myBookingsTitle}</span>
-              <span className="account-card__sub">{t.myBookingsSubLabel}</span>
             </div>
           </Link>
         </motion.div>

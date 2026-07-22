@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Link } from '../components/LocalizedLink.jsx';
 import { motion } from 'framer-motion';
-import { ArrowLeft, ChevronLeft, MessageCircle, CheckCircle, ExternalLink, Users, Bath, ShieldAlert, Send, Clock, Heart, Share2, CalendarClock, Info } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, MessageCircle, Phone, CheckCircle, ExternalLink, Users, Bath, ShieldAlert, Clock, Heart, Share2, CalendarClock, Info } from 'lucide-react';
 import { propertyApi } from '../api/client.js';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { useFavorites } from '../hooks/useFavorites.js';
@@ -13,7 +13,7 @@ import { PropertyAmenitiesBar } from '../components/property/PropertyAmenitiesBa
 import { PropertyUnitsTable } from '../components/property/PropertyUnitsTable.jsx';
 import { PublicAvailabilityCalendar } from '../components/property/PublicAvailabilityCalendar.jsx';
 import { OwnerCard } from '../components/property/OwnerCard.jsx';
-import { saveTrackedBooking } from '../utils/myBookings.js';
+import { buildPropertyWhatsAppUrl, buildTelUrl } from '../utils/contactLinks.js';
 import { PropertyPageSkeleton } from '../components/property/PropertyPageSkeleton.jsx';
 import { PropertyGrid } from '../components/PropertyGrid.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
@@ -113,195 +113,6 @@ function ClaimFlow({ propertyId }) {
   );
 }
 
-// Mirrors server/services/bookingNotifications.js estimateBookingPrice — client-side so the
-// estimate shows live before submission (7.5: "חישוב והצגת המחיר המשוער לפני שליחה").
-function estimatePrice(unit, checkIn, checkOut) {
-  if (!unit?.base_price_night || !checkIn || !checkOut) return null;
-  const start = new Date(checkIn);
-  const end = new Date(checkOut);
-  const nights = Math.round((end - start) / (24 * 60 * 60 * 1000));
-  if (nights <= 0) return null;
-  let total = 0;
-  const d = new Date(start);
-  for (let i = 0; i < nights; i++) {
-    const isWeekend = d.getDay() === 5 || d.getDay() === 6; // Friday/Saturday
-    total += (isWeekend && unit.weekend_price) ? Number(unit.weekend_price) : Number(unit.base_price_night);
-    d.setDate(d.getDate() + 1);
-  }
-  return { nights, total };
-}
-
-// 7.8: "ולידציה תוך כדי הקלדה, הודעה ליד השדה הבעייתי, גלילה אליו אוטומטית"
-function validateBookingForm(form, t) {
-  const errors = {};
-  if (!form.check_in) errors.check_in = t.validationCheckIn;
-  if (!form.check_out) errors.check_out = t.validationCheckOut;
-  if (form.check_in && form.check_out && form.check_out <= form.check_in) {
-    errors.check_out = t.validationCheckOutAfter;
-  }
-  if (!form.customer_name.trim()) errors.customer_name = t.validationName;
-  if (!form.customer_phone.trim()) errors.customer_phone = t.validationPhone;
-  else if (form.customer_phone.replace(/[^0-9]/g, '').length < 9) errors.customer_phone = t.validationPhoneShort;
-  return errors;
-}
-
-function BookingRequestForm({ propertyId, propertyName, unit, unitName, currency }) {
-  const { t } = useLanguage();
-  const [form, setForm] = useState({ check_in: '', check_out: '', guest_count: 2, customer_name: '', customer_phone: '', customer_email: '', message: '' });
-  const [submitting, setSubmitting] = useState(false);
-  const [result, setResult] = useState(null); // 'success' | 'error' | null
-  const [confirmation, setConfirmation] = useState(null); // { id, priceEstimate }
-  const [fieldErrors, setFieldErrors] = useState({});
-  const [touched, setTouched] = useState({});
-  const fieldRefs = useRef({});
-
-  function set(key) {
-    return (e) => {
-      const next = { ...form, [key]: e.target.value };
-      setForm(next);
-      if (touched[key]) setFieldErrors(validateBookingForm(next, t));
-    };
-  }
-  function markTouched(key) {
-    return () => {
-      setTouched((t) => ({ ...t, [key]: true }));
-      setFieldErrors(validateBookingForm(form, t));
-    };
-  }
-
-  const priceEstimate = estimatePrice(unit, form.check_in, form.check_out);
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    const errors = validateBookingForm(form, t);
-    setFieldErrors(errors);
-    setTouched({ check_in: true, check_out: true, customer_name: true, customer_phone: true });
-    const firstErrorKey = Object.keys(errors)[0];
-    if (firstErrorKey) {
-      fieldRefs.current[firstErrorKey]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      fieldRefs.current[firstErrorKey]?.focus();
-      return;
-    }
-    setSubmitting(true);
-    setResult(null);
-    try {
-      const res = await propertyApi.requestBooking(propertyId, { ...form, unit_id: unit?.id });
-      setConfirmation(res);
-      setResult('success');
-      if (res.trackingToken) {
-        saveTrackedBooking({ trackingToken: res.trackingToken, propertyName, checkIn: form.check_in, checkOut: form.check_out });
-      }
-    } catch {
-      setResult('error');
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  if (result === 'success') {
-    return (
-      <div className="settings-card" style={{ marginTop: 16 }}>
-        <p className="deal-modal__desc">
-          <CheckCircle size={15} style={{ verticalAlign: 'middle', marginInlineEnd: 4 }} />
-          {t.ppBookingSuccess}
-        </p>
-        <div className="deal-modal__details" style={{ marginTop: 8 }}>
-          <div className="deal-modal__detail-row">
-            <span className="deal-modal__detail-label">{t.ppBookingNumber}</span>
-            <span>#{confirmation?.id}</span>
-          </div>
-          <div className="deal-modal__detail-row">
-            <span className="deal-modal__detail-label">{t.ppBookingDates}</span>
-            <span>{form.check_in} – {form.check_out}</span>
-          </div>
-          {unitName && (
-            <div className="deal-modal__detail-row">
-              <span className="deal-modal__detail-label">{t.ppBookingUnit}</span>
-              <span>{unitName}</span>
-            </div>
-          )}
-          {confirmation?.priceEstimate && (
-            <div className="deal-modal__detail-row">
-              <span className="deal-modal__detail-label">{t.ppPriceEstimate}</span>
-              <span>{Math.round(confirmation.priceEstimate.total)} {confirmation.priceEstimate.currencySymbol} ({t.nightsCount(confirmation.priceEstimate.nights)})</span>
-            </div>
-          )}
-        </div>
-        {form.customer_email && <p className="agent-form__hint" style={{ marginTop: 8 }}>{t.emailConfirmationNote}</p>}
-        {confirmation?.trackingToken && (
-          <p className="agent-form__hint" style={{ marginTop: 8 }}>
-            <Link to={`/booking/${confirmation.trackingToken}`}>{t.ppTrackBookingLink} ←</Link>
-          </p>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <form onSubmit={handleSubmit} noValidate className="settings-card" style={{ marginTop: 16 }}>
-      <h2 className="settings-card__title">{t.ppBookingFormTitle}{unitName ? ` — ${unitName}` : ''}</h2>
-      <div className="agent-form__field">
-        <label className="agent-form__label">{t.filterCheckIn}</label>
-        <input
-          ref={(el) => (fieldRefs.current.check_in = el)}
-          className={`agent-form__input${fieldErrors.check_in ? ' agent-form__input--error' : ''}`}
-          type="date" value={form.check_in} onChange={set('check_in')} onBlur={markTouched('check_in')}
-        />
-        {fieldErrors.check_in && <p className="agent-form__error-msg">{fieldErrors.check_in}</p>}
-      </div>
-      <div className="agent-form__field">
-        <label className="agent-form__label">{t.filterCheckOut}</label>
-        <input
-          ref={(el) => (fieldRefs.current.check_out = el)}
-          className={`agent-form__input${fieldErrors.check_out ? ' agent-form__input--error' : ''}`}
-          type="date" value={form.check_out} onChange={set('check_out')} onBlur={markTouched('check_out')}
-        />
-        {fieldErrors.check_out && <p className="agent-form__error-msg">{fieldErrors.check_out}</p>}
-      </div>
-      <div className="agent-form__field">
-        <label className="agent-form__label">{t.filterGuestsCount}</label>
-        <input className="agent-form__input" type="number" min="1" value={form.guest_count} onChange={set('guest_count')} />
-      </div>
-      <div className="agent-form__field">
-        <label className="agent-form__label">{t.ppFullName}</label>
-        <input
-          ref={(el) => (fieldRefs.current.customer_name = el)}
-          className={`agent-form__input${fieldErrors.customer_name ? ' agent-form__input--error' : ''}`}
-          value={form.customer_name} onChange={set('customer_name')} onBlur={markTouched('customer_name')}
-        />
-        {fieldErrors.customer_name && <p className="agent-form__error-msg">{fieldErrors.customer_name}</p>}
-      </div>
-      <div className="agent-form__field">
-        <label className="agent-form__label">{t.ppPhone}</label>
-        <input
-          ref={(el) => (fieldRefs.current.customer_phone = el)}
-          className={`agent-form__input${fieldErrors.customer_phone ? ' agent-form__input--error' : ''}`}
-          type="tel" value={form.customer_phone} onChange={set('customer_phone')} onBlur={markTouched('customer_phone')}
-        />
-        {fieldErrors.customer_phone && <p className="agent-form__error-msg">{fieldErrors.customer_phone}</p>}
-      </div>
-      <div className="agent-form__field">
-        <label className="agent-form__label">{t.ppEmailOptional}</label>
-        <input className="agent-form__input" type="email" value={form.customer_email} onChange={set('customer_email')} />
-      </div>
-      <div className="agent-form__field">
-        <label className="agent-form__label">{t.ppMessageOptional}</label>
-        <input className="agent-form__input" value={form.message} onChange={set('message')} />
-      </div>
-      {priceEstimate && (
-        <div className="deal-modal__detail-row" style={{ background: 'var(--color-surface-elevated)', borderRadius: 'var(--radius-sm)', padding: '10px 12px' }}>
-          <span className="deal-modal__detail-label">{t.ppPriceEstimate}</span>
-          <span>{Math.round(priceEstimate.total)} {getCurrencySymbol(currency)} · {t.nightsCount(priceEstimate.nights)}</span>
-        </div>
-      )}
-      {result === 'error' && <p className="agent-form__error-msg">{t.bookingErrorSubmit}</p>}
-      <motion.button type="submit" className="deal-modal__btn deal-modal__btn--book" whileTap={{ scale: 0.97 }} disabled={submitting}>
-        <Send size={16} /> {submitting ? t.ppSubmitting : t.ppSubmitBooking}
-      </motion.button>
-    </form>
-  );
-}
-
 export function PropertyPage() {
   const { t, dir, lang } = useLanguage();
   const { id } = useParams();
@@ -311,7 +122,6 @@ export function PropertyPage() {
   const [selectedUnitId, setSelectedUnitId] = useState(null);
   const [similar, setSimilar] = useState([]);
   const [shareCopied, setShareCopied] = useState(false);
-  const bookingRef = useRef(null);
   const { toggleFavorite, isFavorite } = useFavorites();
 
   useEffect(() => {
@@ -358,12 +168,18 @@ export function PropertyPage() {
   const bedrooms = property.max_bedrooms ?? property.bedrooms;
   const priceFrom = property.price_from ?? property.base_price_night;
 
-  function handleBookUnit(unit) {
-    setSelectedUnitId(unit.id);
-    bookingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
-
   const favKey = { id: property.id, deal_source: 'property', name: property.name, image: property.owner_images?.[0] };
+
+  // 10.4: replaced the booking-request form — a guest reaches the owner directly instead of
+  // submitting a form the owner has to check back for. Shows only the contact method(s) that
+  // actually exist (no phone AND no whatsapp -> neither button renders, per spec).
+  const pageUrl = typeof window !== 'undefined' ? window.location.href : '';
+  const waUrl = buildPropertyWhatsAppUrl({
+    whatsapp: property.whatsapp, phone: property.phone, propertyName: property.name,
+    unitName: isMultiUnit ? selectedUnit?.name : null, pageUrl, t,
+  });
+  const telUrl = buildTelUrl(property.phone);
+  const hasContact = Boolean(waUrl || telUrl);
 
   return (
     <div className="pp" dir={dir}>
@@ -459,7 +275,10 @@ export function PropertyPage() {
                 currency={property.currency}
                 selectedUnitId={selectedUnitId}
                 onSelectUnit={setSelectedUnitId}
-                onBook={() => bookingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                propertyName={property.name}
+                propertyPhone={property.phone}
+                propertyWhatsapp={property.whatsapp}
+                pageUrl={pageUrl}
               />
             </section>
           )}
@@ -512,19 +331,6 @@ export function PropertyPage() {
             </section>
           )}
 
-          {isClaimed && property.whatsapp && (
-            <div className="deal-modal__actions">
-              <a
-                className="deal-modal__btn deal-modal__btn--wa"
-                href={`https://wa.me/${property.whatsapp.replace(/[^0-9]/g, '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <MessageCircle size={18} /> WhatsApp
-              </a>
-            </div>
-          )}
-
           {similar.length > 0 && (
             <section className="pp__section pp__similar">
               <h2 className="pp__section-title">{t.ppSimilarTitle}</h2>
@@ -533,29 +339,55 @@ export function PropertyPage() {
           )}
         </div>
 
-        <div className="pp__booking" ref={bookingRef}>
-          {selectedUnit && (
-            <BookingRequestForm
-              propertyId={property.id}
-              propertyName={property.name}
-              unit={selectedUnit}
-              unitName={isMultiUnit ? selectedUnit.name : null}
-              currency={property.currency}
-            />
+        <div className="pp__contact">
+          <h2 className="pp__contact-title">{t.contactCardTitle}</h2>
+          {priceFrom && (
+            <div className="pp__contact-price">
+              <strong>{Math.round(priceFrom)} {getCurrencySymbol(property.currency)}</strong>
+              <span>{isMultiUnit ? t.priceFromLabel : t.perNightLabel}</span>
+            </div>
+          )}
+          {hasContact ? (
+            <div className="pp__contact-actions">
+              {waUrl && (
+                <a className="deal-modal__btn deal-modal__btn--wa" href={waUrl} target="_blank" rel="noopener noreferrer">
+                  <MessageCircle size={18} /> {t.contactWhatsAppButton}
+                </a>
+              )}
+              {telUrl && (
+                <a className="deal-modal__btn deal-modal__btn--book" href={telUrl}>
+                  <Phone size={18} /> {t.contactCallButton}
+                </a>
+              )}
+            </div>
+          ) : (
+            <p className="agent-form__hint">{t.contactNoInfoAvailable}</p>
           )}
         </div>
       </div>
 
-      {/* 9.4 mobile sticky bar — price + CTA only; taps scroll to the real form above */}
-      {priceFrom && (
+      {/* 10.4: mobile fixed bottom bar — price + the same two contact buttons directly, not a
+          scroll-to-form trigger (the form is gone; these ARE the action now). */}
+      {(priceFrom || hasContact) && (
         <div className="pp__mobile-bar">
-          <div>
-            <strong>{Math.round(priceFrom)} {getCurrencySymbol(property.currency)}</strong>
-            <span>{t.perNightLabel}</span>
+          {priceFrom && (
+            <div>
+              <strong>{Math.round(priceFrom)} {getCurrencySymbol(property.currency)}</strong>
+              <span>{t.perNightLabel}</span>
+            </div>
+          )}
+          <div className="pp__mobile-bar-actions">
+            {waUrl && (
+              <a className="pp__mobile-bar-btn pp__mobile-bar-btn--wa" href={waUrl} target="_blank" rel="noopener noreferrer" aria-label={t.contactWhatsAppButton}>
+                <MessageCircle size={18} />
+              </a>
+            )}
+            {telUrl && (
+              <a className="pp__mobile-bar-btn pp__mobile-bar-btn--call" href={telUrl} aria-label={t.contactCallButton}>
+                <Phone size={18} />
+              </a>
+            )}
           </div>
-          <button type="button" onClick={() => bookingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
-            {t.ppBookNow}
-          </button>
         </div>
       )}
     </div>

@@ -21,13 +21,10 @@ const OwnerRegisterPage = lazy(() => import('./pages/OwnerRegisterPage.jsx').the
 const OwnerLoginPage = lazy(() => import('./pages/OwnerLoginPage.jsx').then((m) => ({ default: m.OwnerLoginPage })));
 const OwnerDashboardPage = lazy(() => import('./pages/OwnerDashboardPage.jsx').then((m) => ({ default: m.OwnerDashboardPage })));
 const OwnerSettingsPage = lazy(() => import('./pages/OwnerSettingsPage.jsx').then((m) => ({ default: m.OwnerSettingsPage })));
-const OwnerBookingsPage = lazy(() => import('./pages/OwnerBookingsPage.jsx').then((m) => ({ default: m.OwnerBookingsPage })));
 const OwnerPublicProfilePage = lazy(() => import('./pages/OwnerPublicProfilePage.jsx').then((m) => ({ default: m.OwnerPublicProfilePage })));
 const PropertyPage = lazy(() => import('./pages/PropertyPage.jsx').then((m) => ({ default: m.PropertyPage })));
 const RemovePage = lazy(() => import('./pages/RemovePage.jsx').then((m) => ({ default: m.RemovePage })));
 const FavoritesPage = lazy(() => import('./pages/FavoritesPage.jsx').then((m) => ({ default: m.FavoritesPage })));
-const BookingStatusPage = lazy(() => import('./pages/BookingStatusPage.jsx').then((m) => ({ default: m.BookingStatusPage })));
-const MyBookingsPage = lazy(() => import('./pages/MyBookingsPage.jsx').then((m) => ({ default: m.MyBookingsPage })));
 const ComparePage = lazy(() => import('./pages/ComparePage.jsx').then((m) => ({ default: m.ComparePage })));
 const SeoLandingPage = lazy(() => import('./pages/SeoLandingPage.jsx').then((m) => ({ default: m.SeoLandingPage })));
 const AccountPage = lazy(() => import('./pages/AccountPage.jsx').then((m) => ({ default: m.AccountPage })));
@@ -55,7 +52,6 @@ function RouteTree() {
         <Route path="owner/register" element={<OwnerRegisterPage />} />
         <Route path="owner/login" element={<OwnerLoginPage />} />
         <Route path="owner/dashboard/settings" element={<OwnerSettingsPage />} />
-        <Route path="owner/dashboard/bookings" element={<OwnerBookingsPage />} />
         <Route path="owner/dashboard" element={<OwnerDashboardPage />} />
         <Route path="owner/:slug" element={<OwnerPublicProfilePage />} />
         <Route path="property/:id" element={<PropertyPage />} />
@@ -65,9 +61,7 @@ function RouteTree() {
         <Route path=":seg1/:seg2" element={<SeoLandingPage />} />
         <Route path="remove" element={<RemovePage />} />
         <Route path="my/favorites" element={<FavoritesPage />} />
-        <Route path="my/bookings" element={<MyBookingsPage />} />
         <Route path="my/compare" element={<ComparePage />} />
-        <Route path="booking/:token" element={<BookingStatusPage />} />
         <Route path="account" element={<AccountPage />} />
         <Route path="terms" element={<TermsPage />} />
         <Route path="privacy" element={<PrivacyPage />} />
