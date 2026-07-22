@@ -10,6 +10,14 @@ export const AMENITY_FIELDS = [
   'has_private_jacuzzi', 'has_private_pool', 'has_heated_pool', 'has_sauna', 'has_view',
   'has_garden', 'has_bbq', 'has_outdoor_jacuzzi', 'has_parking', 'has_air_conditioning',
   'has_equipped_kitchen', 'has_wifi', 'is_kid_friendly', 'is_pet_friendly', 'is_accessible',
+  // 10.7 — detailed Shabbat filter: not just a generic "kosher" checkbox (that's kosher_level,
+  // a separate field). These are the specific things an observant guest actually needs to know.
+  'has_shabbat_plata', 'has_shabbat_urn', 'has_shabbat_clock', 'has_mechanical_key',
+  'is_near_eruv', 'is_near_synagogue',
+  // 10.7 — detailed accessibility filter: is_accessible above stays as a general flag (existing
+  // data isn't lost), these break it into what a wheelchair user actually needs to check for.
+  'has_step_free_entrance', 'has_accessible_bathroom', 'has_grab_bars',
+  'has_accessible_parking', 'has_wide_doorways',
 ];
 
 // status is writable by owners, but only within claimed/active — unclaimed and hidden are
@@ -20,6 +28,7 @@ const OWNER_EDITABLE_FIELDS = [
   ...AMENITY_FIELDS,
   'kosher_level', 'base_price_night', 'weekend_price', 'holiday_price', 'cleaning_fee',
   'min_nights', 'currency', 'owner_images', 'phone', 'whatsapp', 'email', 'website', 'status',
+  'nearby_attractions',
 ];
 
 function parseJsonField(value) {
@@ -60,6 +69,15 @@ const UNITS_AGG_JOIN = `
     FROM property_units WHERE is_active = 1
     GROUP BY property_id
   ) units_agg ON units_agg.property_id = properties.id
+`;
+
+// 10.7 — "עודכן לאחרונה" freshness badge: when did the owner last touch this property's
+// availability calendar. Same safe multi-row aggregate-join shape as UNITS_AGG_JOIN.
+const AVAILABILITY_AGG_JOIN = `
+  LEFT JOIN (
+    SELECT property_id, MAX(updated_at) AS availability_updated_at
+    FROM availability GROUP BY property_id
+  ) availability_agg ON availability_agg.property_id = properties.id
 `;
 
 // 10.6 — same LEFT-JOIN-a-GROUP-BY-subquery shape as UNITS_AGG_JOIN above (confirmed safe for
@@ -414,16 +432,19 @@ export async function searchProperties(filters = {}) {
   // 9.3: sort — "recommended" keeps the original default (most recently touched first); price
   // sorts push properties with no priced unit yet to the end either way, not the top.
   // 10.6: rating_desc pushes unreviewed properties (NULL avg) to the end, not the top.
+  // 10.7: "recommended" now also rewards a recently-updated availability calendar as a
+  // secondary tiebreaker — the spec's "מי שמעדכן זוכה לקידום בתוצאות" ("keeping your calendar
+  // current gets you promoted"), without overriding the explicit price/new/rating sorts.
   const orderBy = {
     price_asc: 'units_agg.price_from IS NULL, units_agg.price_from ASC',
     price_desc: 'units_agg.price_from DESC',
     new: 'properties.created_at DESC',
     rating_desc: 'reviews_agg.avg_rating IS NULL, reviews_agg.avg_rating DESC',
-  }[filters.sort] || 'properties.updated_at DESC';
+  }[filters.sort] || 'availability_agg.availability_updated_at IS NULL, availability_agg.availability_updated_at DESC, properties.updated_at DESC';
   const [rows] = await pool.query(
     `SELECT properties.*, units_agg.price_from, units_agg.total_guest_capacity, units_agg.max_bedrooms, units_agg.unit_count,
-       reviews_agg.avg_rating, reviews_agg.review_count
-     FROM properties ${UNITS_AGG_JOIN} ${REVIEWS_AGG_JOIN} WHERE ${where.join(' AND ')} ORDER BY ${orderBy} LIMIT ?`,
+       reviews_agg.avg_rating, reviews_agg.review_count, availability_agg.availability_updated_at
+     FROM properties ${UNITS_AGG_JOIN} ${REVIEWS_AGG_JOIN} ${AVAILABILITY_AGG_JOIN} WHERE ${where.join(' AND ')} ORDER BY ${orderBy} LIMIT ?`,
     [...vals, limit]
   );
   return rows.map(parseProperty);
@@ -590,14 +611,38 @@ async function withUnits(property, { activeOnly }) {
 // explicitly set as the property's own public contact).
 const OWNER_CARD_FIELDS = ['business_name', 'logo_url', 'description', 'slug', 'website', 'facebook_url', 'instagram_url', 'tiktok_url', 'youtube_url'];
 
+/** 10.7 — trust badge: a cheap, honest signal computed from data already on the agent row
+ * (no extra query) — tenure, profile completeness, contact info present. Deliberately does
+ * NOT factor in review-reply-rate or cross-property average rating here — both would need
+ * another aggregate query per property-page view; a fuller version belongs on the batch
+ * owner-stats path, not this hot single-property lookup (same "don't repeat 10.1" rule).
+ * Score is 0-3 (one point per signal); label is just presentational sugar over that. */
+function computeTrustLabel(agent) {
+  let score = 0;
+  const monthsSinceSignup = agent.created_at ? (Date.now() - new Date(agent.created_at).getTime()) / (30 * 24 * 60 * 60 * 1000) : 0;
+  if (monthsSinceSignup >= 3) score++;
+  if (agent.description && agent.logo_url) score++;
+  if (agent.phone || agent.whatsapp_number) score++;
+  if (score === 3) return 'excellent';
+  if (score === 2) return 'good';
+  return null; // not enough signal yet — no badge shown, not a negative one
+}
+
 async function attachOwnerCard(property) {
   if (!property?.owner_id) return property;
   const pool = getPool();
   const [rows] = await pool.query(
-    `SELECT ${OWNER_CARD_FIELDS.join(', ')} FROM agents WHERE id = ? LIMIT 1`,
+    `SELECT ${OWNER_CARD_FIELDS.join(', ')}, phone, whatsapp_number, created_at FROM agents WHERE id = ? LIMIT 1`,
     [property.owner_id]
   );
-  property.owner = rows[0] || null;
+  if (rows[0]) {
+    const trustLabel = computeTrustLabel(rows[0]);
+    // phone/created_at were only fetched to compute the score — not part of the public payload.
+    const { phone, whatsapp_number, created_at, ...publicFields } = rows[0];
+    property.owner = { ...publicFields, trust_label: trustLabel };
+  } else {
+    property.owner = null;
+  }
   return property;
 }
 
@@ -611,6 +656,9 @@ export async function getPropertyById(id) {
   );
   if (!rows[0]) return null;
   const property = await withUnits(parseProperty(rows[0]), { activeOnly: true });
+  // 10.7: same "separate small indexed query, not a JOIN" rule as reviews — see DECISIONS.md 10.1.
+  const [[freshness]] = await pool.query(`SELECT MAX(updated_at) AS availability_updated_at FROM availability WHERE property_id = ?`, [id]);
+  property.availability_updated_at = freshness?.availability_updated_at || null;
   return attachOwnerCard(property);
 }
 

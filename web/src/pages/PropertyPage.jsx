@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Link } from '../components/LocalizedLink.jsx';
 import { motion } from 'framer-motion';
-import { ArrowLeft, ChevronLeft, MessageCircle, Phone, CheckCircle, ExternalLink, Users, Bath, ShieldAlert, Clock, Heart, Share2, CalendarClock, Info } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, MessageCircle, Phone, CheckCircle, ExternalLink, Users, Bath, ShieldAlert, Clock, Heart, Share2, CalendarClock, Info, MapPinned } from 'lucide-react';
 import { propertyApi } from '../api/client.js';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { useFavorites } from '../hooks/useFavorites.js';
@@ -14,6 +14,8 @@ import { PropertyUnitsTable } from '../components/property/PropertyUnitsTable.js
 import { PublicAvailabilityCalendar } from '../components/property/PublicAvailabilityCalendar.jsx';
 import { OwnerCard } from '../components/property/OwnerCard.jsx';
 import { PropertyReviews } from '../components/property/PropertyReviews.jsx';
+import { FreshnessBadge } from '../components/FreshnessBadge.jsx';
+import { FinalPriceCalculator } from '../components/property/FinalPriceCalculator.jsx';
 import { buildPropertyWhatsAppUrl, buildTelUrl } from '../utils/contactLinks.js';
 import { trackPropertyEvent } from '../utils/eventTracking.js';
 import { PropertyPageSkeleton } from '../components/property/PropertyPageSkeleton.jsx';
@@ -123,6 +125,7 @@ export function PropertyPage() {
   const [error, setError] = useState(null);
   const [selectedUnitId, setSelectedUnitId] = useState(null);
   const [similar, setSimilar] = useState([]);
+  const [similarIsCheaper, setSimilarIsCheaper] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const { toggleFavorite, isFavorite } = useFavorites();
 
@@ -132,7 +135,12 @@ export function PropertyPage() {
         setProperty(p);
         setSelectedUnitId(p.units?.[0]?.id ?? null);
         trackPropertyEvent(id, 'view');
-        propertyApi.search({ region: p.region, limit: 5 })
+        // 10.7: "similar but cheaper" — when this property has a price, cap the comparison set
+        // at that price and sort cheapest-first, instead of just "similar in the area". Falls
+        // back to the plain similar-in-area behavior when there's no price to compare against.
+        const priceFrom = p.price_from ?? p.base_price_night;
+        setSimilarIsCheaper(Boolean(priceFrom));
+        propertyApi.search(priceFrom ? { region: p.region, maxPrice: Math.floor(priceFrom), sort: 'price_asc', limit: 5 } : { region: p.region, limit: 5 })
           .then(({ properties: list }) => setSimilar((list || []).filter((x) => x.id !== p.id).slice(0, 4)))
           .catch(() => setSimilar([]));
       })
@@ -223,11 +231,14 @@ export function PropertyPage() {
               <p className="pp__subtitle">
                 {propertyTypeLabel(property.property_type, lang)} · {regionLabel(property.region, lang)}{property.city ? ` · ${property.city}` : ''}
               </p>
-              {isClaimed && property.owner_id && (
-                <span className="pp__verified-badge">
-                  <CheckCircle size={13} /> {t.verifiedByOwner}
-                </span>
-              )}
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                {isClaimed && property.owner_id && (
+                  <span className="pp__verified-badge">
+                    <CheckCircle size={13} /> {t.verifiedByOwner}
+                  </span>
+                )}
+                <FreshnessBadge updatedAt={property.availability_updated_at} />
+              </div>
             </div>
             <div className="pp__header-actions">
               <button
@@ -300,9 +311,26 @@ export function PropertyPage() {
             </section>
           )}
 
+          {selectedUnit && (
+            <section className="pp__section">
+              <FinalPriceCalculator unit={selectedUnit} cleaningFee={property.cleaning_fee} currency={property.currency} />
+            </section>
+          )}
+
           {isClaimed && <OwnerCard owner={property.owner} />}
 
           <PropertyReviews propertyId={property.id} ownerId={property.owner_id} />
+
+          {property.nearby_attractions && (
+            <section className="pp__section">
+              <h2 className="pp__section-title"><MapPinned size={17} /> {t.ppNearbyTitle}</h2>
+              <ul className="pp__policies-list">
+                {property.nearby_attractions.split('\n').map((line) => line.trim()).filter(Boolean).map((line, i) => (
+                  <li key={i}>{line}</li>
+                ))}
+              </ul>
+            </section>
+          )}
 
           <section className="pp__section pp__policies">
             <h2 className="pp__section-title"><Info size={17} /> {t.ppPoliciesTitle}</h2>
@@ -345,7 +373,7 @@ export function PropertyPage() {
 
           {similar.length > 0 && (
             <section className="pp__section pp__similar">
-              <h2 className="pp__section-title">{t.ppSimilarTitle}</h2>
+              <h2 className="pp__section-title">{similarIsCheaper ? t.ppSimilarCheaperTitle : t.ppSimilarTitle}</h2>
               <PropertyGrid properties={similar} isLoading={false} />
             </section>
           )}

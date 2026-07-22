@@ -353,6 +353,23 @@ const MIGRATIONS = [
   (connection) => ensureIndex(connection, 'properties', 'idx_properties_city', 'city'),
   (connection) => ensureIndex(connection, 'properties', 'idx_properties_deleted_status', 'deleted_at, status'),
   (connection) => ensureIndex(connection, 'property_units', 'idx_property_units_property_active', 'property_id, is_active'),
+  // 10.7 — detailed Shabbat + accessibility filters (see the AMENITY_FIELDS comment in
+  // propertyStore.js for why each one exists as its own field).
+  (connection) => ensureColumn(connection, 'properties', 'has_shabbat_plata', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_shabbat_urn', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_shabbat_clock', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_mechanical_key', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'is_near_eruv', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'is_near_synagogue', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_step_free_entrance', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_accessible_bathroom', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_grab_bars', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_accessible_parking', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_wide_doorways', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  // 10.7 — "what's nearby": owner-entered free text (one attraction/restaurant per line), kept
+  // simple deliberately — a curated per-city database of attractions would be a much bigger
+  // project (real data entry, upkeep) that's out of scope here; see DECISIONS.md 10.7.
+  (connection) => ensureColumn(connection, 'properties', 'nearby_attractions', 'TEXT NULL'),
 ];
 
 const SCHEMA_STATEMENTS = [

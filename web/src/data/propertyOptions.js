@@ -57,6 +57,19 @@ export const AMENITIES = [
   { value: 'is_kid_friendly', label: 'ידידותי לילדים', labelEn: 'Kid-friendly' },
   { value: 'is_pet_friendly', label: 'מתאים לחיות מחמד', labelEn: 'Pet-friendly' },
   { value: 'is_accessible', label: 'נגישות', labelEn: 'Accessible' },
+  // 10.7 — detailed Shabbat filter
+  { value: 'has_shabbat_plata', label: 'פלטה לשבת', labelEn: 'Shabbat hotplate' },
+  { value: 'has_shabbat_urn', label: 'מיחם', labelEn: 'Hot water urn' },
+  { value: 'has_shabbat_clock', label: 'שעון שבת', labelEn: 'Shabbat timer' },
+  { value: 'has_mechanical_key', label: 'מפתח מכני (לא אלקטרוני)', labelEn: 'Mechanical key (no electronic lock)' },
+  { value: 'is_near_eruv', label: 'בתוך עירוב', labelEn: 'Within an eruv' },
+  { value: 'is_near_synagogue', label: 'קרוב לבית כנסת', labelEn: 'Near a synagogue' },
+  // 10.7 — detailed accessibility filter
+  { value: 'has_step_free_entrance', label: 'כניסה ללא מדרגות', labelEn: 'Step-free entrance' },
+  { value: 'has_accessible_bathroom', label: 'מקלחת נגישה', labelEn: 'Accessible bathroom' },
+  { value: 'has_grab_bars', label: 'ידיות אחיזה', labelEn: 'Grab bars' },
+  { value: 'has_accessible_parking', label: 'חניית נכים', labelEn: 'Accessible parking' },
+  { value: 'has_wide_doorways', label: 'פתחים רחבים', labelEn: 'Wide doorways' },
 ];
 
 // Per-unit amenities (7.3: "מתקנים ספציפיים ליחידה: ג'קוזי פרטי, מרפסת, בריכה פרטית") — a small,

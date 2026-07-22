@@ -2442,6 +2442,16 @@ body {
   box-shadow: 0 2px 10px rgba(255,77,109,0.45);
 }
 
+/* ── 10.7: freshness badge ("availability updated recently") ── */
+.freshness-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--ds-olive);
+}
+
 /* Exclusive badge — same slot as .adc__value-badge (mutually exclusive with it) */
 .adc__exclusive-badge {
   position: absolute;

@@ -92,6 +92,7 @@ export function PropertyWizard({ initialData = null, propertyId: initialProperty
   const [name, setName] = useState(initialData?.name || '');
   const [propertyType, setPropertyType] = useState(initialData?.property_type || 'zimmer');
   const [description, setDescription] = useState(initialData?.description || '');
+  const [nearbyAttractions, setNearbyAttractions] = useState(initialData?.nearby_attractions || '');
 
   const [region, setRegion] = useState(initialData?.region || '');
   const [city, setCity] = useState(initialData?.city || '');
@@ -122,6 +123,7 @@ export function PropertyWizard({ initialData = null, propertyId: initialProperty
       setName(p.name || '');
       setPropertyType(p.property_type || 'zimmer');
       setDescription(p.description || '');
+      setNearbyAttractions(p.nearby_attractions || '');
       setRegion(p.region || '');
       setCity(p.city || '');
       setAddress(p.address || '');
@@ -179,6 +181,7 @@ export function PropertyWizard({ initialData = null, propertyId: initialProperty
         if (!propertyId) {
           const { property } = await propertyApi.create(token, {
             name, property_type: propertyType, description: description || null,
+            nearby_attractions: nearbyAttractions || null,
             region, city, address: address || null, latitude, longitude,
           });
           setPropertyId(property.id);
@@ -187,6 +190,7 @@ export function PropertyWizard({ initialData = null, propertyId: initialProperty
         } else {
           await propertyApi.update(token, propertyId, {
             name, property_type: propertyType, description: description || null,
+            nearby_attractions: nearbyAttractions || null,
             region, city, address: address || null, latitude, longitude,
           });
         }
@@ -265,6 +269,17 @@ export function PropertyWizard({ initialData = null, propertyId: initialProperty
                 <div className="wizard-field">
                   <label className="wizard-label">תיאור</label>
                   <textarea className="wizard-input wizard-input--textarea" rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="ספרו לאורחים על הנכס…" />
+                </div>
+                <div className="wizard-field">
+                  <label className="wizard-label">מה יש בסביבה (אופציונלי)</label>
+                  <textarea
+                    className="wizard-input wizard-input--textarea"
+                    rows={3}
+                    value={nearbyAttractions}
+                    onChange={(e) => setNearbyAttractions(e.target.value)}
+                    placeholder={'שורה לכל אטרקציה/מסעדה/מסלול, למשל:\nמפל הבניאס — 10 דק׳ נסיעה\nמסעדת הכפר הירוק — 5 דק׳ הליכה'}
+                  />
+                  <span className="wizard-hint">כל שורה תוצג כפריט נפרד בדף הנכס</span>
                 </div>
               </WizardStep>
             </motion.div>

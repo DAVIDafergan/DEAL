@@ -1,5 +1,5 @@
 import { Link } from '../LocalizedLink.jsx';
-import { Globe } from 'lucide-react';
+import { Globe, ShieldCheck } from 'lucide-react';
 import { FacebookIcon, InstagramIcon, TikTokIcon, YouTubeIcon } from '../SocialIcons.jsx';
 import { useLanguage } from '../../context/LanguageContext.jsx';
 import { optimizedImageUrl } from '../../utils/imageUrl.js';
@@ -30,7 +30,14 @@ export function OwnerCard({ owner }) {
         : <div className="owner-card__avatar-placeholder">{owner.business_name?.[0] || '?'}</div>}
 
       <div className="owner-card__body">
-        <div className="owner-card__name">{owner.business_name}</div>
+        <div className="owner-card__name">
+          {owner.business_name}
+          {owner.trust_label && (
+            <span className={`owner-card__trust owner-card__trust--${owner.trust_label}`}>
+              <ShieldCheck size={12} /> {t[`ownerTrust_${owner.trust_label}`]}
+            </span>
+          )}
+        </div>
         {owner.description && <p className="owner-card__desc">{owner.description.slice(0, 90)}{owner.description.length > 90 ? '…' : ''}</p>}
         {socials.length > 0 && (
           <div className="owner-card__socials">

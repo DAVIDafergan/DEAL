@@ -5,6 +5,7 @@ import { getCurrencySymbol } from '../utils/currency.js';
 import { regionLabel, amenityLabel } from '../data/propertyOptions.js';
 import { useFavorites } from '../hooks/useFavorites.js';
 import { optimizedImageUrl } from '../utils/imageUrl.js';
+import { FreshnessBadge } from './FreshnessBadge.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
 
 function buildWhatsAppUrl(number, propertyName) {
@@ -138,6 +139,7 @@ export function PropertyCard({ property }) {
             <span className="adc__info-text">{t.bedroomsCount(bedrooms)}</span>
           </div>
         )}
+        <FreshnessBadge updatedAt={property.availability_updated_at} />
 
         <div className="adc__footer">
           <div className="adc__price-block">

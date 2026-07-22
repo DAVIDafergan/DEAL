@@ -110,7 +110,14 @@
   background: var(--gradient-accent); color: #fff; font-weight: 700; font-size: 1.1rem;
 }
 .owner-card__body { flex: 1; min-width: 0; }
-.owner-card__name { font-weight: 700; font-size: 0.92rem; color: var(--color-text-primary); }
+.owner-card__name { font-weight: 700; font-size: 0.92rem; color: var(--color-text-primary); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.owner-card__trust {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 0.68rem; font-weight: 700;
+  padding: 2px 8px; border-radius: var(--radius-pill);
+}
+.owner-card__trust--excellent { background: rgba(91,107,78,0.12); color: var(--ds-olive); }
+.owner-card__trust--good { background: rgba(193,89,43,0.1); color: var(--ds-hearth); }
 .owner-card__desc { margin: 2px 0 0; font-size: 0.8rem; color: var(--color-text-muted); }
 .owner-card__socials { display: flex; gap: 4px; margin-top: 6px; }
 .owner-card__social-link {
@@ -547,3 +554,16 @@
 }
 .pp-review-card__action-btn:hover { color: var(--ds-hearth); }
 .pp-review-card__reply-form { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+
+/* ── 10.7: final price calculator ─────────────────────────────────────────── */
+.price-calc {
+  background: var(--ds-slate);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+.price-calc__title { display: flex; align-items: center; gap: 6px; font-size: 0.95rem; font-weight: 700; margin: 0 0 12px; color: var(--ds-bone); }
+.price-calc__dates { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.price-calc__breakdown { display: flex; flex-direction: column; gap: 6px; }
+.price-calc__row { display: flex; justify-content: space-between; font-size: 0.86rem; color: var(--color-text-secondary); }
+.price-calc__row--total { border-top: 1px solid var(--ds-ghost); margin-top: 6px; padding-top: 8px; font-weight: 800; font-size: 1rem; color: var(--ds-bone); }
+.price-calc__note { margin: 8px 0 0; font-size: 0.76rem; color: var(--ds-olive); font-weight: 600; text-align: center; }
