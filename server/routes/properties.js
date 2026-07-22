@@ -20,6 +20,8 @@ import { geocodePropertyInBackground } from '../services/geocode.js';
 import { ttlCached } from '../utils/ttlCache.js';
 import { recordPropertyEvent, getPropertyStats, getOwnerEventSummary } from '../store/propertyEventStore.js';
 import { isBotUserAgent } from '../utils/isBotUserAgent.js';
+import { listReviewsForProperty, getReviewAggregate, createReview, getUserReviewForProperty } from '../store/reviewStore.js';
+import { requireUserAuth } from '../middleware/userAuth.js';
 
 const cachedSearch = ttlCached('search', 30_000);
 const cachedFacetCounts = ttlCached('facet-counts', 30_000);
@@ -53,7 +55,7 @@ router.get('/', async (req, res) => {
       amenities: amenities ? String(amenities).split(',') : [],
       checkIn: check_in && check_out ? check_in : undefined,
       checkOut: check_in && check_out ? check_out : undefined,
-      sort: ['price_asc', 'price_desc', 'new'].includes(sort) ? sort : undefined,
+      sort: ['price_asc', 'price_desc', 'new', 'rating_desc'].includes(sort) ? sort : undefined,
       limit,
     };
     // 10.1: 30s TTL cache — identical query string (the overwhelmingly common case: the
@@ -404,6 +406,48 @@ router.get('/:id/stats', requireAgentAuth, async (req, res) => {
     const days = Math.min(Number(req.query.days) || 30, 90);
     const stats = await getPropertyStats(req.params.id, { days });
     res.json(stats);
+  } catch (err) {
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
+/** GET /api/properties/:id/reviews — 10.6: public, visible reviews + aggregate. Shown to
+ * everyone including logged-out visitors, per spec. */
+router.get('/:id/reviews', async (req, res) => {
+  try {
+    const sort = req.query.sort === 'rating_desc' ? 'rating_desc' : 'newest';
+    const [reviews, aggregate] = await Promise.all([
+      listReviewsForProperty(req.params.id, { sort }),
+      getReviewAggregate(req.params.id),
+    ]);
+    res.json({ reviews, aggregate });
+  } catch (err) {
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
+/** POST /api/properties/:id/reviews — logged-in travelers only. Self-review and duplicate
+ * checks happen in the store (see reviewStore.js createReview). */
+router.post('/:id/reviews', requireUserAuth, async (req, res) => {
+  try {
+    const { rating, cleanlinessRating, accuracyRating, hostRating, valueRating, title, body, stayDate } = req.body || {};
+    if (!rating || Number(rating) < 1 || Number(rating) > 5) return res.status(400).json({ error: 'rating must be 1-5' });
+    if (!body?.trim()) return res.status(400).json({ error: 'body is required' });
+    const result = await createReview(req.params.id, req.user.email, req.user.userId, {
+      rating: Number(rating), cleanlinessRating, accuracyRating, hostRating, valueRating, title, body: body.trim(), stayDate,
+    });
+    res.json(result);
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message || 'Internal error' });
+  }
+});
+
+/** GET /api/properties/:id/reviews/mine — whether the logged-in traveler already reviewed
+ * this property (and if so, what they wrote — for showing an "edit" form instead of "write"). */
+router.get('/:id/reviews/mine', requireUserAuth, async (req, res) => {
+  try {
+    const review = await getUserReviewForProperty(req.params.id, req.user.userId);
+    res.json({ review });
   } catch (err) {
     res.status(500).json({ error: 'Internal error' });
   }

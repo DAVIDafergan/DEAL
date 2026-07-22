@@ -22,6 +22,8 @@ import usersRouter from './routes/users.js';
 import contactRouter from './routes/contact.js';
 import uploadsRouter from './routes/uploads.js';
 import seoRouter from './routes/seo.js';
+import reviewsRouter from './routes/reviews.js';
+import { getReviewAggregate } from './store/reviewStore.js';
 import { buildSeoLandingData } from './seo/landingData.js';
 import { buildRegionAndCategoryUrls } from './seo/sitemapBuilder.js';
 
@@ -292,6 +294,9 @@ async function fetchPropertyForOg(id) {
     if (typeof property.owner_images === 'string') {
       try { property.owner_images = JSON.parse(property.owner_images); } catch { property.owner_images = null; }
     }
+    // 10.6: AggregateRating for JSON-LD — a cheap indexed query, not worth a JOIN on this
+    // single-row lookup (see the 10.1 lesson about single-row JOINs against a GROUP BY).
+    property.reviewAggregate = await getReviewAggregate(id).catch(() => ({ count: 0, avgRating: null }));
     return property;
   } catch { return null; }
 }
@@ -405,6 +410,17 @@ function propertyToOgMeta(property) {
             priceCurrency: property.currency || 'ILS',
             url: pageUrl,
             availability: 'https://schema.org/InStock',
+          },
+        } : {}),
+        // 10.6: only emit AggregateRating when there's at least one real review — an empty/zero
+        // rating block is worse than none (Google can penalize missing-review AggregateRating).
+        ...(property.reviewAggregate?.count > 0 ? {
+          aggregateRating: {
+            '@type': 'AggregateRating',
+            ratingValue: String(property.reviewAggregate.avgRating),
+            reviewCount: String(property.reviewAggregate.count),
+            bestRating: '5',
+            worstRating: '1',
           },
         } : {}),
       },
@@ -918,6 +934,7 @@ export function createApp() {
   app.use('/api/contact', contactRouter);
   app.use('/api/uploads', uploadsRouter);
   app.use('/api/seo', seoRouter);
+  app.use('/api/reviews', reviewsRouter);
 
   app.use('/api', (_req, res) => {
     res.status(404).json({ error: 'Not found' });

@@ -145,6 +145,7 @@ export function App() {
                 <option value="price_asc">{t.sortPriceAsc}</option>
                 <option value="price_desc">{t.sortPriceDesc}</option>
                 <option value="new">{t.sortNew}</option>
+                <option value="rating_desc">{t.reviewsSortRating}</option>
               </select>
             </label>
           </div>

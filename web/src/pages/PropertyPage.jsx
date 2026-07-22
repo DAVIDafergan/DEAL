@@ -13,6 +13,7 @@ import { PropertyAmenitiesBar } from '../components/property/PropertyAmenitiesBa
 import { PropertyUnitsTable } from '../components/property/PropertyUnitsTable.jsx';
 import { PublicAvailabilityCalendar } from '../components/property/PublicAvailabilityCalendar.jsx';
 import { OwnerCard } from '../components/property/OwnerCard.jsx';
+import { PropertyReviews } from '../components/property/PropertyReviews.jsx';
 import { buildPropertyWhatsAppUrl, buildTelUrl } from '../utils/contactLinks.js';
 import { trackPropertyEvent } from '../utils/eventTracking.js';
 import { PropertyPageSkeleton } from '../components/property/PropertyPageSkeleton.jsx';
@@ -300,6 +301,8 @@ export function PropertyPage() {
           )}
 
           {isClaimed && <OwnerCard owner={property.owner} />}
+
+          <PropertyReviews propertyId={property.id} ownerId={property.owner_id} />
 
           <section className="pp__section pp__policies">
             <h2 className="pp__section-title"><Info size={17} /> {t.ppPoliciesTitle}</h2>

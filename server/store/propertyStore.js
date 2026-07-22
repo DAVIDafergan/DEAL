@@ -62,6 +62,17 @@ const UNITS_AGG_JOIN = `
   ) units_agg ON units_agg.property_id = properties.id
 `;
 
+// 10.6 — same LEFT-JOIN-a-GROUP-BY-subquery shape as UNITS_AGG_JOIN above (confirmed safe for
+// multi-row queries via EXPLAIN in 10.1 — MySQL picks a per-row correlated "LATERAL DERIVED"
+// plan here, not the expensive whole-table materialization that single-row lookups triggered).
+const REVIEWS_AGG_JOIN = `
+  LEFT JOIN (
+    SELECT property_id, AVG(rating) AS avg_rating, COUNT(*) AS review_count
+    FROM property_reviews WHERE status = 'visible'
+    GROUP BY property_id
+  ) reviews_agg ON reviews_agg.property_id = properties.id
+`;
+
 const UNIT_FIELDS = [
   'name', 'description', 'max_guests', 'bedrooms', 'beds', 'bathrooms',
   'base_price_night', 'weekend_price', 'holiday_price', 'min_nights',
@@ -402,14 +413,17 @@ export async function searchProperties(filters = {}) {
   const limit = Math.min(Number(filters.limit) || 40, 100);
   // 9.3: sort — "recommended" keeps the original default (most recently touched first); price
   // sorts push properties with no priced unit yet to the end either way, not the top.
+  // 10.6: rating_desc pushes unreviewed properties (NULL avg) to the end, not the top.
   const orderBy = {
     price_asc: 'units_agg.price_from IS NULL, units_agg.price_from ASC',
     price_desc: 'units_agg.price_from DESC',
     new: 'properties.created_at DESC',
+    rating_desc: 'reviews_agg.avg_rating IS NULL, reviews_agg.avg_rating DESC',
   }[filters.sort] || 'properties.updated_at DESC';
   const [rows] = await pool.query(
-    `SELECT properties.*, units_agg.price_from, units_agg.total_guest_capacity, units_agg.max_bedrooms, units_agg.unit_count
-     FROM properties ${UNITS_AGG_JOIN} WHERE ${where.join(' AND ')} ORDER BY ${orderBy} LIMIT ?`,
+    `SELECT properties.*, units_agg.price_from, units_agg.total_guest_capacity, units_agg.max_bedrooms, units_agg.unit_count,
+       reviews_agg.avg_rating, reviews_agg.review_count
+     FROM properties ${UNITS_AGG_JOIN} ${REVIEWS_AGG_JOIN} WHERE ${where.join(' AND ')} ORDER BY ${orderBy} LIMIT ?`,
     [...vals, limit]
   );
   return rows.map(parseProperty);

@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { Link } from './LocalizedLink.jsx';
-import { MessageCircle, CheckCircle, Users, BedDouble, Waves, Heart } from 'lucide-react';
+import { MessageCircle, CheckCircle, Users, BedDouble, Waves, Heart, Star } from 'lucide-react';
 import { getCurrencySymbol } from '../utils/currency.js';
 import { regionLabel, amenityLabel } from '../data/propertyOptions.js';
 import { useFavorites } from '../hooks/useFavorites.js';
@@ -98,7 +98,12 @@ export function PropertyCard({ property }) {
         <div className="adc__overlay-bottom">
           <div>
             <div className="adc__dest-name">{property.name}</div>
-            <span className="adc__country">{regionLabel(property.region, lang)}{property.city ? ` · ${property.city}` : ''}</span>
+            <span className="adc__country">
+              {regionLabel(property.region, lang)}{property.city ? ` · ${property.city}` : ''}
+              {property.avg_rating != null && (
+                <span className="adc__rating"><Star size={11} fill="currentColor" /> {property.avg_rating} ({property.review_count})</span>
+              )}
+            </span>
           </div>
         </div>
       </div>

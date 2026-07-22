@@ -14,6 +14,7 @@ import { isEmergencyStopped, setEmergencyStop } from '../store/engineSettingsSto
 import { getSessionCost } from '../../engine/extractor/costLogger.js';
 import { authRateLimiter } from '../middleware/rateLimiter.js';
 import { getSiteEventStats } from '../store/propertyEventStore.js';
+import { listReportedReviews, setReviewStatus } from '../store/reviewStore.js';
 
 const router = Router();
 
@@ -366,6 +367,32 @@ router.get('/property-events', async (req, res) => {
     console.error('[admin] property-events error:', err.message);
     res.status(500).json({ error: 'Internal error' });
   }
+});
+
+/** 10.6 — review moderation queue: reports > 0, not already removed. Admin can hide (soft,
+ * reversible), restore, or remove (soft — status='removed', row kept for the report history). */
+router.get('/reviews/reported', async (req, res) => {
+  try {
+    const reviews = await listReportedReviews();
+    res.json({ reviews });
+  } catch (err) {
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
+router.post('/reviews/:id/hide', async (req, res) => {
+  try { await setReviewStatus(req.params.id, 'hidden'); res.json({ ok: true }); }
+  catch (err) { res.status(500).json({ error: 'Internal error' }); }
+});
+
+router.post('/reviews/:id/restore', async (req, res) => {
+  try { await setReviewStatus(req.params.id, 'visible'); res.json({ ok: true }); }
+  catch (err) { res.status(500).json({ error: 'Internal error' }); }
+});
+
+router.delete('/reviews/:id', async (req, res) => {
+  try { await setReviewStatus(req.params.id, 'removed'); res.json({ ok: true }); }
+  catch (err) { res.status(500).json({ error: 'Internal error' }); }
 });
 
 export default router;

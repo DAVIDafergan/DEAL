@@ -787,6 +787,41 @@ const SCHEMA_STATEMENTS = [
     INDEX idx_property_events_session (property_id, session_id, event_type),
     CONSTRAINT fk_property_events_property FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE
   ) ENGINE=InnoDB`,
+  // 10.6 — reviews. One review per (property_id, user_id) enforced at the DB level (the
+  // "editable for 30 days" rule is enforced in the store by comparing created_at, not schema).
+  // owner_reply lives on the same row (spec: "תגובה אחת" — one reply, not a thread).
+  `CREATE TABLE IF NOT EXISTS property_reviews (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    property_id INT NOT NULL,
+    user_id INT NOT NULL,
+    rating TINYINT UNSIGNED NOT NULL,
+    cleanliness_rating TINYINT UNSIGNED NULL,
+    accuracy_rating TINYINT UNSIGNED NULL,
+    host_rating TINYINT UNSIGNED NULL,
+    value_rating TINYINT UNSIGNED NULL,
+    title VARCHAR(150) NULL,
+    body TEXT NOT NULL,
+    stay_date DATE NULL,
+    owner_reply TEXT NULL,
+    owner_reply_at DATETIME NULL,
+    status ENUM('visible','hidden','removed') NOT NULL DEFAULT 'visible',
+    report_count INT NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_property_reviews_user_property (property_id, user_id),
+    INDEX idx_property_reviews_property_status (property_id, status),
+    CONSTRAINT fk_property_reviews_property FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE,
+    CONSTRAINT fk_property_reviews_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB`,
+  `CREATE TABLE IF NOT EXISTS property_review_reports (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    review_id INT NOT NULL,
+    reason VARCHAR(255) NULL,
+    reporter_session VARCHAR(64) NULL,
+    created_at DATETIME NOT NULL,
+    INDEX idx_property_review_reports_review (review_id),
+    CONSTRAINT fk_review_reports_review FOREIGN KEY (review_id) REFERENCES property_reviews(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB`,
 ];
 
 /**

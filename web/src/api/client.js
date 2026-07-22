@@ -202,6 +202,15 @@ export const propertyApi = {
   getTrash: (token) => getJson('/properties/trash/mine', token),
   trackEvent: (id, data) => postJson(`/properties/${id}/events`, data),
   getStats: (token, id, days) => getJson(`/properties/${id}/stats${buildQuery({ days })}`, token),
+  getReviews: (id, sort) => getJson(`/properties/${id}/reviews${buildQuery({ sort })}`),
+  getMyReview: (token, id) => getJson(`/properties/${id}/reviews/mine`, token),
+  createReview: (token, id, data) => postJson(`/properties/${id}/reviews`, data, token),
+};
+
+export const reviewApi = {
+  update: (token, id, data) => patchJson(`/reviews/${id}`, data, token),
+  reply: (token, id, reply) => postJson(`/reviews/${id}/reply`, { reply }, token),
+  report: (id, reason, sessionId) => postJson(`/reviews/${id}/report`, { reason, sessionId }, null),
 };
 
 export const uploadApi = {
@@ -251,6 +260,10 @@ export const adminApi = {
   rejectAutoProperty: (tok, id) => postJson(`/admin/properties/${id}/reject-auto`, {}, tok),
   getPropertyStats: (tok) => getJson('/admin/properties/stats', tok),
   getPropertyEventStats: (tok, days) => getJson(`/admin/property-events${buildQuery({ days })}`, tok),
+  getReportedReviews: (tok) => getJson('/admin/reviews/reported', tok),
+  hideReview: (tok, id) => postJson(`/admin/reviews/${id}/hide`, {}, tok),
+  restoreReview: (tok, id) => postJson(`/admin/reviews/${id}/restore`, {}, tok),
+  deleteReview: (tok, id) => deleteReq(`/admin/reviews/${id}`, tok),
   runEngine: (tok) => postJson('/admin/engine/run', {}, tok),
   runEngineLive: (tok, roundSize) => postJson('/admin/engine/run-live', { roundSize }, tok),
   getEngineStatus: (tok) => getJson('/admin/engine/status', tok),

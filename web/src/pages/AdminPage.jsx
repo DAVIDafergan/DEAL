@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, XCircle, Eye, RefreshCw, ArrowLeft, Trash2, ChevronLeft, ChevronRight, User, LogOut, Users, FileCheck, LayoutDashboard, Clock, Home, BarChart3, Search, ShoppingBag, MousePointerClick, Bot, ShieldCheck, PlayCircle, MapPin, AlertTriangle } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, RefreshCw, ArrowLeft, Trash2, ChevronLeft, ChevronRight, User, LogOut, Users, FileCheck, LayoutDashboard, Clock, Home, BarChart3, Search, ShoppingBag, MousePointerClick, Bot, ShieldCheck, PlayCircle, MapPin, AlertTriangle, Flag } from 'lucide-react';
 import { Link } from '../components/LocalizedLink.jsx';
 import { adminApi } from '../api/client.js';
 import { Logo } from '../components/Logo.jsx';
@@ -262,6 +262,64 @@ function PropertyAnalyticsTab({ token }) {
           </table>
         </>
       )}
+    </div>
+  );
+}
+
+/** 10.6: buyer-review moderation queue — reports > 0, admin can hide/restore/delete. Distinct
+ * from PropertyReviewTab above, which approves/rejects auto-collected *listings*, not reviews. */
+function ReviewModerationTab({ token, notify }) {
+  const [queue, setQueue] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const { reviews } = await adminApi.getReportedReviews(token);
+      setQueue(reviews || []);
+    } catch (err) {
+      notify(err.message || 'שגיאה בטעינה', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { load(); }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function act(id, action) {
+    try {
+      if (action === 'hide') await adminApi.hideReview(token, id);
+      else if (action === 'restore') await adminApi.restoreReview(token, id);
+      else if (action === 'delete') await adminApi.deleteReview(token, id);
+      notify('בוצע');
+      setQueue((prev) => prev.filter((r) => r.id !== id));
+    } catch (err) { notify(err.message, 'error'); }
+  }
+
+  if (loading) return <p style={{ textAlign: 'center', padding: 32, color: 'var(--color-text-muted)' }}>טוען…</p>;
+  if (queue.length === 0) return <p style={{ textAlign: 'center', padding: 32, color: 'var(--color-text-muted)' }}>אין ביקורות מדווחות</p>;
+
+  return (
+    <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {queue.map((r) => (
+        <div key={r.id} className="settings-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+            <strong>{r.property_name}</strong>
+            <span style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>{r.report_count} דיווחים · {r.status}</span>
+          </div>
+          <p style={{ margin: '6px 0', fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
+            <strong>{r.reviewer_name}</strong> · {r.rating}★ — {r.title ? `${r.title}: ` : ''}{r.body}
+          </p>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {r.status === 'visible' ? (
+              <button className="agent-form__btn agent-form__btn--ghost" onClick={() => act(r.id, 'hide')}>הסתר</button>
+            ) : (
+              <button className="agent-form__btn agent-form__btn--ghost" onClick={() => act(r.id, 'restore')}>שחזר</button>
+            )}
+            <button className="agent-form__btn" style={{ color: '#dc2626' }} onClick={() => act(r.id, 'delete')}>מחק לצמיתות</button>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -848,6 +906,9 @@ export function AdminPage() {
         <button className={`adm-tabs__btn${tab === 'property-analytics' ? ' is-active' : ''}`} onClick={() => setTab('property-analytics')}>
           <BarChart3 size={14} /> סטטיסטיקת נכסים
         </button>
+        <button className={`adm-tabs__btn${tab === 'review-moderation' ? ' is-active' : ''}`} onClick={() => setTab('review-moderation')}>
+          <Flag size={14} /> ביקורות מדווחות
+        </button>
         <button className={`adm-tabs__btn${tab === 'engine' ? ' is-active' : ''}`} onClick={() => setTab('engine')}>
           <Bot size={14} /> מנוע איסוף
         </button>
@@ -921,6 +982,7 @@ export function AdminPage() {
           usable phone. See propertyStore.listPropertiesPendingReview. */}
       {tab === 'property-review' && <PropertyReviewTab token={token} notify={notify} />}
       {tab === 'property-analytics' && <PropertyAnalyticsTab token={token} />}
+      {tab === 'review-moderation' && <ReviewModerationTab token={token} notify={notify} />}
 
       {/* Collection engine (Step 3/4) */}
       {tab === 'engine' && <EngineTab token={token} notify={notify} />}
