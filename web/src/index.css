@@ -542,17 +542,22 @@ select:focus-visible {
   }
 }
 
+/* 11.4: was icon-top/text-bottom-left with a small (26px) icon — with no real region photo
+   available (see the component comment), a small icon read as an afterthought. Centering
+   everything and blowing the icon up to 44px makes it carry the card instead of just
+   decorating it. */
 .region-card {
   position: relative;
   border: none;
   border-radius: var(--radius-lg);
   padding: 22px 16px;
-  min-height: 132px;
+  min-height: 150px;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-end;
-  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
   color: #fff;
   cursor: pointer;
   overflow: hidden;
@@ -581,8 +586,70 @@ select:focus-visible {
 .region-card__icon {
   position: relative;
   z-index: 1;
-  opacity: 0.9;
-  margin-bottom: 6px;
+  opacity: 0.95;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.2));
+}
+
+/* ── 11.4: per-region hover/tap icon animation ──────────────────────────────
+   :active (not just :hover) so a tap on mobile triggers it too — touch devices don't reliably
+   fire :hover. Every keyframe stays inside 300-500ms and only ever moves/rotates the icon a
+   few degrees or pixels — gentle, not bouncy. Fully skipped under prefers-reduced-motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .region-card:hover .region-card__icon,
+  .region-card:active .region-card__icon,
+  .region-card:focus-visible .region-card__icon {
+    animation-duration: 480ms;
+    animation-timing-function: ease-in-out;
+    animation-fill-mode: both;
+  }
+  .region-card[data-anim="sway"]:hover .region-card__icon,
+  .region-card[data-anim="sway"]:active .region-card__icon,
+  .region-card[data-anim="sway"]:focus-visible .region-card__icon { animation-name: region-icon-sway; transform-origin: 50% 90%; }
+
+  .region-card[data-anim="spin"]:hover .region-card__icon,
+  .region-card[data-anim="spin"]:active .region-card__icon,
+  .region-card[data-anim="spin"]:focus-visible .region-card__icon { animation-name: region-icon-spin; animation-duration: 500ms; transform-origin: 50% 50%; }
+
+  .region-card[data-anim="ripple"]:hover .region-card__icon,
+  .region-card[data-anim="ripple"]:active .region-card__icon,
+  .region-card[data-anim="ripple"]:focus-visible .region-card__icon { animation-name: region-icon-ripple; }
+
+  .region-card[data-anim="fall"]:hover .region-card__icon,
+  .region-card[data-anim="fall"]:active .region-card__icon,
+  .region-card[data-anim="fall"]:focus-visible .region-card__icon { animation-name: region-icon-fall; }
+
+  .region-card[data-anim="rise"]:hover .region-card__icon,
+  .region-card[data-anim="rise"]:active .region-card__icon,
+  .region-card[data-anim="rise"]:focus-visible .region-card__icon { animation-name: region-icon-rise; }
+
+  .region-card[data-anim="pulse"]:hover .region-card__icon,
+  .region-card[data-anim="pulse"]:active .region-card__icon,
+  .region-card[data-anim="pulse"]:focus-visible .region-card__icon { animation-name: region-icon-pulse; }
+}
+
+@keyframes region-icon-sway {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(9deg); }
+}
+@keyframes region-icon-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(160deg); }
+}
+@keyframes region-icon-ripple {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+@keyframes region-icon-fall {
+  0% { transform: translateY(0) rotate(0deg); }
+  100% { transform: translateY(5px) rotate(20deg); }
+}
+@keyframes region-icon-rise {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-3px) scale(1.06); }
+}
+@keyframes region-icon-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
 }
 
 .region-card__name {
@@ -3701,14 +3768,19 @@ label { color: var(--color-text-secondary); }
    was blowing the whole hero search out past the viewport on mobile (see DECISIONS.md 11.1). */
 .home-hero__search-motion { width: 100%; min-width: 0; }
 
+/* 11.4: bumped from 820px and given more breathing room above/below now that the hero only
+   has the search field + one row of quick chips under it (property-type chips and recent
+   searches moved out) — the field can afford to read as the centerpiece instead of one row
+   among several. */
 .hero-search-wrap {
   width: 100%;
-  max-width: min(820px, 100%);
+  max-width: min(920px, 100%);
   min-width: 0;
+  margin: 8px auto 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
+  gap: 18px;
 }
 
 .hero-search {
@@ -3954,43 +4026,6 @@ label { color: var(--color-text-secondary); }
   .hero-search__listbox { animation: none; }
   .hero-search__submit:hover { transform: none; }
 }
-
-/* ── 11.2 property-type quick chips (homepage, under the hero search) ──────── */
-.property-type-chips {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 2px;
-}
-.property-type-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: 1px solid var(--ds-ghost);
-  background: var(--ds-ink);
-  color: var(--ds-bone);
-  font-size: 0.8rem;
-  font-weight: 600;
-  padding: 7px 14px;
-  border-radius: var(--radius-pill);
-  cursor: pointer;
-  transition: border-color var(--transition-base), color var(--transition-base), background var(--transition-base);
-}
-.property-type-chip:hover { border-color: var(--ds-hearth); color: var(--ds-hearth); }
-.property-type-chip.is-active { background: var(--gradient-accent); border-color: transparent; color: #fff; }
-.property-type-chip.is-empty { opacity: 0.45; }
-.property-type-chip.is-empty:hover { opacity: 0.7; }
-.property-type-chip__count {
-  font-size: 0.7rem;
-  font-weight: 700;
-  opacity: 0.75;
-  background: rgba(255,255,255,0.14);
-  border-radius: var(--radius-pill);
-  padding: 1px 7px;
-}
-.property-type-chip.is-active .property-type-chip__count { background: rgba(255,255,255,0.28); }
 
 /* ── 9.2 shared home section title ───────────────────────────────────────── */
 

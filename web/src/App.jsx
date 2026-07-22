@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { NowProvider } from './context/NowContext.jsx';
 import { propertyApi } from './api/client.js';
 import { HeroSearch } from './components/HeroSearch.jsx';
-import { PropertyTypeChips } from './components/PropertyTypeChips.jsx';
 import { RegionPicker } from './components/RegionPicker.jsx';
 import { CategoryChips } from './components/CategoryChips.jsx';
 import { TrustSection } from './components/TrustSection.jsx';
@@ -83,12 +82,6 @@ export function App() {
 
   const canLoadMore = !isLoading && properties.length === resultsLimit && resultsLimit < 100;
 
-  const propertiesByRegion = useMemo(() => {
-    const counts = {};
-    for (const p of properties) counts[p.region] = (counts[p.region] || 0) + 1;
-    return counts;
-  }, [properties]);
-
   function scrollToResults() {
     resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -128,8 +121,6 @@ export function App() {
             >
               <HeroSearch filters={filters} setFilter={setFilter} onSearch={scrollToResults} />
             </motion.div>
-            <PropertyTypeChips filters={filters} setFilter={setFilter} onSearch={scrollToResults} />
-            <RecentSearches searches={recentSearches} onPick={handlePickRecentSearch} />
             <button type="button" className="surprise-me-btn" onClick={handleSurpriseMe}>
               <Shuffle size={14} /> {t.surpriseMeButton}
             </button>
@@ -141,7 +132,7 @@ export function App() {
         {/* ── 2. Regions ── */}
         <section className="region-picker-section container">
           <h2 className="home-section-title">{t.regionsSectionTitle}</h2>
-          <RegionPicker propertiesByRegion={propertiesByRegion} onSelectRegion={handleSelectRegion} activeRegion={filters.region} />
+          <RegionPicker onSelectRegion={handleSelectRegion} activeRegion={filters.region} />
         </section>
 
         {/* ── 3. Quick categories ── */}
@@ -152,6 +143,10 @@ export function App() {
 
         {/* ── 4. Results / featured properties + staged filters (7.2) ── */}
         <section className="agent-deals-section container" ref={resultsRef}>
+          {/* 11.4: moved out of the hero — it was one more row competing for attention right
+              under the search box. Here it's contextual: right above the results it affects. */}
+          <RecentSearches searches={recentSearches} onPick={handlePickRecentSearch} />
+
           <div className="agent-deals-section__head">
             <div>
               <h2 className="agent-deals-section__title">

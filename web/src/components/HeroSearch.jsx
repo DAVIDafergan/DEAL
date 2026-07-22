@@ -1,16 +1,17 @@
 import { useMemo, useRef, useState } from 'react';
-import { Search, MapPin, Users, Sparkles, Waves, UtensilsCrossed, Baby } from 'lucide-react';
+import { Search, MapPin, Users, Sparkles, Waves } from 'lucide-react';
 import { REGIONS, regionLabel } from '../data/propertyOptions.js';
 import { ALL_TOWNS, regionForTown } from '../data/israeliTowns.js';
 import { HeroDateRangeField } from './HeroDateRangeField.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
 
-const POPULAR_REGIONS = ['north', 'galilee', 'golan', 'jerusalem'];
+// 11.4: trimmed from 4 regions + 4 categories (8 chips, its own two visual rows) down to a
+// single row of 5 — enough to be useful as shortcuts without competing with the search field
+// itself for attention. See DECISIONS.md 11.4.
+const POPULAR_REGIONS = ['north', 'galilee', 'golan'];
 const POPULAR_CATEGORIES = [
   { key: 'jacuzzi', labelKey: 'categoryJacuzzi', icon: Sparkles, apply: (setFilter) => setFilter({ amenities: ['has_private_jacuzzi'] }) },
   { key: 'pool', labelKey: 'categoryPool', icon: Waves, apply: (setFilter) => setFilter({ amenities: ['has_private_pool'] }) },
-  { key: 'kosher', labelKey: 'categoryKosher', icon: UtensilsCrossed, apply: (setFilter) => setFilter({ kosherLevel: 'kosher' }) },
-  { key: 'family', labelKey: 'categoryFamilies', icon: Baby, apply: (setFilter) => setFilter({ amenities: ['is_kid_friendly'] }) },
 ];
 
 /** WhereField — 11.1: a single combined "region or town" text input with keyboard-navigable
