@@ -6,7 +6,7 @@ import { getAllUsers, deleteUserById } from '../store/userStore.js';
 import {
   listPendingClaims, approveClaim, rejectClaim,
   listPropertiesPendingReview, approveAutoProperty, rejectAutoProperty,
-  getPropertyStats, hardDeletePropertyAdmin,
+  getPropertyStats, hardDeletePropertyAdmin, listInfoReports, dismissInfoReport,
 } from '../store/propertyStore.js';
 import { listEngineRuns, getEngineRun, getLatestEngineRun } from '../store/engineRunStore.js';
 import { getQueryStats, listQueries } from '../store/engineQueryStore.js';
@@ -392,6 +392,17 @@ router.post('/reviews/:id/restore', async (req, res) => {
 
 router.delete('/reviews/:id', async (req, res) => {
   try { await setReviewStatus(req.params.id, 'removed'); res.json({ ok: true }); }
+  catch (err) { res.status(500).json({ error: 'Internal error' }); }
+});
+
+/** 10.8: "report incorrect info" queue — property *data* flags, not reviews. */
+router.get('/info-reports', async (req, res) => {
+  try { res.json({ reports: await listInfoReports() }); }
+  catch (err) { res.status(500).json({ error: 'Internal error' }); }
+});
+
+router.delete('/info-reports/:id', async (req, res) => {
+  try { await dismissInfoReport(req.params.id); res.json({ ok: true }); }
   catch (err) { res.status(500).json({ error: 'Internal error' }); }
 });
 

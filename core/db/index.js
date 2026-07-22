@@ -370,6 +370,19 @@ const MIGRATIONS = [
   // simple deliberately — a curated per-city database of attractions would be a much bigger
   // project (real data entry, upkeep) that's out of scope here; see DECISIONS.md 10.7.
   (connection) => ensureColumn(connection, 'properties', 'nearby_attractions', 'TEXT NULL'),
+  // 10.8 — detailed family filter (a real checklist beyond the single "kid-friendly" checkbox).
+  (connection) => ensureColumn(connection, 'properties', 'has_crib', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_high_chair', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_pool_fence', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_kids_toys', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_dishwasher', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_microwave', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  // 10.8 — view type: a single-select, not a boolean like has_view (which stays as-is) — "what
+  // kind" of view, not just "has one".
+  (connection) => ensureColumn(connection, 'properties', "view_type", "ENUM('sea','lake','mountains','desert','green','open') NULL"),
+  // 10.8 — report-incorrect-info queue (distinct from review reports — this flags property
+  // *data*, not a review).
+  (connection) => ensureColumn(connection, 'properties', 'info_report_count', 'INT NOT NULL DEFAULT 0'),
 ];
 
 const SCHEMA_STATEMENTS = [
@@ -838,6 +851,17 @@ const SCHEMA_STATEMENTS = [
     created_at DATETIME NOT NULL,
     INDEX idx_property_review_reports_review (review_id),
     CONSTRAINT fk_review_reports_review FOREIGN KEY (review_id) REFERENCES property_reviews(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB`,
+  // 10.8 — "report incorrect info" (distinct from review reports): flags property *data* as
+  // wrong, most valuable on auto-collected listings — turns visitors into a QA layer.
+  `CREATE TABLE IF NOT EXISTS property_info_reports (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    property_id INT NOT NULL,
+    reason VARCHAR(255) NULL,
+    details TEXT NULL,
+    created_at DATETIME NOT NULL,
+    INDEX idx_property_info_reports_property (property_id),
+    CONSTRAINT fk_property_info_reports_property FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE
   ) ENGINE=InnoDB`,
 ];
 

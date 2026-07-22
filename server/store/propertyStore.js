@@ -18,6 +18,8 @@ export const AMENITY_FIELDS = [
   // data isn't lost), these break it into what a wheelchair user actually needs to check for.
   'has_step_free_entrance', 'has_accessible_bathroom', 'has_grab_bars',
   'has_accessible_parking', 'has_wide_doorways',
+  // 10.8 — detailed family filter
+  'has_crib', 'has_high_chair', 'has_pool_fence', 'has_kids_toys', 'has_dishwasher', 'has_microwave',
 ];
 
 // status is writable by owners, but only within claimed/active — unclaimed and hidden are
@@ -28,7 +30,7 @@ const OWNER_EDITABLE_FIELDS = [
   ...AMENITY_FIELDS,
   'kosher_level', 'base_price_night', 'weekend_price', 'holiday_price', 'cleaning_fee',
   'min_nights', 'currency', 'owner_images', 'phone', 'whatsapp', 'email', 'website', 'status',
-  'nearby_attractions',
+  'nearby_attractions', 'view_type',
 ];
 
 function parseJsonField(value) {
@@ -411,6 +413,7 @@ export async function searchProperties(filters = {}) {
   if (filters.minPrice) { where.push('units_agg.price_from >= ?'); vals.push(Number(filters.minPrice)); }
   if (filters.maxPrice) { where.push('units_agg.price_from <= ?'); vals.push(Number(filters.maxPrice)); }
   if (filters.kosherLevel) { where.push('kosher_level = ?'); vals.push(filters.kosherLevel); }
+  if (filters.viewType) { where.push('view_type = ?'); vals.push(filters.viewType); }
   for (const amenity of filters.amenities || []) {
     if (AMENITY_FIELDS.includes(amenity)) where.push(`${amenity} = 1`);
   }
@@ -781,11 +784,11 @@ export async function createProperty(ownerId, fields) {
        guest_capacity, bedrooms, beds, bathrooms,
        ${AMENITY_FIELDS.join(', ')},
        kosher_level, base_price_night, weekend_price, holiday_price, cleaning_fee, min_nights, currency,
-       owner_images, phone, whatsapp, email, website,
+       owner_images, phone, whatsapp, email, website, nearby_attractions, view_type,
        status, source, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
        ${AMENITY_FIELDS.map(() => '?').join(', ')},
-       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', 'manual', ?, ?)`,
+       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', 'manual', ?, ?)`,
     [
       ownerId,
       fields.name,
@@ -816,6 +819,8 @@ export async function createProperty(ownerId, fields) {
       normalizePhone(fields.whatsapp) || fields.whatsapp || null,
       fields.email || null,
       fields.website || null,
+      fields.nearby_attractions || null,
+      fields.view_type || null,
       ts, ts,
     ]
   );
@@ -1261,4 +1266,60 @@ export async function getPropertyStats() {
       successRate: autoStats.total_auto > 0 ? Math.round((autoStats.published / autoStats.total_auto) * 100) : 0,
     },
   };
+}
+
+// ── 10.8: report incorrect info ────────────────────────────────────────────
+
+/** reportIncorrectInfo — public, no auth (anyone viewing a listing can flag it, especially
+ * useful on auto-collected properties where nobody's verified the data). */
+export async function reportIncorrectInfo(propertyId, reason, details) {
+  const pool = getPool();
+  await pool.query(
+    `INSERT INTO property_info_reports (property_id, reason, details, created_at) VALUES (?, ?, ?, ?)`,
+    [propertyId, reason || null, details || null, nowStr()]
+  );
+  await pool.query(`UPDATE properties SET info_report_count = info_report_count + 1 WHERE id = ?`, [propertyId]);
+}
+
+export async function listInfoReports() {
+  const pool = getPool();
+  const [rows] = await pool.query(
+    `SELECT r.id, r.property_id, r.reason, r.details, r.created_at, p.name AS property_name
+     FROM property_info_reports r JOIN properties p ON p.id = r.property_id
+     ORDER BY r.created_at DESC LIMIT 100`
+  );
+  return rows;
+}
+
+export async function dismissInfoReport(reportId) {
+  const pool = getPool();
+  await pool.query(`DELETE FROM property_info_reports WHERE id = ?`, [reportId]);
+}
+
+// ── 10.8: duplicate a whole property (with its units) ─────────────────────
+
+/** duplicateProperty — "מי שיש לו שש סוויטות דומות לא ימלא שישה טפסים." Copies the property
+ * row (as a new draft — never auto-published) plus every unit. Availability/reviews/events
+ * are NOT copied (they belong to the original listing's real history, not a fresh copy). */
+export async function duplicateProperty(propertyId, ownerId) {
+  const source = await getPropertyByIdForOwner(propertyId, ownerId);
+  if (!source) return null;
+  const fields = {};
+  for (const key of OWNER_EDITABLE_FIELDS) {
+    if (key === 'status') continue;
+    fields[key] = source[key];
+  }
+  fields.name = `${source.name} (עותק)`;
+  // createProperty always creates one default unit from `fields` itself (see its own comment) —
+  // deactivate that placeholder and create real copies of every one of the source's units, so a
+  // multi-unit complex ends up with the same unit count/data as the original, not +1 extra.
+  const newId = await createProperty(ownerId, fields);
+  const placeholder = await getPropertyByIdForOwner(newId, ownerId);
+  for (const unit of placeholder.units || []) {
+    await deactivateUnit(unit.id, ownerId);
+  }
+  for (const unit of source.units || []) {
+    await createUnit(newId, ownerId, unit);
+  }
+  return getPropertyByIdForOwner(newId, ownerId);
 }

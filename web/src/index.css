@@ -6039,6 +6039,22 @@ html[dir="rtl"] .auth-form__input { text-align: right; direction: rtl; }
 }
 .recent-searches__chip:hover { border-color: var(--ds-hearth); color: var(--ds-hearth); }
 
+/* ── 10.8: surprise-me + recently-viewed ─────────────────────────────────── */
+.surprise-me-btn {
+  display: flex; align-items: center; gap: 6px;
+  margin: 10px auto 0;
+  background: none; border: none;
+  color: var(--ds-ash); font-size: 0.78rem; font-weight: 700;
+  cursor: pointer;
+}
+.surprise-me-btn:hover { color: var(--ds-hearth); }
+.recently-viewed { margin: 32px auto; text-align: start; }
+.recently-viewed__row {
+  display: flex; gap: 14px; overflow-x: auto;
+  padding-bottom: 8px; scroll-snap-type: x proximity;
+}
+.recently-viewed__item { flex: 0 0 240px; scroll-snap-align: start; }
+
 /* ── Booking status tracking page ────────────────────────────────────────── */
 .bsp { padding: 20px 20px 60px; max-width: 640px; }
 .bsp__back { display: inline-flex; align-items: center; gap: 5px; color: var(--ds-ash); text-decoration: none; font-size: 0.85rem; margin-bottom: 16px; }

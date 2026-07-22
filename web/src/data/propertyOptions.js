@@ -41,6 +41,17 @@ export const KOSHER_LEVELS = [
   { value: 'kosher_kitchen', label: 'מטבח כשר', labelEn: 'Kosher kitchen' },
 ];
 
+// 10.8 — view-type filter: a single-select "what kind of view", separate from the generic
+// has_view boolean amenity (which stays as "has a view at all").
+export const VIEW_TYPES = [
+  { value: 'sea', label: 'ים', labelEn: 'Sea' },
+  { value: 'lake', label: 'כנרת/אגם', labelEn: 'Lake' },
+  { value: 'mountains', label: 'הרים', labelEn: 'Mountains' },
+  { value: 'desert', label: 'מדבר', labelEn: 'Desert' },
+  { value: 'green', label: 'ירוק/פסטורלי', labelEn: 'Green/pastoral' },
+  { value: 'open', label: 'נוף פתוח', labelEn: 'Open view' },
+];
+
 export const AMENITIES = [
   { value: 'has_private_jacuzzi', label: 'ג׳קוזי פרטי', labelEn: 'Private jacuzzi' },
   { value: 'has_private_pool', label: 'בריכה פרטית', labelEn: 'Private pool' },
@@ -121,6 +132,10 @@ export function propertyTypeLabel(value, lang = 'he') {
 
 export function kosherLabel(value, lang = 'he') {
   return pick(KOSHER_LEVELS.find((k) => k.value === value), value, lang);
+}
+
+export function viewTypeLabel(value, lang = 'he') {
+  return pick(VIEW_TYPES.find((v) => v.value === value), value, lang);
 }
 
 export function amenityLabel(value, lang = 'he') {

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Link } from '../components/LocalizedLink.jsx';
 import { motion } from 'framer-motion';
-import { ArrowLeft, ChevronLeft, MessageCircle, Phone, CheckCircle, ExternalLink, Users, Bath, ShieldAlert, Clock, Heart, Share2, CalendarClock, Info, MapPinned } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, MessageCircle, Phone, CheckCircle, ExternalLink, Users, Bath, ShieldAlert, Clock, Heart, Share2, CalendarClock, Info, MapPinned, Flag } from 'lucide-react';
 import { propertyApi } from '../api/client.js';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { useFavorites } from '../hooks/useFavorites.js';
@@ -18,6 +18,7 @@ import { FreshnessBadge } from '../components/FreshnessBadge.jsx';
 import { FinalPriceCalculator } from '../components/property/FinalPriceCalculator.jsx';
 import { buildPropertyWhatsAppUrl, buildTelUrl } from '../utils/contactLinks.js';
 import { trackPropertyEvent } from '../utils/eventTracking.js';
+import { saveRecentlyViewed } from '../utils/recentlyViewed.js';
 import { PropertyPageSkeleton } from '../components/property/PropertyPageSkeleton.jsx';
 import { PropertyGrid } from '../components/PropertyGrid.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
@@ -126,6 +127,7 @@ export function PropertyPage() {
   const [selectedUnitId, setSelectedUnitId] = useState(null);
   const [similar, setSimilar] = useState([]);
   const [similarIsCheaper, setSimilarIsCheaper] = useState(false);
+  const [reportInfoSubmitted, setReportInfoSubmitted] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const { toggleFavorite, isFavorite } = useFavorites();
 
@@ -135,6 +137,7 @@ export function PropertyPage() {
         setProperty(p);
         setSelectedUnitId(p.units?.[0]?.id ?? null);
         trackPropertyEvent(id, 'view');
+        saveRecentlyViewed(Number(id));
         // 10.7: "similar but cheaper" — when this property has a price, cap the comparison set
         // at that price and sort cheapest-first, instead of just "similar in the area". Falls
         // back to the plain similar-in-area behavior when there's no price to compare against.
@@ -159,6 +162,11 @@ export function PropertyPage() {
       setShareCopied(true);
       setTimeout(() => setShareCopied(false), 2000);
     }
+  }
+
+  function handleReportInfo() {
+    propertyApi.reportInfo(id, 'incorrect_info').catch(() => {});
+    setReportInfoSubmitted(true);
   }
 
   if (loading) return <div dir={dir}><PropertyPageSkeleton /></div>;
@@ -339,6 +347,13 @@ export function PropertyPage() {
               <li>{t.ppPolicyMinNights(selectedUnit?.min_nights || property.min_nights || 1)}</li>
               <li>{t.ppPolicyCancellation}</li>
             </ul>
+            {reportInfoSubmitted ? (
+              <p className="agent-form__hint">{t.reportInfoSubmitted}</p>
+            ) : (
+              <button type="button" className="pp-review-card__action-btn" style={{ marginTop: 10 }} onClick={handleReportInfo}>
+                <Flag size={12} /> {t.reportInfoButton}
+              </button>
+            )}
           </section>
 
           {!isClaimed && (

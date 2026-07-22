@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, MapPin, Calendar, Users, Banknote, Sparkles } from 'lucide-react';
-import { REGIONS, PROPERTY_TYPES, KOSHER_LEVELS, AMENITIES, regionLabel, propertyTypeLabel, kosherLabel, amenityLabel } from '../data/propertyOptions.js';
+import { REGIONS, PROPERTY_TYPES, KOSHER_LEVELS, AMENITIES, VIEW_TYPES, regionLabel, propertyTypeLabel, kosherLabel, amenityLabel, viewTypeLabel } from '../data/propertyOptions.js';
 import { propertyApi } from '../api/client.js';
 import { useLanguage } from '../context/LanguageContext.jsx';
 
@@ -206,6 +206,17 @@ export function PropertyFilterPanel({ filters, setFilter, toggleAmenity, resultC
               label={`${kosherLabel(k.value, lang)} (${facets.kosherLevel[k.value] ?? 0})`}
               isActive={filters.kosherLevel === k.value}
               onClick={() => setFilter({ kosherLevel: filters.kosherLevel === k.value ? '' : k.value })}
+            />
+          ))}
+        </div>
+        <p className="pfp__sub-label">{t.filterViewType}</p>
+        <div className="pfp__chip-row">
+          {VIEW_TYPES.map((v) => (
+            <ToggleChip
+              key={v.value}
+              label={viewTypeLabel(v.value, lang)}
+              isActive={filters.viewType === v.value}
+              onClick={() => setFilter({ viewType: filters.viewType === v.value ? '' : v.value })}
             />
           ))}
         </div>

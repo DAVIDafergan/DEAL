@@ -5,13 +5,13 @@ import { useSearchParams } from 'react-router-dom';
 const KEYS = {
   region: 'region', city: 'city', checkIn: 'checkin', checkOut: 'checkout',
   guests: 'guests', bedrooms: 'bedrooms', minPrice: 'minprice', maxPrice: 'maxprice',
-  propertyType: 'type', kosherLevel: 'kosher', amenities: 'amenities', sort: 'sort',
+  propertyType: 'type', kosherLevel: 'kosher', viewType: 'view', amenities: 'amenities', sort: 'sort',
 };
 
 const EMPTY = {
   region: '', city: '', checkIn: '', checkOut: '',
   guests: '', bedrooms: '', minPrice: '', maxPrice: '',
-  propertyType: '', kosherLevel: '', amenities: [], sort: 'recommended',
+  propertyType: '', kosherLevel: '', viewType: '', amenities: [], sort: 'recommended',
 };
 
 /** Filter state lives entirely in the URL query string (7.2: "מצב הסינון נשמר ב-query params")
@@ -32,6 +32,7 @@ export function usePropertyFilters() {
       maxPrice: searchParams.get(KEYS.maxPrice) || '',
       propertyType: searchParams.get(KEYS.propertyType) || '',
       kosherLevel: searchParams.get(KEYS.kosherLevel) || '',
+      viewType: searchParams.get(KEYS.viewType) || '',
       amenities: amenitiesRaw ? amenitiesRaw.split(',').filter(Boolean) : [],
       sort: searchParams.get(KEYS.sort) || 'recommended',
     };
@@ -77,6 +78,7 @@ export function usePropertyFilters() {
     if (filters.minPrice || filters.maxPrice) n++;
     if (filters.propertyType) n++;
     if (filters.kosherLevel) n++;
+    if (filters.viewType) n++;
     n += filters.amenities.length;
     return n;
   }, [filters]);
@@ -90,6 +92,7 @@ export function usePropertyFilters() {
     min_price: filters.minPrice || undefined,
     max_price: filters.maxPrice || undefined,
     kosher_level: filters.kosherLevel || undefined,
+    view_type: filters.viewType || undefined,
     amenities: filters.amenities,
     check_in: filters.checkIn && filters.checkOut ? filters.checkIn : undefined,
     check_out: filters.checkIn && filters.checkOut ? filters.checkOut : undefined,

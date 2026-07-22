@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Link } from '../components/LocalizedLink.jsx';
 import {
   PlusCircle, Settings, LogOut, CheckCircle, AlertTriangle, MessageCircle,
-  LayoutDashboard, Trash2, Home, Pencil, MapPin, CalendarDays, Eye, BarChart3,
+  LayoutDashboard, Trash2, Home, Pencil, MapPin, CalendarDays, Eye, BarChart3, Copy,
 } from 'lucide-react';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { agentApi, propertyApi } from '../api/client.js';
@@ -102,6 +102,16 @@ export function OwnerDashboardPage() {
       notify(err.message || 'שגיאה במחיקת הנכס', 'error');
     } finally {
       setPropertyDeleting(false);
+    }
+  }
+
+  async function handleDuplicateProperty(propertyId) {
+    try {
+      await propertyApi.duplicate(token, propertyId);
+      notify('הנכס שוכפל כטיוטה — השלימו את הפרסום כשנוח');
+      refreshProperties();
+    } catch (err) {
+      notify(err.message || 'שגיאה בשכפול הנכס', 'error');
     }
   }
 
@@ -318,6 +328,10 @@ export function OwnerDashboardPage() {
                 <motion.button className="dash-deal-edit" whileTap={{ scale: 0.9 }} onClick={(e) => { e.stopPropagation(); setEditingProperty(property); }} title={property.status === 'draft' ? 'השלימו את הפרסום' : 'ערוך נכס'}>
                   <Pencil size={14} />
                   <span className="dash-deal-btn-label">{property.status === 'draft' ? 'השלם פרסום' : 'ערוך'}</span>
+                </motion.button>
+                <motion.button className="dash-deal-edit" whileTap={{ scale: 0.9 }} onClick={(e) => { e.stopPropagation(); handleDuplicateProperty(property.id); }} title="שכפל נכס">
+                  <Copy size={14} />
+                  <span className="dash-deal-btn-label">שכפל</span>
                 </motion.button>
                 <motion.button className="dash-deal-edit" whileTap={{ scale: 0.9 }} style={{ color: '#dc2626' }} onClick={(e) => { e.stopPropagation(); setDeletingProperty(property); }} title="מחק נכס">
                   <Trash2 size={14} />

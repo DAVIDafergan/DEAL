@@ -13,11 +13,13 @@ import { PropertyErrorState } from './components/PropertyErrorState.jsx';
 import { PropertyGrid } from './components/PropertyGrid.jsx';
 import { SiteFooter } from './components/SiteFooter.jsx';
 import { RecentSearches } from './components/RecentSearches.jsx';
+import { RecentlyViewedStrip } from './components/RecentlyViewedStrip.jsx';
 import { usePropertyFilters } from './hooks/usePropertyFilters.js';
 import { saveRecentSearch, listRecentSearches } from './utils/recentSearches.js';
+import { listRecentlyViewed } from './utils/recentlyViewed.js';
 import { motion } from 'framer-motion';
-import { Link } from './components/LocalizedLink.jsx';
-import { UserPlus } from 'lucide-react';
+import { Link, useLocalizedNavigate } from './components/LocalizedLink.jsx';
+import { UserPlus, Shuffle } from 'lucide-react';
 import { useLanguage } from './context/LanguageContext.jsx';
 
 export function App() {
@@ -32,6 +34,19 @@ export function App() {
   const [resultsLimit, setResultsLimit] = useState(RESULTS_PAGE_SIZE);
   const [recentSearches, setRecentSearches] = useState(() => listRecentSearches());
   const [retryTick, setRetryTick] = useState(0);
+  const [recentlyViewedIds] = useState(() => listRecentlyViewed());
+  const navigate = useLocalizedNavigate();
+
+  // 10.8: "surprise me" — a random pick from whatever's currently showing (respects active
+  // filters if any are set, otherwise a random published property).
+  async function handleSurpriseMe() {
+    try {
+      const { properties: pool } = await propertyApi.search({ ...apiFilters, limit: 40 });
+      if (!pool || pool.length === 0) return;
+      const pick = pool[Math.floor(Math.random() * pool.length)];
+      navigate(`/property/${pick.id}`);
+    } catch { /* no-op — this is a fun extra, not a critical path */ }
+  }
 
   // Any real filter change resets pagination back to page 1 — only "load more" grows the limit.
   useEffect(() => {
@@ -112,8 +127,13 @@ export function App() {
               <HeroSearch filters={filters} setFilter={setFilter} onSearch={scrollToResults} />
             </motion.div>
             <RecentSearches searches={recentSearches} onPick={handlePickRecentSearch} />
+            <button type="button" className="surprise-me-btn" onClick={handleSurpriseMe}>
+              <Shuffle size={14} /> {t.surpriseMeButton}
+            </button>
           </div>
         </section>
+
+        <RecentlyViewedStrip propertyIds={recentlyViewedIds} />
 
         {/* ── 2. Regions ── */}
         <section className="region-picker-section container">

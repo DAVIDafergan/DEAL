@@ -9,13 +9,13 @@ import {
   listDeletedPropertiesByOwner, softDeleteProperty, restoreProperty,
   createClaimCode, verifyClaimCode,
   createUnit, updateUnit, deactivateUnit, duplicateUnit, reorderUnits,
-  getPublishChecklist, publishProperty,
+  getPublishChecklist, publishProperty, duplicateProperty, reportIncorrectInfo,
 } from '../store/propertyStore.js';
 import { findAgentBySlug, findAgentById } from '../store/agentStore.js';
 import { requireAgentAuth } from '../middleware/agentAuth.js';
 import { sendVerificationCode, notifyOwnerOfBookingRequest } from '../services/complianceMessaging.js';
 import { notifyCustomerBookingReceived, notifyOwnerNewBooking, notifyCustomerStatusChanged, estimateBookingPrice } from '../services/bookingNotifications.js';
-import { authRateLimiter, eventTrackingRateLimiter } from '../middleware/rateLimiter.js';
+import { authRateLimiter, eventTrackingRateLimiter, contactRateLimiter } from '../middleware/rateLimiter.js';
 import { geocodePropertyInBackground } from '../services/geocode.js';
 import { ttlCached } from '../utils/ttlCache.js';
 import { recordPropertyEvent, getPropertyStats, getOwnerEventSummary } from '../store/propertyEventStore.js';
@@ -36,13 +36,14 @@ const router = Router();
 const REGIONS = ['north', 'galilee', 'golan', 'carmel', 'center', 'jerusalem', 'south', 'dead_sea', 'eilat'];
 const PROPERTY_TYPES = ['zimmer', 'villa', 'cottage', 'suite'];
 const KOSHER_LEVELS = ['kosher', 'shomer_shabbat', 'kosher_kitchen', 'not_applicable'];
+const VIEW_TYPES = ['sea', 'lake', 'mountains', 'desert', 'green', 'open'];
 
 // ── Search ──────────────────────────────────────────────────────────────────────
 
 /** GET /api/properties?region=&property_type=&min_guests=&max_price=&kosher_level=&amenities=a,b — public search */
 router.get('/', async (req, res) => {
   try {
-    const { region, city, property_type, min_guests, bedrooms, min_price, max_price, kosher_level, amenities, check_in, check_out, limit, sort } = req.query;
+    const { region, city, property_type, min_guests, bedrooms, min_price, max_price, kosher_level, view_type, amenities, check_in, check_out, limit, sort } = req.query;
     const filters = {
       region: REGIONS.includes(region) ? region : undefined,
       city: city || undefined,
@@ -52,6 +53,7 @@ router.get('/', async (req, res) => {
       minPrice: min_price,
       maxPrice: max_price,
       kosherLevel: KOSHER_LEVELS.includes(kosher_level) ? kosher_level : undefined,
+      viewType: VIEW_TYPES.includes(view_type) ? view_type : undefined,
       amenities: amenities ? String(amenities).split(',') : [],
       checkIn: check_in && check_out ? check_in : undefined,
       checkOut: check_in && check_out ? check_out : undefined,
@@ -276,6 +278,29 @@ router.post('/:id/restore', requireAgentAuth, async (req, res) => {
   } catch (err) {
     console.error('[properties] restore error:', err.message);
     res.status(500).json({ error: 'Failed to restore property' });
+  }
+});
+
+/** POST /api/properties/:id/duplicate — 10.8: copy the property + all its units as a new draft. */
+router.post('/:id/duplicate', requireAgentAuth, async (req, res) => {
+  try {
+    const created = await duplicateProperty(req.params.id, req.agentId);
+    if (!created) return res.status(404).json({ error: 'Not found' });
+    res.json({ property: created });
+  } catch (err) {
+    console.error('[properties] duplicate error:', err.message);
+    res.status(500).json({ error: 'Failed to duplicate property' });
+  }
+});
+
+/** POST /api/properties/:id/report-info — 10.8: public "this listing's data looks wrong". */
+router.post('/:id/report-info', contactRateLimiter, async (req, res) => {
+  try {
+    const { reason, details } = req.body || {};
+    await reportIncorrectInfo(req.params.id, reason, details);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Internal error' });
   }
 });
 
