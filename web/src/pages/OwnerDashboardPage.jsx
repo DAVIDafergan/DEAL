@@ -3,11 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Link } from '../components/LocalizedLink.jsx';
 import {
-  PlusCircle, Settings, LogOut, CheckCircle, AlertTriangle, MessageCircle,
+  PlusCircle, Settings, CheckCircle, MessageCircle,
   LayoutDashboard, Trash2, Home, Pencil, MapPin, CalendarDays, Eye, BarChart3, Copy, LayoutGrid, Zap,
 } from 'lucide-react';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
-import { agentApi, propertyApi } from '../api/client.js';
+import { propertyApi } from '../api/client.js';
 import { PropertyWizard } from '../components/property/PropertyWizard.jsx';
 import { AvailabilityCalendar } from '../components/property/AvailabilityCalendar.jsx';
 import { DeletePropertyModal } from '../components/property/DeletePropertyModal.jsx';
@@ -47,7 +47,7 @@ function KpiCard({ icon: Icon, label, value, iconColor, iconBg, index }) {
 
 /** OwnerDashboardPage — same dash-* shell as AgentDashboardPage; properties instead of flight deals. */
 export function OwnerDashboardPage() {
-  const { token, agent, loading, logout } = useAgentAuth();
+  const { token, agent, loading } = useAgentAuth();
   const navigate = useNavigate();
   // 11.2: tabs live in the URL (?tab=...) instead of component state so the consolidated
   // dashboard — KPIs/properties/stats/settings, previously three separate routes — survives a
@@ -62,8 +62,6 @@ export function OwnerDashboardPage() {
   const [showWizard, setShowWizard] = useState(false);
   const [editingProperty, setEditingProperty] = useState(null);
   const [availabilityProperty, setAvailabilityProperty] = useState(null);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const [deletingProperty, setDeletingProperty] = useState(null);
   const [propertyDeleting, setPropertyDeleting] = useState(false);
   const [showTrash, setShowTrash] = useState(false);
@@ -153,27 +151,14 @@ export function OwnerDashboardPage() {
     }
   }
 
-  async function handleDeleteAccount() {
-    setDeleting(true);
-    try {
-      await agentApi.deleteMe(token);
-      logout();
-      navigate('/', { replace: true });
-    } catch (err) {
-      notify(err.message || 'שגיאה במחיקת החשבון', 'error');
-      setDeleting(false);
-      setConfirmDelete(false);
-    }
-  }
-
   const activeCount = properties.filter((p) => p.status === 'claimed' || p.status === 'active').length;
   const draftCount = properties.filter((p) => p.status === 'draft').length;
-  const greeting = getGreeting(agent?.business_name || agent?.contact_name || '');
+  const greeting = getGreeting(agent?.contact_name || agent?.business_name || '');
 
   if (loading) return <RouteLoading />;
 
   return (
-    <div className="dash-page" dir="rtl">
+    <div className="dash-page dash-page--owner" dir="rtl">
       <AnimatePresence>
         {showWizard && (
           <motion.div className="dash-wizard-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -329,30 +314,7 @@ export function OwnerDashboardPage() {
             <span className="dash-quick-pill__dot"><Trash2 size={15} /></span>
             פח מיחזור
           </motion.button>
-          <motion.button className="dash-quick-pill dash-quick-pill--ghost" whileTap={{ scale: 0.97 }} onClick={() => { logout(); navigate('/'); }}>
-            <span className="dash-quick-pill__dot"><LogOut size={15} /></span>
-            התנתקות
-          </motion.button>
-          <motion.button className="dash-quick-pill dash-quick-pill--danger" whileTap={{ scale: 0.97 }} onClick={() => setConfirmDelete(true)}>
-            <span className="dash-quick-pill__dot"><Trash2 size={15} /></span>
-            מחיקת חשבון
-          </motion.button>
         </div>
-
-        <AnimatePresence>
-          {confirmDelete && (
-            <motion.div className="dash-delete-confirm" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
-              <AlertTriangle size={18} className="dash-delete-confirm__icon" />
-              <span className="dash-delete-confirm__msg">כל הנכסים והנתונים יימחקו לצמיתות. אי אפשר לשחזר.</span>
-              <div className="dash-delete-confirm__btns">
-                <button className="dash-delete-confirm__btn dash-delete-confirm__btn--cancel" onClick={() => setConfirmDelete(false)} disabled={deleting}>ביטול</button>
-                <button className="dash-delete-confirm__btn dash-delete-confirm__btn--confirm" onClick={handleDeleteAccount} disabled={deleting}>
-                  {deleting ? 'מוחק…' : 'מחק לצמיתות'}
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
 
       <div id="onb-deals-list" className="dash-deals-panel container">
@@ -381,37 +343,42 @@ export function OwnerDashboardPage() {
               transition={{ delay: i * 0.05 }}
               layout
             >
-              {property.owner_images?.[0] && (
-                <img src={optimizedImageUrl(property.owner_images[0], { width: 320 })} alt="" className="dash-deal-card__img" loading="lazy" />
-              )}
-              <div className="dash-deal-card__body">
-                <div className="dash-deal-card__dest">{property.name}</div>
-                <div className="dash-deal-card__meta">
-                  <span><MapPin size={12} style={{ verticalAlign: 'middle' }} /> {regionLabel(property.region)}{property.city ? ` · ${property.city}` : ''}</span>
-                  <span>{propertyTypeLabel(property.property_type)}</span>
-                </div>
-                <div className="dash-deal-card__price">
-                  {property.price_from ? `החל מ-${Math.round(property.price_from)} ${property.currency} / לילה` : 'ללא מחיר בסיס'}
-                </div>
-                {property.status !== 'draft' && (
-                  <div className="dash-deal-card__stats">
-                    <span title="צפיות ב-30 הימים האחרונים"><Eye size={12} /> {eventSummary[property.id]?.views || 0}</span>
-                    <span title="קליקים לוואטסאפ ב-30 הימים האחרונים"><MessageCircle size={12} /> {eventSummary[property.id]?.whatsappClicks || 0}</span>
-                    <button
-                      type="button"
-                      className="dash-deal-card__stats-link"
-                      onClick={(e) => { e.stopPropagation(); setSearchParams({ tab: 'stats', property: String(property.id) }); }}
-                    >
-                      <BarChart3 size={12} /> סטטיסטיקה מלאה
-                    </button>
-                  </div>
+              <div className="dash-deal-card__top">
+                {property.owner_images?.[0] && (
+                  <img src={optimizedImageUrl(property.owner_images[0], { width: 320 })} alt="" className="dash-deal-card__img" loading="lazy" />
                 )}
+                <div className="dash-deal-card__body">
+                  <div className="dash-deal-card__head-row">
+                    <div className="dash-deal-card__dest">{property.name}</div>
+                    <span className={`dash-deal-status dash-deal-status--${property.status === 'draft' ? 'draft' : property.status === 'active' ? 'approved' : 'pending'}`}>
+                      <CheckCircle size={13} /> {property.status === 'draft' ? 'טיוטה' : property.status === 'active' ? 'פעיל' : property.status === 'claimed' ? 'מאומת' : property.status}
+                    </span>
+                  </div>
+                  <div className="dash-deal-card__meta">
+                    <span><MapPin size={12} style={{ verticalAlign: 'middle' }} /> {regionLabel(property.region)}{property.city ? ` · ${property.city}` : ''}</span>
+                    <span>{propertyTypeLabel(property.property_type)}</span>
+                    {property.whatsapp && <span className="dash-deal-wa"><MessageCircle size={12} /> WhatsApp</span>}
+                  </div>
+                  <div className="dash-deal-card__price">
+                    {property.price_from ? `החל מ-${Math.round(property.price_from)} ${property.currency} / לילה` : 'ללא מחיר בסיס'}
+                  </div>
+                  {property.status !== 'draft' && (
+                    <div className="dash-deal-card__stats">
+                      <span title="צפיות ב-30 הימים האחרונים"><Eye size={12} /> {eventSummary[property.id]?.views || 0}</span>
+                      <span title="קליקים לוואטסאפ ב-30 הימים האחרונים"><MessageCircle size={12} /> {eventSummary[property.id]?.whatsappClicks || 0}</span>
+                      <button
+                        type="button"
+                        className="dash-deal-card__stats-link"
+                        onClick={(e) => { e.stopPropagation(); setSearchParams({ tab: 'stats', property: String(property.id) }); }}
+                      >
+                        <BarChart3 size={12} /> סטטיסטיקה מלאה
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="dash-deal-card__right">
-                <span className={`dash-deal-status dash-deal-status--${property.status === 'draft' ? 'draft' : property.status === 'active' ? 'approved' : 'pending'}`}>
-                  <CheckCircle size={13} /> {property.status === 'draft' ? 'טיוטה' : property.status === 'active' ? 'פעיל' : property.status === 'claimed' ? 'מאומת' : property.status}
-                </span>
-                {property.whatsapp && <span className="dash-deal-wa"><MessageCircle size={12} /></span>}
+
+              <div className="dash-deal-card__toolbar">
                 {property.status !== 'draft' && (
                   <motion.button className="dash-deal-edit" whileTap={{ scale: 0.9 }} onClick={(e) => { e.stopPropagation(); setAvailabilityProperty(property); }} title="לוח זמינות">
                     <CalendarDays size={14} />
@@ -430,17 +397,17 @@ export function OwnerDashboardPage() {
                     <span className="dash-deal-btn-label">{togglingAvailabilityId === property.id ? '…' : 'החלף היום'}</span>
                   </motion.button>
                 )}
-                <motion.button className="dash-deal-edit" whileTap={{ scale: 0.9 }} onClick={(e) => { e.stopPropagation(); setEditingProperty(property); }} title={property.status === 'draft' ? 'השלימו את הפרסום' : 'ערוך נכס'}>
-                  <Pencil size={14} />
-                  <span className="dash-deal-btn-label">{property.status === 'draft' ? 'השלם פרסום' : 'ערוך'}</span>
-                </motion.button>
                 <motion.button className="dash-deal-edit" whileTap={{ scale: 0.9 }} onClick={(e) => { e.stopPropagation(); handleDuplicateProperty(property.id); }} title="שכפל נכס">
                   <Copy size={14} />
                   <span className="dash-deal-btn-label">שכפל</span>
                 </motion.button>
-                <motion.button className="dash-deal-edit" whileTap={{ scale: 0.9 }} style={{ color: '#dc2626' }} onClick={(e) => { e.stopPropagation(); setDeletingProperty(property); }} title="מחק נכס">
+                <motion.button className="dash-deal-edit dash-deal-edit--danger" whileTap={{ scale: 0.9 }} onClick={(e) => { e.stopPropagation(); setDeletingProperty(property); }} title="מחק נכס">
                   <Trash2 size={14} />
                   <span className="dash-deal-btn-label">מחק</span>
+                </motion.button>
+                <motion.button className="dash-deal-edit dash-deal-edit--primary" whileTap={{ scale: 0.96 }} onClick={(e) => { e.stopPropagation(); setEditingProperty(property); }} title={property.status === 'draft' ? 'השלימו את הפרסום' : 'ערוך נכס'}>
+                  <Pencil size={14} />
+                  <span className="dash-deal-btn-label">{property.status === 'draft' ? 'השלם פרסום' : 'ערוך'}</span>
                 </motion.button>
               </div>
             </motion.div>

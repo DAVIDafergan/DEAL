@@ -1,11 +1,11 @@
 import { X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { regionLabel, propertyTypeLabel, kosherLabel, amenityLabel } from '../data/propertyOptions.js';
+import { regionLabel, propertyTypeLabel, kosherLabel, amenityLabel, bedTypeLabel } from '../data/propertyOptions.js';
 import { useLanguage } from '../context/LanguageContext.jsx';
 
 /** Builds the removable chip list for the currently active filters — each chip clears exactly
  * the filter it represents (7.2: "כל בחירה מצטברת מוצגת כצ'יפ הניתן להסרה בלחיצה"). */
-export function buildActiveChips(filters, { setFilter, toggleAmenity, t, lang = 'he' }) {
+export function buildActiveChips(filters, { setFilter, toggleAmenity, toggleBedType, t, lang = 'he' }) {
   const chips = [];
   if (filters.region) chips.push({ key: 'region', label: regionLabel(filters.region, lang), onRemove: () => setFilter({ region: '', city: '' }) });
   if (filters.city) chips.push({ key: 'city', label: filters.city, onRemove: () => setFilter({ city: '' }) });
@@ -18,12 +18,15 @@ export function buildActiveChips(filters, { setFilter, toggleAmenity, t, lang = 
   for (const a of filters.amenities) {
     chips.push({ key: `am-${a}`, label: amenityLabel(a, lang), onRemove: () => toggleAmenity(a) });
   }
+  for (const b of filters.bedTypes || []) {
+    chips.push({ key: `bed-${b}`, label: bedTypeLabel(b, lang), onRemove: () => toggleBedType(b) });
+  }
   return chips;
 }
 
-export function PropertyActiveChips({ filters, setFilter, toggleAmenity, onClearAll }) {
+export function PropertyActiveChips({ filters, setFilter, toggleAmenity, toggleBedType, onClearAll }) {
   const { t, lang } = useLanguage();
-  const chips = buildActiveChips(filters, { setFilter, toggleAmenity, t, lang });
+  const chips = buildActiveChips(filters, { setFilter, toggleAmenity, toggleBedType, t, lang });
   if (chips.length === 0) return null;
 
   return (

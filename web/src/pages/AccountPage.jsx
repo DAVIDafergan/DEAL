@@ -46,7 +46,7 @@ export function AccountPage() {
     return null;
   }
 
-  const displayName = isAgent ? agent.business_name : traveler?.name || '';
+  const displayName = isAgent ? (agent.contact_name || agent.business_name) : traveler?.name || '';
   const displayEmail = isAgent ? agent.email : traveler?.email || '';
   const greeting = getGreeting(displayName);
 

@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, MapPin, Calendar, Users, Banknote, Sparkles } from 'lucide-react';
-import { REGIONS, PROPERTY_TYPES, KOSHER_LEVELS, AMENITIES, VIEW_TYPES, regionLabel, propertyTypeLabel, kosherLabel, amenityLabel, viewTypeLabel } from '../data/propertyOptions.js';
+import {
+  REGIONS, PROPERTY_TYPES, KOSHER_LEVELS, AMENITIES, AMENITY_CATEGORIES, VIEW_TYPES, BED_TYPES,
+  regionLabel, propertyTypeLabel, kosherLabel, amenityLabel, viewTypeLabel, amenityCategoryLabel, bedTypeLabel,
+} from '../data/propertyOptions.js';
 import { propertyApi } from '../api/client.js';
 import { useLanguage } from '../context/LanguageContext.jsx';
 
@@ -10,6 +13,65 @@ function ToggleChip({ label, isActive, onClick }) {
     <button type="button" className={`filter-pill ${isActive ? 'is-active' : ''}`} onClick={onClick}>
       {label}
     </button>
+  );
+}
+
+/** AmenityCategoryFilter — collapsible per-category chip group (11.6: the amenities catalog grew
+ * to ~65 items, too long to show as one flat chip row). A category with an already-active
+ * selection starts open; the rest start collapsed. */
+function AmenityCategoryFilter({ facets, filters, toggleAmenity, lang }) {
+  const [openKeys, setOpenKeys] = useState(() => {
+    const initial = new Set();
+    for (const cat of AMENITY_CATEGORIES) {
+      const hasActive = AMENITIES.some((a) => a.category === cat.key && filters.amenities.includes(a.value));
+      if (hasActive) initial.add(cat.key);
+    }
+    return initial;
+  });
+
+  function toggleCategory(key) {
+    setOpenKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  }
+
+  return (
+    <div className="pfp__amenity-cats">
+      {AMENITY_CATEGORIES.map((cat) => {
+        const items = AMENITIES.filter((a) => a.category === cat.key);
+        const activeCount = items.filter((a) => filters.amenities.includes(a.value)).length;
+        const totalCount = items.reduce((sum, a) => sum + (facets.amenities[a.value] ?? 0), 0);
+        const open = openKeys.has(cat.key);
+        return (
+          <div key={cat.key} className="pfp__amenity-cat">
+            <button type="button" className="pfp__amenity-cat-head" onClick={() => toggleCategory(cat.key)} aria-expanded={open}>
+              <span className="pfp__amenity-cat-title">
+                {amenityCategoryLabel(cat.key, lang)}
+                {activeCount > 0 && <span className="pfp__amenity-cat-badge">{activeCount}</span>}
+              </span>
+              <span className="pfp__amenity-cat-right">
+                {!open && <span className="pfp__section-summary">{totalCount}</span>}
+                <ChevronDown size={14} className={`pfp__chevron${open ? ' pfp__chevron--open' : ''}`} />
+              </span>
+            </button>
+            {open && (
+              <div className="pfp__chip-row pfp__amenity-cat-body">
+                {items.map((a) => (
+                  <ToggleChip
+                    key={a.value}
+                    label={`${amenityLabel(a.value, lang)} (${facets.amenities[a.value] ?? 0})`}
+                    isActive={filters.amenities.includes(a.value)}
+                    onClick={() => toggleAmenity(a.value)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -50,7 +112,7 @@ function Section({ id, title, icon, summary, isOpen, onToggle, children }) {
  */
 const EMPTY_FACETS = { amenities: {}, kosherLevel: {}, propertyType: {}, region: {} };
 
-export function PropertyFilterPanel({ filters, setFilter, toggleAmenity, resultCount, isLoading }) {
+export function PropertyFilterPanel({ filters, setFilter, toggleAmenity, toggleBedType, resultCount, isLoading }) {
   const { t, lang } = useLanguage();
   const [openSection, setOpenSection] = useState('where');
   const [cities, setCities] = useState([]);
@@ -108,7 +170,7 @@ export function PropertyFilterPanel({ filters, setFilter, toggleAmenity, resultC
     ? `${filters.minPrice || '0'}–${filters.maxPrice || '∞'} ₪`
     : t.filterAllBudgets;
 
-  const whatMattersCount = filters.amenities.length + (filters.kosherLevel ? 1 : 0) + (filters.propertyType ? 1 : 0);
+  const whatMattersCount = filters.amenities.length + filters.bedTypes.length + (filters.kosherLevel ? 1 : 0) + (filters.propertyType ? 1 : 0);
   const whatMattersSummary = whatMattersCount > 0 ? t.filterMattersSelected(whatMattersCount) : t.filterMattersAll;
 
   return (
@@ -188,13 +250,15 @@ export function PropertyFilterPanel({ filters, setFilter, toggleAmenity, resultC
           ))}
         </div>
         <p className="pfp__sub-label">{t.filterAmenities}</p>
+        <AmenityCategoryFilter facets={facets} filters={filters} toggleAmenity={toggleAmenity} lang={lang} />
+        <p className="pfp__sub-label">{t.filterBedTypes}</p>
         <div className="pfp__chip-row">
-          {AMENITIES.map((a) => (
+          {BED_TYPES.filter((b) => b.value !== 'crib').map((b) => (
             <ToggleChip
-              key={a.value}
-              label={`${amenityLabel(a.value, lang)} (${facets.amenities[a.value] ?? 0})`}
-              isActive={filters.amenities.includes(a.value)}
-              onClick={() => toggleAmenity(a.value)}
+              key={b.value}
+              label={bedTypeLabel(b.value, lang)}
+              isActive={filters.bedTypes.includes(b.value)}
+              onClick={() => toggleBedType(b.value)}
             />
           ))}
         </div>

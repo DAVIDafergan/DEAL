@@ -2,8 +2,56 @@ import { useRef, useState } from 'react';
 import { ChevronDown, Copy, Trash2, ArrowUp, ArrowDown, Plus } from 'lucide-react';
 import { useAgentAuth } from '../../context/AgentAuthContext.jsx';
 import { propertyApi } from '../../api/client.js';
-import { UNIT_AMENITIES } from '../../data/propertyOptions.js';
+import { UNIT_AMENITIES, BED_TYPES, bedTypeLabel, suggestCapacity, bedConfigSummary } from '../../data/propertyOptions.js';
 import { PropertyPhotoUploader } from './PropertyPhotoUploader.jsx';
+
+/** BedConfigEditor — 11.6: replaces the old plain "beds" count with a real breakdown (bed type +
+ * quantity, add/remove rows). Feeds suggestCapacity() below for the auto-calculated guest
+ * capacity hint next to max_guests. */
+function BedConfigEditor({ bedConfig, onChange }) {
+  const config = Array.isArray(bedConfig) ? bedConfig : [];
+  const usedTypes = new Set(config.map((r) => r.type));
+  const availableTypes = BED_TYPES.filter((b) => !usedTypes.has(b.value));
+  const [addType, setAddType] = useState(availableTypes[0]?.value || '');
+
+  function updateQty(type, qty) {
+    onChange(config.map((r) => (r.type === type ? { ...r, qty: Math.max(0, Number(qty) || 0) } : r)));
+  }
+  function removeType(type) {
+    onChange(config.filter((r) => r.type !== type));
+  }
+  function addRow() {
+    const nextAvailable = BED_TYPES.filter((b) => !usedTypes.has(b.value) && b.value !== addType);
+    if (!addType) return;
+    onChange([...config, { type: addType, qty: 1 }]);
+    setAddType(nextAvailable[0]?.value || '');
+  }
+
+  return (
+    <div className="bed-config">
+      {config.map((row) => (
+        <div key={row.type} className="bed-config__row">
+          <span className="bed-config__label">{bedTypeLabel(row.type)}</span>
+          <input
+            type="number" min="0" className="wizard-input bed-config__qty"
+            value={row.qty} onChange={(e) => updateQty(row.type, e.target.value)}
+          />
+          <button type="button" className="wus__unit-icon-btn wus__unit-icon-btn--danger" onClick={() => removeType(row.type)} aria-label="הסר סוג מיטה">
+            <Trash2 size={14} />
+          </button>
+        </div>
+      ))}
+      {availableTypes.length > 0 && (
+        <div className="bed-config__add-row">
+          <select className="wizard-input" value={addType} onChange={(e) => setAddType(e.target.value)}>
+            {availableTypes.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
+          </select>
+          <button type="button" className="wus__add-btn" onClick={addRow}><Plus size={14} /> הוסף סוג מיטה</button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function UnitEditor({ unit, onSave, propertyId }) {
   function set(key) {
@@ -13,6 +61,16 @@ function UnitEditor({ unit, onSave, propertyId }) {
     const current = unit.unit_amenities || [];
     const next = current.includes(value) ? current.filter((a) => a !== value) : [...current, value];
     onSave({ ...unit, unit_amenities: next });
+  }
+
+  const suggestedCapacity = suggestCapacity(unit.bed_config);
+
+  function setBedConfig(nextConfig) {
+    // Auto-fills max_guests from the bed breakdown the first time it's set — never overwrites a
+    // value the owner already typed in manually (that's the "manual override" the spec asks for).
+    const patch = { ...unit, bed_config: nextConfig };
+    if (!unit.max_guests) patch.max_guests = suggestCapacity(nextConfig) || '';
+    onSave(patch);
   }
 
   return (
@@ -25,21 +83,24 @@ function UnitEditor({ unit, onSave, propertyId }) {
         <div className="wizard-field">
           <label className="wizard-label">מספר אורחים</label>
           <input className="wizard-input" type="number" min="1" value={unit.max_guests || ''} onChange={set('max_guests')} />
+          {suggestedCapacity > 0 && Number(unit.max_guests) !== suggestedCapacity && (
+            <button type="button" className="bed-config__suggest" onClick={() => onSave({ ...unit, max_guests: suggestedCapacity })}>
+              מומלץ לפי המיטות: {suggestedCapacity} אורחים — החל
+            </button>
+          )}
         </div>
         <div className="wizard-field">
           <label className="wizard-label">חדרי שינה</label>
           <input className="wizard-input" type="number" min="0" value={unit.bedrooms || ''} onChange={set('bedrooms')} />
         </div>
       </div>
-      <div className="wizard-grid-2">
-        <div className="wizard-field">
-          <label className="wizard-label">מיטות</label>
-          <input className="wizard-input" type="number" min="0" value={unit.beds || ''} onChange={set('beds')} />
-        </div>
-        <div className="wizard-field">
-          <label className="wizard-label">חדרי רחצה</label>
-          <input className="wizard-input" type="number" min="0" value={unit.bathrooms || ''} onChange={set('bathrooms')} />
-        </div>
+      <div className="wizard-field">
+        <label className="wizard-label">מיטות</label>
+        <BedConfigEditor bedConfig={unit.bed_config} onChange={setBedConfig} />
+      </div>
+      <div className="wizard-field">
+        <label className="wizard-label">חדרי רחצה</label>
+        <input className="wizard-input" type="number" min="0" value={unit.bathrooms || ''} onChange={set('bathrooms')} />
       </div>
       <div className="wizard-grid-2">
         <div className="wizard-field">
@@ -144,6 +205,7 @@ export function PropertyUnitsStep({ propertyId, units, onUnitsChange }) {
                 <div className="wus__unit-summary">
                   {[
                     unit.max_guests ? `עד ${unit.max_guests} אורחים` : null,
+                    bedConfigSummary(unit.bed_config) || null,
                     unit.base_price_night ? `${unit.base_price_night} ₪ ללילה` : 'ללא מחיר',
                     savingId === unit.id ? 'שומר…' : null,
                   ].filter(Boolean).join(' · ')}

@@ -6,6 +6,11 @@ function nowStr() {
   return new Date().toISOString().slice(0, 19).replace('T', ' ');
 }
 
+// 11.6 — mirrors BED_TYPES in web/src/data/propertyOptions.js; kept as a plain value list here
+// (not imported — that file is frontend-only) purely to validate incoming filter values before
+// they reach a JSON_CONTAINS query.
+export const BED_TYPE_VALUES = ['double', 'king', 'twin', 'single', 'sofa_bed', 'bunk_bed', 'extra_mattress', 'crib'];
+
 export const AMENITY_FIELDS = [
   'has_private_jacuzzi', 'has_private_pool', 'has_heated_pool', 'has_sauna', 'has_view',
   'has_garden', 'has_bbq', 'has_outdoor_jacuzzi', 'has_parking', 'has_air_conditioning',
@@ -20,6 +25,18 @@ export const AMENITY_FIELDS = [
   'has_accessible_parking', 'has_wide_doorways',
   // 10.8 — detailed family filter
   'has_crib', 'has_high_chair', 'has_pool_fence', 'has_kids_toys', 'has_dishwasher', 'has_microwave',
+  // 11.6 — massively expanded amenities catalog (categories: pool, jacuzzi/spa, entertainment,
+  // outdoor, kitchen, general, families) — see AMENITIES in web/src/data/propertyOptions.js for
+  // the category grouping and labels.
+  'has_shared_pool', 'has_indoor_pool', 'has_kids_pool', 'has_secluded_pool',
+  'has_spa', 'has_dry_sauna', 'has_wet_sauna',
+  'has_snooker_table', 'has_ping_pong', 'has_foosball', 'has_game_console', 'has_projector',
+  'has_home_cinema', 'has_library', 'has_board_games',
+  'has_outdoor_seating', 'has_hammocks', 'has_lawn', 'has_balcony', 'has_pergola',
+  'has_fire_pit', 'has_trampoline', 'has_swings',
+  'has_coffee_machine', 'has_toaster_oven', 'has_stovetop', 'has_oven', 'has_large_fridge',
+  'has_heating', 'has_tv', 'has_washing_machine', 'has_dryer', 'has_private_entrance',
+  'has_playground_equipment',
 ];
 
 // status is writable by owners, but only within claimed/active — unclaimed and hidden are
@@ -55,6 +72,7 @@ function parseUnit(row) {
     ...row,
     unit_amenities: parseJsonField(row.unit_amenities),
     images: parseJsonField(row.images),
+    bed_config: parseJsonField(row.bed_config),
   };
 }
 
@@ -96,7 +114,7 @@ const REVIEWS_AGG_JOIN = `
 const UNIT_FIELDS = [
   'name', 'description', 'max_guests', 'bedrooms', 'beds', 'bathrooms',
   'base_price_night', 'weekend_price', 'holiday_price', 'min_nights',
-  'unit_amenities', 'images',
+  'unit_amenities', 'images', 'bed_config',
 ];
 
 export async function listUnitsForProperty(propertyId, { activeOnly = false } = {}) {
@@ -135,9 +153,9 @@ export async function createUnit(propertyId, ownerId, fields) {
   const [result] = await pool.query(
     `INSERT INTO property_units
        (property_id, name, description, max_guests, bedrooms, beds, bathrooms,
-        base_price_night, weekend_price, holiday_price, min_nights, unit_amenities, images,
+        base_price_night, weekend_price, holiday_price, min_nights, unit_amenities, images, bed_config,
         sort_order, is_active, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
     [
       propertyId,
       fields.name || property.name,
@@ -152,6 +170,7 @@ export async function createUnit(propertyId, ownerId, fields) {
       fields.min_nights ?? 1,
       fields.unit_amenities ? JSON.stringify(fields.unit_amenities) : null,
       fields.images ? JSON.stringify(fields.images) : null,
+      fields.bed_config ? JSON.stringify(fields.bed_config) : null,
       nextSort,
       ts, ts,
     ]
@@ -180,7 +199,7 @@ export async function updateUnit(unitId, ownerId, fields) {
   for (const key of UNIT_FIELDS) {
     if (!Object.hasOwn(fields, key)) continue;
     let value = fields[key];
-    if ((key === 'unit_amenities' || key === 'images') && value != null) value = JSON.stringify(value);
+    if ((key === 'unit_amenities' || key === 'images' || key === 'bed_config') && value != null) value = JSON.stringify(value);
     sets.push(`${key} = ?`);
     vals.push(value);
   }
@@ -417,6 +436,17 @@ export async function searchProperties(filters = {}) {
   if (filters.viewType) { where.push('view_type = ?'); vals.push(filters.viewType); }
   for (const amenity of filters.amenities || []) {
     if (AMENITY_FIELDS.includes(amenity)) where.push(`${amenity} = 1`);
+  }
+  // 11.6 — bed-type filter: property must have at least one active unit whose bed_config JSON
+  // array contains an element with this type (same AND-across-selections semantics as amenities
+  // above — picking two bed types narrows to properties offering both, not either).
+  for (const bedType of filters.bedTypes || []) {
+    if (!BED_TYPE_VALUES.includes(bedType)) continue;
+    where.push(`EXISTS (
+      SELECT 1 FROM property_units pu3 WHERE pu3.property_id = properties.id AND pu3.is_active = 1
+      AND JSON_CONTAINS(pu3.bed_config, JSON_OBJECT('type', ?))
+    )`);
+    vals.push(bedType);
   }
   // No availability row for a date = available by default (see availability table); only an
   // explicit is_available=0 row excludes a unit for that date. A property still counts as

@@ -398,6 +398,68 @@ const MIGRATIONS = [
       console.log('[deal-radar-pro] Migrated: properties.property_type enum widened to include \'complex\'');
     }
   },
+  // 11.6 — massively expanded amenities catalog, grouped into categories (see AMENITIES in
+  // web/src/data/propertyOptions.js). All additive — nothing existing is dropped or renamed at
+  // the DB level, so no data loss for owners who already set the original 26 flags.
+  // Pool
+  (connection) => ensureColumn(connection, 'properties', 'has_shared_pool', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_indoor_pool', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_kids_pool', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_secluded_pool', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  // Jacuzzi & spa — has_sauna (generic) is split into dry/wet; see the backfill migration below
+  // that copies true values across instead of discarding them.
+  (connection) => ensureColumn(connection, 'properties', 'has_spa', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_dry_sauna', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_wet_sauna', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  async (connection) => {
+    await connection.query('UPDATE properties SET has_dry_sauna = 1 WHERE has_sauna = 1 AND has_dry_sauna = 0');
+  },
+  // Entertainment
+  (connection) => ensureColumn(connection, 'properties', 'has_snooker_table', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_ping_pong', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_foosball', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_game_console', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_projector', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_home_cinema', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_library', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_board_games', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  // Outdoor
+  (connection) => ensureColumn(connection, 'properties', 'has_outdoor_seating', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_hammocks', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_lawn', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_balcony', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_pergola', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_fire_pit', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_trampoline', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_swings', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  // Kitchen — has_dishwasher/has_microwave already existed (10.8) but were never surfaced in the
+  // frontend catalog; this migration set only adds the genuinely new columns.
+  (connection) => ensureColumn(connection, 'properties', 'has_coffee_machine', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_toaster_oven', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_stovetop', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_oven', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_large_fridge', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  // General
+  (connection) => ensureColumn(connection, 'properties', 'has_heating', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_tv', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_washing_machine', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_dryer', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  (connection) => ensureColumn(connection, 'properties', 'has_private_entrance', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  // Families — has_crib/has_high_chair/has_pool_fence/has_kids_toys already existed (10.8),
+  // same "never surfaced in the frontend" situation as the kitchen fields above.
+  (connection) => ensureColumn(connection, 'properties', 'has_playground_equipment', 'TINYINT(1) NOT NULL DEFAULT 0'),
+  // 11.6 — real bed-type breakdown per unit, replacing the single "beds" count in the UI (the
+  // `beds` column itself stays for backward compatibility/reporting, just no longer edited
+  // directly). bed_config is a JSON array of {type, qty}; the backfill below seeds it from the
+  // existing beds count so units that already had a number don't suddenly show "no beds set" —
+  // 'double' is the most common default configuration for a zimmer/villa unit.
+  (connection) => ensureColumn(connection, 'property_units', 'bed_config', 'JSON NULL'),
+  async (connection) => {
+    await connection.query(
+      `UPDATE property_units SET bed_config = JSON_ARRAY(JSON_OBJECT('type','double','qty',beds))
+       WHERE bed_config IS NULL AND beds IS NOT NULL AND beds > 0`
+    );
+  },
 ];
 
 const SCHEMA_STATEMENTS = [

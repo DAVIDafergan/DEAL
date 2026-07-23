@@ -69,6 +69,24 @@
   color: var(--color-text-muted);
 }
 .pfp__sub-label:first-child { margin-top: 0; }
+
+/* 11.6: collapsible per-category amenity groups (the ~65-item catalog no longer fits as one
+   flat chip row) — nested one level inside the "what matters" section above. */
+.pfp__amenity-cats { display: flex; flex-direction: column; gap: 8px; }
+.pfp__amenity-cat { border: 1px solid var(--color-border-subtle); border-radius: var(--radius-sm); overflow: hidden; }
+.pfp__amenity-cat-head {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 12px; background: transparent; border: none; cursor: pointer;
+  font-size: 0.85rem; font-weight: 600; color: var(--color-text-primary); text-align: inherit;
+}
+.pfp__amenity-cat-title { display: flex; align-items: center; gap: 8px; }
+.pfp__amenity-cat-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
+  background: var(--gradient-accent); color: #fff; font-size: 0.68rem; font-weight: 800;
+}
+.pfp__amenity-cat-right { display: flex; align-items: center; gap: 6px; }
+.pfp__amenity-cat-body { padding: 0 12px 12px; }
 .pfp__field-row {
   display: flex;
   gap: 12px;

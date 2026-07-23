@@ -328,15 +328,23 @@
   white-space: nowrap;
 }
 
-/* ── Amenities bar ── */
+/* ── Amenities bar — 11.6: grouped by category (pool/jacuzzi/entertainment/…) so a ~65-item
+   catalog doesn't read as one undifferentiated wall of icons ── */
+.amenities-bar-groups {
+  display: flex; flex-direction: column; gap: var(--sp-5, 20px);
+  margin: 18px 0; padding: 16px 0;
+  border-top: 1px solid var(--ds-ghost);
+  border-bottom: 1px solid var(--ds-ghost);
+}
+.amenities-bar-group__title {
+  margin: 0 0 var(--sp-2, 8px);
+  font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--ds-ash, var(--color-text-secondary));
+}
 .amenities-bar {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 10px 16px;
-  margin: 18px 0;
-  padding: 16px 0;
-  border-top: 1px solid var(--ds-ghost);
-  border-bottom: 1px solid var(--ds-ghost);
 }
 @media (min-width: 640px) {
   .amenities-bar { grid-template-columns: repeat(3, 1fr); }
@@ -414,8 +422,10 @@
 .ut__unit-media-placeholder { width: 100%; height: 100%; background: var(--ds-slate); }
 .ut__unit-name { font-weight: 700; font-size: 0.92rem; color: var(--ds-bone); }
 .ut__unit-desc { font-size: 0.76rem; color: var(--ds-ash); max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ut__meta { display: flex; gap: 12px; font-size: 0.82rem; color: var(--color-text-secondary); }
+.ut__meta { display: flex; flex-wrap: wrap; gap: 12px; font-size: 0.82rem; color: var(--color-text-secondary); }
 .ut__meta span { display: inline-flex; align-items: center; gap: 4px; }
+.ut__beds { display: flex; flex-wrap: wrap; gap: 4px 10px; width: 100%; }
+.ut__beds-item { display: inline-flex; align-items: center; gap: 4px; font-size: 0.78rem; color: var(--color-text-secondary); }
 .ut__amenities { font-size: 0.8rem; color: var(--color-text-secondary); }
 .ut__price { display: flex; flex-direction: column; }
 .ut__price strong { font-size: 1rem; font-weight: 800; color: var(--ds-gold); font-variant-numeric: tabular-nums; }
@@ -557,6 +567,39 @@
 .star-input__btn { background: none; border: none; padding: 2px; cursor: pointer; color: var(--ds-ghost); }
 .star-input__star--filled { color: var(--ds-gold); }
 
+/* 11.6: reviews summary — big average + a clickable per-star distribution (doubles as a rating
+   filter) instead of just the small inline stars in the section title. */
+.pp-reviews__summary {
+  display: flex; flex-wrap: wrap; gap: 24px;
+  align-items: center;
+  padding: 16px 18px;
+  margin-bottom: 14px;
+  border: 1px solid var(--ds-ghost);
+  border-radius: var(--radius-lg);
+  background: var(--ds-ink);
+}
+.pp-reviews__summary-score { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; }
+.pp-reviews__summary-avg { font-size: 2.1rem; font-weight: 800; color: var(--ds-gold); line-height: 1; font-variant-numeric: tabular-nums; }
+.pp-reviews__summary-count { font-size: 0.76rem; color: var(--ds-ash); white-space: nowrap; }
+.pp-reviews__summary-bars { flex: 1; min-width: 180px; display: flex; flex-direction: column; gap: 4px; }
+.pp-reviews__dist-row {
+  display: flex; align-items: center; gap: 8px;
+  background: none; border: none; padding: 3px 4px; cursor: pointer; border-radius: var(--radius-sm);
+  width: 100%;
+}
+.pp-reviews__dist-row:hover, .pp-reviews__dist-row--active { background: var(--ds-slate); }
+.pp-reviews__dist-label { display: inline-flex; align-items: center; gap: 2px; font-size: 0.76rem; color: var(--ds-ash); width: 28px; flex-shrink: 0; }
+.pp-reviews__dist-label svg { color: var(--ds-gold); }
+.pp-reviews__dist-track { flex: 1; height: 6px; border-radius: 999px; background: var(--ds-slate); overflow: hidden; }
+.pp-reviews__dist-fill { display: block; height: 100%; background: var(--ds-gold); border-radius: 999px; }
+.pp-reviews__dist-count { font-size: 0.74rem; color: var(--ds-ash); width: 20px; text-align: end; flex-shrink: 0; }
+
+.pp-reviews__empty {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 32px 16px; text-align: center; color: var(--ds-ash);
+}
+.pp-reviews__empty p { margin: 0; font-size: 0.9rem; }
+
 .review-form { margin: 12px 0 20px; display: flex; flex-direction: column; gap: var(--sp-4, 16px); }
 .review-form__subratings { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
 @media (max-width: 480px) { .review-form__subratings { grid-template-columns: 1fr; } }
@@ -584,11 +627,26 @@
   font-size: 0.9rem;
 }
 .pp-review-card__head-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.pp-review-card__author { font-weight: 700; font-size: 0.88rem; color: var(--ds-bone); }
+.pp-review-card__author { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.88rem; color: var(--ds-bone); }
+.pp-review-card__stayed-tag {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 0.68rem; font-weight: 700; color: var(--ds-olive);
+  background: rgba(91,107,78,0.1); border-radius: 999px; padding: 2px 8px;
+}
 .pp-review-card__meta { display: flex; align-items: center; gap: 8px; }
 .pp-review-card__date { font-size: 0.74rem; color: var(--ds-ash); }
 .pp-review-card__title { font-weight: 700; margin-bottom: 4px; }
 .pp-review-card__body { font-size: 0.88rem; color: var(--color-text-secondary); line-height: 1.65; margin: 0 0 10px; }
+.pp-review-card__subratings {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 16px;
+  margin-bottom: 12px; padding: 10px 12px;
+  background: var(--ds-slate); border-radius: var(--radius-sm);
+}
+@media (max-width: 420px) { .pp-review-card__subratings { grid-template-columns: 1fr; } }
+.pp-review-card__subrating { display: flex; align-items: center; gap: 8px; }
+.pp-review-card__subrating-label { font-size: 0.72rem; color: var(--ds-ash); width: 90px; flex-shrink: 0; }
+.pp-review-card__subrating-track { flex: 1; height: 5px; border-radius: 999px; background: var(--ds-ghost); overflow: hidden; }
+.pp-review-card__subrating-fill { display: block; height: 100%; background: var(--ds-gold); border-radius: 999px; }
 /* Left accent border ties the reply visually to "a response from the person who owns this",
    distinct from the review it's replying to, instead of just a plain gray box. */
 .pp-review-card__reply {

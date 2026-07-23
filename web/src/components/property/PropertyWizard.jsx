@@ -8,6 +8,7 @@ import { townsForRegion } from '../../data/israeliTowns.js';
 import { PropertyUnitsStep } from './PropertyUnitsStep.jsx';
 import { PropertyPhotoUploader } from './PropertyPhotoUploader.jsx';
 import { PropertyCard } from '../PropertyCard.jsx';
+import { AmenityPicker } from './AmenityPicker.jsx';
 
 const TOTAL_STEPS = 7;
 const STEP_TITLES = ['פרטים בסיסיים', 'מיקום', 'יחידות במתחם', 'מתקנים משותפים וכשרות', 'תמונות המתחם', 'פרטי קשר', 'תצוגה מקדימה ופרסום'];
@@ -346,14 +347,7 @@ export function PropertyWizard({ initialData = null, propertyId: initialProperty
           {step === 4 && (
             <motion.div key="s4" custom={dir} variants={slideVariants} initial="enter" animate="center" exit="exit">
               <WizardStep title="מתקנים משותפים וכשרות">
-                <div className="wizard-checkboxes">
-                  {AMENITIES.map((a) => (
-                    <label key={a.value} className="wizard-checkbox">
-                      <input type="checkbox" checked={Boolean(amenities[a.value])} onChange={() => toggleAmenity(a.value)} />
-                      {a.label}
-                    </label>
-                  ))}
-                </div>
+                <AmenityPicker selected={amenities} onToggle={toggleAmenity} />
                 <div className="wizard-field" style={{ marginTop: 16 }}>
                   <label className="wizard-label">כשרות</label>
                   <select className="wizard-input" value={kosherLevel} onChange={(e) => setKosherLevel(e.target.value)}>

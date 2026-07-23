@@ -355,41 +355,55 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  padding: 20px;
-  display: flex; flex-direction: column; gap: 14px;
-  margin-bottom: 20px;
+  padding: var(--sp-5);
+  display: flex; flex-direction: column; gap: var(--sp-4);
 }
-.settings-card__title { margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; }
+.settings-card__title { margin: 0; display: flex; align-items: center; gap: var(--sp-2); font-size: 0.95rem; font-weight: 700; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; }
 .settings-card__info  { margin: 0; font-size: 0.9rem; color: var(--color-text-secondary); }
 .settings-card__note  { margin: 0; font-size: 0.8rem; color: var(--color-text-muted); }
+.settings-card__form  { display: flex; flex-direction: column; gap: var(--sp-4); }
 .settings-card__billing-btn {
-  display: flex; align-items: center; gap: 6px;
-  padding: 9px 16px; border-radius: var(--radius-sm);
+  display: flex; align-items: center; gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-4); border-radius: var(--radius-sm);
   background: var(--color-surface-2,rgba(255,255,255,0.05));
   border: 1px solid var(--color-border); color: var(--color-text-primary);
   font-size: 0.88rem; font-weight: 600; cursor: pointer;
 }
 .settings-card__billing-btn:disabled { opacity: 0.45; cursor: default; }
 
-.settings-field { display: flex; flex-direction: column; gap: 4px; }
-.settings-field__label { font-size: 0.78rem; font-weight: 700; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.04em; }
+.settings-field { display: flex; flex-direction: column; gap: var(--sp-1); }
+.settings-field__label { display: flex; align-items: center; gap: var(--sp-2); font-size: 0.78rem; font-weight: 700; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.04em; }
 .settings-field__input-wrap { position: relative; }
 .settings-field__input {
-  width: 100%; padding: 9px 36px 9px 12px; border-radius: var(--radius-sm);
+  width: 100%; padding: var(--sp-2) var(--sp-8) var(--sp-2) var(--sp-3); border-radius: var(--radius-sm);
   background: var(--color-bg-gradient); border: 1px solid var(--color-border);
   color: var(--color-text-primary); font-size: 1rem;
 }
-.settings-field__input--textarea { resize: vertical; min-height: 64px; padding-inline-end: 12px; }
+.settings-field__input--textarea { resize: vertical; min-height: 64px; padding-inline-end: var(--sp-3); }
 .settings-field__input--error { border-color: var(--color-error,#ef4444); }
-.settings-field__error { margin: 2px 0 0; font-size: 0.75rem; color: var(--color-error,#ef4444); }
-.settings-field__saved-icon { position: absolute; inset-inline-end: 10px; top: 50%; transform: translateY(-50%); color: var(--color-success,#22c55e); }
-.settings-field__wa-row { display: flex; gap: 6px; }
+.settings-field__error { margin: var(--sp-1) 0 0; font-size: 0.75rem; color: var(--color-error,#ef4444); }
+.settings-field__saved-icon { position: absolute; inset-inline-end: var(--sp-3); top: 50%; transform: translateY(-50%); color: var(--color-success,#22c55e); }
+.settings-field__wa-row { display: flex; gap: var(--sp-2); }
 .settings-field__country-code {
-  padding: 9px 8px; border-radius: var(--radius-sm);
+  padding: var(--sp-2); border-radius: var(--radius-sm);
   background: var(--color-bg-gradient); border: 1px solid var(--color-border);
   color: var(--color-text-primary); font-size: 1rem; flex-shrink: 0;
 }
 .settings-save-indicator { margin-inline-start: auto; font-size: 0.82rem; min-height: 20px; display: flex; align-items: center; }
+.settings-success-hint { display: flex; align-items: center; gap: var(--sp-1); color: var(--color-success,#22c55e); }
+
+/* 11.6: fields that don't need full card width sit two-per-row on desktop so short inputs
+   (contact name, email, phone, response hours) never stretch edge to edge of the 720px form. */
+.settings-fields-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3) var(--sp-4);
+}
+@media (max-width: 560px) {
+  .settings-fields-2col { grid-template-columns: 1fr; }
+}
+
+.settings-account-actions { display: flex; flex-wrap: wrap; gap: var(--sp-3); }
 
 /* ── Admin page ──────────────────────────────────────────────────────────── */
 
@@ -1449,6 +1463,33 @@ select.wizard-input { cursor: pointer; }
 }
 .wizard-checkbox input { accent-color: var(--color-accent-from); width: 16px; height: 16px; }
 
+/* 11.6: categorized + searchable amenities picker (wizard step) */
+.amenity-picker { display: flex; flex-direction: column; gap: var(--sp-3); }
+.amenity-picker__search {
+  display: flex; align-items: center; gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3); border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border); background: var(--color-bg-gradient);
+  color: var(--color-text-secondary);
+}
+.amenity-picker__search-input {
+  flex: 1; border: none; background: transparent; color: var(--color-text-primary); font-size: 0.92rem; outline: none;
+}
+.amenity-picker__cat { border: 1px solid var(--color-border); border-radius: var(--radius-sm); overflow: hidden; }
+.amenity-picker__cat-head {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  padding: var(--sp-3); background: var(--color-surface); border: none; cursor: pointer;
+  font-size: 0.88rem; font-weight: 700; color: var(--color-text-primary);
+}
+.amenity-picker__cat-title { display: flex; align-items: center; gap: var(--sp-2); }
+.amenity-picker__cat-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px;
+  background: var(--gradient-accent); color: #fff; font-size: 0.72rem; font-weight: 800;
+}
+.amenity-picker__chevron { transition: transform 0.18s; color: var(--color-text-muted); }
+.amenity-picker__chevron--open { transform: rotate(180deg); }
+.amenity-picker__cat-body { padding: var(--sp-3); border-top: 1px solid var(--color-border); }
+
 .wizard-big-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .wizard-choice {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -2051,6 +2092,52 @@ select.wizard-input { cursor: pointer; }
 
 .dash-page .dash-deal-clicks { color: #94A3B8; }
 .dash-page .dash-deal-delete { background: rgba(239,68,68,0.08); color: #dc2626; }
+
+/* 11.6: owner dashboard property card — was a single flex row with up to 5 same-weight buttons
+   stacked in a narrow right-hand column, which grew taller than the card's own content and gave
+   every action equal visual weight. Restructured into a content row (image + info + status) on
+   top and a horizontal action toolbar below, with Edit promoted to a filled "primary" button and
+   Delete visually set apart — scoped to .dash-page--owner only since .dash-deal-card is shared
+   with the legacy flight-agent dashboard (AgentDashboardPage.jsx), which keeps its old layout. */
+.dash-page--owner .dash-deal-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+.dash-page--owner .dash-deal-card__top {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+}
+.dash-page--owner .dash-deal-card__img { width: 84px; height: 64px; }
+.dash-page--owner .dash-deal-card__head-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.dash-page--owner .dash-deal-card__meta { align-items: center; }
+.dash-page--owner .dash-deal-wa { display: inline-flex; align-items: center; gap: 3px; }
+.dash-page--owner .dash-deal-card__toolbar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid rgba(0,0,0,0.06);
+  background: rgba(0,0,0,0.015);
+}
+.dash-page--owner .dash-deal-edit--primary {
+  background: var(--gradient-accent, var(--ds-hearth));
+  color: #fff;
+  margin-inline-start: auto;
+}
+.dash-page--owner .dash-deal-edit--primary:hover { filter: brightness(1.06); }
+.dash-page--owner .dash-deal-edit--danger { background: rgba(220,38,38,0.08); color: #dc2626; }
+.dash-page--owner .dash-deal-edit--danger:hover { background: rgba(220,38,38,0.16); }
+@media (max-width: 520px) {
+  .dash-page--owner .dash-deal-card__toolbar .dash-deal-btn-label { display: none; }
+  .dash-page--owner .dash-deal-edit { padding: 7px; }
+  .dash-page--owner .dash-deal-edit--primary { padding: 7px 12px; }
+  .dash-page--owner .dash-deal-edit--primary .dash-deal-btn-label { display: inline; }
+}
 .dash-page .dash-deal-delete:hover { background: rgba(239,68,68,0.16); }
 
 /* ── Toast ────────────────────────────────────────────────────────────────── */

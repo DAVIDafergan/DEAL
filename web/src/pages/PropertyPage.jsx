@@ -10,7 +10,7 @@ import { getCurrencySymbol } from '../utils/currency.js';
 import { regionLabel, propertyTypeLabel, kosherLabel } from '../data/propertyOptions.js';
 import { PropertyGallery } from '../components/property/PropertyGallery.jsx';
 import { PropertyAmenitiesBar } from '../components/property/PropertyAmenitiesBar.jsx';
-import { PropertyUnitsTable } from '../components/property/PropertyUnitsTable.jsx';
+import { PropertyUnitsTable, UnitBedSummary } from '../components/property/PropertyUnitsTable.jsx';
 import { PublicAvailabilityCalendar } from '../components/property/PublicAvailabilityCalendar.jsx';
 import { OwnerCard } from '../components/property/OwnerCard.jsx';
 import { PropertyReviews } from '../components/property/PropertyReviews.jsx';
@@ -276,6 +276,11 @@ export function PropertyPage() {
                     property.bathrooms ? t.bathroomsCount(property.bathrooms) : null,
                   ].filter(Boolean).join(' · ')}
                 </span>
+              </div>
+            )}
+            {!isMultiUnit && selectedUnit?.bed_config?.length > 0 && (
+              <div className="deal-modal__detail-row">
+                <UnitBedSummary bedConfig={selectedUnit.bed_config} lang={lang} />
               </div>
             )}
             {property.kosher_level !== 'not_applicable' && (

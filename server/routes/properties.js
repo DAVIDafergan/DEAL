@@ -47,7 +47,7 @@ const VIEW_TYPES = ['sea', 'lake', 'mountains', 'desert', 'green', 'open'];
 /** GET /api/properties?region=&property_type=&min_guests=&max_price=&kosher_level=&amenities=a,b — public search */
 router.get('/', async (req, res) => {
   try {
-    const { region, city, property_type, min_guests, bedrooms, min_price, max_price, kosher_level, view_type, amenities, check_in, check_out, limit, sort } = req.query;
+    const { region, city, property_type, min_guests, bedrooms, min_price, max_price, kosher_level, view_type, amenities, bed_types, check_in, check_out, limit, sort } = req.query;
     const filters = {
       region: REGIONS.includes(region) ? region : undefined,
       city: city || undefined,
@@ -59,6 +59,7 @@ router.get('/', async (req, res) => {
       kosherLevel: KOSHER_LEVELS.includes(kosher_level) ? kosher_level : undefined,
       viewType: VIEW_TYPES.includes(view_type) ? view_type : undefined,
       amenities: amenities ? String(amenities).split(',') : [],
+      bedTypes: bed_types ? String(bed_types).split(',') : [],
       checkIn: check_in && check_out ? check_in : undefined,
       checkOut: check_in && check_out ? check_out : undefined,
       sort: ['price_asc', 'price_desc', 'new', 'rating_desc'].includes(sort) ? sort : undefined,

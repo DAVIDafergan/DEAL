@@ -118,7 +118,7 @@ export function Header({ reels = false, activeTab = 'home' }) {
               token && agent ? (
                 <Link to="/owner/dashboard" className="header-auth-btn header-auth-btn--ghost">
                   <User size={15} />
-                  <span>{agent.business_name}</span>
+                  <span>{agent.contact_name || agent.business_name}</span>
                 </Link>
               ) : traveler ? (
                 <Link to="/account" className="header-auth-btn header-auth-btn--ghost">

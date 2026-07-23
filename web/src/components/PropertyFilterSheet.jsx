@@ -8,7 +8,7 @@ import { useLanguage } from '../context/LanguageContext.jsx';
  * PropertyFilterSheet — mobile-only entry point (7.2: "כפתור סינון יחיד שפותח מגירה בשלבים").
  * Desktop renders PropertyFilterPanel directly as an inline side panel instead of this.
  */
-export function PropertyFilterSheet({ filters, setFilter, toggleAmenity, activeCount, resultCount, isLoading }) {
+export function PropertyFilterSheet({ filters, setFilter, toggleAmenity, toggleBedType, activeCount, resultCount, isLoading }) {
   const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
 
@@ -53,7 +53,7 @@ export function PropertyFilterSheet({ filters, setFilter, toggleAmenity, activeC
                 </button>
               </div>
               <div className="pfs__sheet-body">
-                <PropertyFilterPanel filters={filters} setFilter={setFilter} toggleAmenity={toggleAmenity} resultCount={resultCount} isLoading={isLoading} />
+                <PropertyFilterPanel filters={filters} setFilter={setFilter} toggleAmenity={toggleAmenity} toggleBedType={toggleBedType} resultCount={resultCount} isLoading={isLoading} />
               </div>
               <div className="pfs__sheet-footer">
                 <button type="button" className="pfs__sheet-apply" onClick={() => setIsOpen(false)}>

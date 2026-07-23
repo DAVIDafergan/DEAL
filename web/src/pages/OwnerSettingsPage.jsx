@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle, KeyRound, Globe } from 'lucide-react';
+import { CheckCircle, KeyRound, Globe, Briefcase, Phone, Share2, LogOut, Trash2, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { agentApi } from '../api/client.js';
@@ -77,17 +77,71 @@ function PasswordCard({ token }) {
 
   return (
     <section className="settings-card">
-      <h2 className="settings-card__title"><KeyRound size={16} style={{ verticalAlign: 'middle', marginInlineEnd: 6 }} /> שינוי סיסמה</h2>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <h2 className="settings-card__title"><KeyRound size={16} /> סיסמה</h2>
+      <form onSubmit={handleSubmit} className="settings-card__form">
         <SettingsField label="סיסמה נוכחית" name="current-password" type="password" value={current} onChange={(e) => setCurrent(e.target.value)} />
-        <SettingsField label="סיסמה חדשה" name="new-password" type="password" value={next} onChange={(e) => setNext(e.target.value)} />
-        <SettingsField label="אימות סיסמה חדשה" name="confirm-password" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+        <div className="settings-fields-2col">
+          <SettingsField label="סיסמה חדשה" name="new-password" type="password" value={next} onChange={(e) => setNext(e.target.value)} />
+          <SettingsField label="אימות סיסמה חדשה" name="confirm-password" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+        </div>
         {state === 'error' && <p className="agent-form__error-msg">{error}</p>}
-        {state === 'success' && <p className="agent-form__hint" style={{ color: 'var(--color-success,#22c55e)' }}><CheckCircle size={13} style={{ verticalAlign: 'middle' }} /> הסיסמה שונתה בהצלחה</p>}
+        {state === 'success' && <p className="agent-form__hint settings-success-hint"><CheckCircle size={13} /> הסיסמה שונתה בהצלחה</p>}
         <motion.button type="submit" className="agent-form__btn agent-form__btn--primary" style={{ alignSelf: 'flex-start' }} whileTap={{ scale: 0.97 }} disabled={saving || !current || !next}>
           {saving ? 'משנה…' : 'שנה סיסמה'}
         </motion.button>
       </form>
+    </section>
+  );
+}
+
+function AccountActionsCard({ token, logout }) {
+  const navigate = useNavigate();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState('');
+
+  async function handleDeleteAccount() {
+    setDeleting(true);
+    setError('');
+    try {
+      await agentApi.deleteMe(token);
+      logout();
+      navigate('/', { replace: true });
+    } catch (err) {
+      setError(err.message || 'שגיאה במחיקת החשבון');
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
+  }
+
+  return (
+    <section className="settings-card">
+      <h2 className="settings-card__title">פעולות חשבון</h2>
+      <div className="settings-account-actions">
+        <motion.button type="button" className="dash-quick-pill dash-quick-pill--ghost" whileTap={{ scale: 0.97 }} onClick={() => { logout(); navigate('/'); }}>
+          <span className="dash-quick-pill__dot"><LogOut size={15} /></span>
+          התנתקות
+        </motion.button>
+        <motion.button type="button" className="dash-quick-pill dash-quick-pill--danger" whileTap={{ scale: 0.97 }} onClick={() => setConfirmDelete(true)}>
+          <span className="dash-quick-pill__dot"><Trash2 size={15} /></span>
+          מחיקת חשבון
+        </motion.button>
+      </div>
+      {error && <p className="agent-form__error-msg">{error}</p>}
+      <AnimatePresence>
+        {confirmDelete && (
+          <motion.div className="dash-delete-confirm" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
+            <AlertTriangle size={18} className="dash-delete-confirm__icon" />
+            <span className="dash-delete-confirm__msg">כל הנכסים והנתונים יימחקו לצמיתות. אי אפשר לשחזר.</span>
+            <div className="dash-delete-confirm__btns">
+              <button className="dash-delete-confirm__btn dash-delete-confirm__btn--cancel" onClick={() => setConfirmDelete(false)} disabled={deleting}>ביטול</button>
+              <button className="dash-delete-confirm__btn dash-delete-confirm__btn--confirm" onClick={handleDeleteAccount} disabled={deleting}>
+                {deleting ? 'מוחק…' : 'מחק לצמיתות'}
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }
@@ -98,7 +152,7 @@ function PasswordCard({ token }) {
  * separate, deliberate action below, not part of the autosave. Still entirely self-contained
  * (reads its own agent/token from context), so it drops straight into a tab panel with no props. */
 export function OwnerSettingsPanel() {
-  const { token, agent, loading, refreshAgent } = useAgentAuth();
+  const { token, agent, loading, refreshAgent, logout } = useAgentAuth();
   const [form, setForm] = useState(EMPTY_FORM);
   const [saveState, setSaveState] = useState(null); // 'saving' | 'saved' | 'error' | null
   const [saveError, setSaveError] = useState('');
@@ -188,10 +242,8 @@ export function OwnerSettingsPanel() {
 
       <div className="settings-page__grid">
         <section className="settings-card">
-          <h2 className="settings-card__title">פרטי העסק</h2>
+          <h2 className="settings-card__title"><Briefcase size={16} /> פרטי העסק</h2>
           <SettingsField label="שם הצימר / הווילה" name="business_name" value={form.business_name} onChange={set('business_name')} />
-          <SettingsField label="שם איש קשר" name="contact_name" value={form.contact_name} onChange={set('contact_name')} />
-          <SettingsField label="אימייל" name="email" type="email" value={form.email} onChange={set('email')} />
           <div className="settings-field">
             <label className="settings-field__label">תמונת פרופיל / לוגו</label>
             <PropertyPhotoUploader
@@ -200,20 +252,22 @@ export function OwnerSettingsPanel() {
               maxImages={1}
             />
           </div>
-        </section>
-
-        <section className="settings-card">
-          <h2 className="settings-card__title">אודות</h2>
           <SettingsTextarea
             label="תיאור קצר על הנכס/העסק" name="description" rows={5} value={form.description} onChange={set('description')}
             placeholder="ספרו לאורחים על הנכס, הסביבה והחוויה…"
           />
-          <SettingsField label="שעות מענה" name="response_hours" value={form.response_hours} onChange={set('response_hours')} placeholder="א׳–ה׳ 9:00–18:00" />
         </section>
 
         <section className="settings-card">
-          <h2 className="settings-card__title">יצירת קשר</h2>
-          <SettingsField label="טלפון" name="phone" type="tel" inputMode="tel" value={form.phone} onChange={set('phone')} />
+          <h2 className="settings-card__title"><Phone size={16} /> פרטי קשר</h2>
+          <div className="settings-fields-2col">
+            <SettingsField label="שם איש קשר" name="contact_name" value={form.contact_name} onChange={set('contact_name')} />
+            <SettingsField label="אימייל" name="email" type="email" value={form.email} onChange={set('email')} />
+          </div>
+          <div className="settings-fields-2col">
+            <SettingsField label="טלפון" name="phone" type="tel" inputMode="tel" value={form.phone} onChange={set('phone')} />
+            <SettingsField label="שעות מענה" name="response_hours" value={form.response_hours} onChange={set('response_hours')} placeholder="א׳–ה׳ 9:00–18:00" />
+          </div>
           <div className="settings-field">
             <label className="settings-field__label">WhatsApp</label>
             <div className="settings-field__wa-row">
@@ -226,26 +280,30 @@ export function OwnerSettingsPanel() {
         </section>
 
         <section className="settings-card">
-          <h2 className="settings-card__title">רשתות חברתיות</h2>
-          {SOCIAL_FIELDS.map(({ key, label, Icon }) => (
-            <div className="settings-field" key={key}>
-              <label className="settings-field__label" htmlFor={`osf-${key}`}>
-                <Icon style={{ verticalAlign: 'middle', marginInlineEnd: 5 }} /> {label}
-              </label>
-              <input
-                id={`osf-${key}`}
-                className={`settings-field__input${socialErrors[key] ? ' settings-field__input--error' : ''}`}
-                type="url"
-                value={form[key]}
-                onChange={set(key)}
-                placeholder="https://…"
-              />
-              {socialErrors[key] && <p className="settings-field__error">{socialErrors[key]}</p>}
-            </div>
-          ))}
+          <h2 className="settings-card__title"><Share2 size={16} /> רשתות חברתיות</h2>
+          <div className="settings-fields-2col">
+            {SOCIAL_FIELDS.map(({ key, label, Icon }) => (
+              <div className="settings-field" key={key}>
+                <label className="settings-field__label" htmlFor={`osf-${key}`}>
+                  <Icon size={14} /> {label}
+                </label>
+                <input
+                  id={`osf-${key}`}
+                  className={`settings-field__input${socialErrors[key] ? ' settings-field__input--error' : ''}`}
+                  type="url"
+                  value={form[key]}
+                  onChange={set(key)}
+                  placeholder="https://…"
+                />
+                {socialErrors[key] && <p className="settings-field__error">{socialErrors[key]}</p>}
+              </div>
+            ))}
+          </div>
         </section>
 
         <PasswordCard token={token} />
+
+        <AccountActionsCard token={token} logout={logout} />
       </div>
     </div>
   );

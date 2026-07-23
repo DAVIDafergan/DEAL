@@ -2,7 +2,7 @@ import { SearchX } from 'lucide-react';
 import { buildActiveChips } from './PropertyActiveChips.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
 
-const RESTRICTIVENESS_ORDER = ['am-', 'kosher', 'type', 'bedrooms', 'price', 'guests', 'dates', 'city', 'region'];
+const RESTRICTIVENESS_ORDER = ['am-', 'bed-', 'kosher', 'type', 'bedrooms', 'price', 'guests', 'dates', 'city', 'region'];
 
 function mostRestrictiveChip(chips) {
   for (const prefix of RESTRICTIVENESS_ORDER) {
@@ -13,7 +13,7 @@ function mostRestrictiveChip(chips) {
 }
 
 /** 7.2: "אפס תוצאות → מסך ריק ידידותי עם הצעה להסיר את הפילטר המגביל ביותר". */
-export function PropertyEmptyState({ filters, setFilter, toggleAmenity, onClearAll, hasActiveFilters }) {
+export function PropertyEmptyState({ filters, setFilter, toggleAmenity, toggleBedType, onClearAll, hasActiveFilters }) {
   const { t, lang } = useLanguage();
 
   if (!hasActiveFilters) {
@@ -26,7 +26,7 @@ export function PropertyEmptyState({ filters, setFilter, toggleAmenity, onClearA
     );
   }
 
-  const chips = buildActiveChips(filters, { setFilter, toggleAmenity, t, lang });
+  const chips = buildActiveChips(filters, { setFilter, toggleAmenity, toggleBedType, t, lang });
   const culprit = mostRestrictiveChip(chips);
 
   return (

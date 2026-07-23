@@ -1,10 +1,33 @@
-import { Users, BedDouble, MessageCircle, Phone } from 'lucide-react';
+import { Users, BedDouble, BedSingle, Sofa, Layers, SquareStack, Baby, MessageCircle, Phone } from 'lucide-react';
 import { getCurrencySymbol } from '../../utils/currency.js';
-import { unitAmenityLabel } from '../../data/propertyOptions.js';
+import { unitAmenityLabel, BED_TYPES, bedTypeLabel } from '../../data/propertyOptions.js';
 import { useLanguage } from '../../context/LanguageContext.jsx';
 import { optimizedImageUrl } from '../../utils/imageUrl.js';
 import { buildPropertyWhatsAppUrl, buildTelUrl } from '../../utils/contactLinks.js';
 import { trackPropertyEvent } from '../../utils/eventTracking.js';
+
+const BED_ICONS = { BedDouble, BedSingle, Sofa, Layers, SquareStack, Baby };
+
+/** UnitBedSummary — 11.6: "2 מיטות זוגיות + ספה נפתחת", with a small icon per bed type instead
+ * of just the plain-text summary, so it can be scanned at a glance next to the unit photo. */
+export function UnitBedSummary({ bedConfig, lang }) {
+  const rows = (Array.isArray(bedConfig) ? bedConfig : []).filter((r) => Number(r.qty) > 0);
+  if (rows.length === 0) return null;
+  return (
+    <div className="ut__beds">
+      {rows.map((row) => {
+        const def = BED_TYPES.find((b) => b.value === row.type);
+        const Icon = BED_ICONS[def?.icon] || BedDouble;
+        return (
+          <span key={row.type} className="ut__beds-item">
+            <Icon size={13} />
+            {Number(row.qty) > 1 ? `${row.qty} ` : ''}{bedTypeLabel(row.type, lang)}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
 
 /** PropertyUnitsTable — 9.4 "טבלת יחידות", the Booking-style heart of the property page: one
  * row per bookable unit with photo/name/capacity/rooms/unique amenities/price, and (10.4) a
@@ -47,6 +70,7 @@ export function PropertyUnitsTable({ units, currency, selectedUnitId, onSelectUn
             <div className="ut__meta" role="cell" data-label={t.utCapacityCol}>
               {unit.max_guests && <span><Users size={13} /> {unit.max_guests}</span>}
               {unit.bedrooms && <span><BedDouble size={13} /> {unit.bedrooms}</span>}
+              <UnitBedSummary bedConfig={unit.bed_config} lang={lang} />
             </div>
 
             <div className="ut__amenities" role="cell" data-label={t.filterAmenities}>

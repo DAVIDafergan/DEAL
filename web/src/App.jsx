@@ -25,7 +25,7 @@ import { useLanguage } from './context/LanguageContext.jsx';
 export function App() {
   const { t, dir } = useLanguage();
   const resultsRef = useRef(null);
-  const { filters, setFilter, toggleAmenity, clearAll, activeCount, apiFilters, hasActiveFilters } = usePropertyFilters();
+  const { filters, setFilter, toggleAmenity, toggleBedType, clearAll, activeCount, apiFilters, hasActiveFilters } = usePropertyFilters();
   const [properties, setProperties] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -170,7 +170,7 @@ export function App() {
 
           <div className="property-search-layout">
             <aside className="pfp--aside">
-              <PropertyFilterPanel filters={filters} setFilter={setFilter} toggleAmenity={toggleAmenity} resultCount={properties.length} isLoading={isLoading} />
+              <PropertyFilterPanel filters={filters} setFilter={setFilter} toggleAmenity={toggleAmenity} toggleBedType={toggleBedType} resultCount={properties.length} isLoading={isLoading} />
             </aside>
 
             <div>
@@ -178,17 +178,18 @@ export function App() {
                 filters={filters}
                 setFilter={setFilter}
                 toggleAmenity={toggleAmenity}
+                toggleBedType={toggleBedType}
                 activeCount={activeCount}
                 resultCount={properties.length}
                 isLoading={isLoading}
               />
 
-              <PropertyActiveChips filters={filters} setFilter={setFilter} toggleAmenity={toggleAmenity} onClearAll={clearAll} />
+              <PropertyActiveChips filters={filters} setFilter={setFilter} toggleAmenity={toggleAmenity} toggleBedType={toggleBedType} onClearAll={clearAll} />
 
               {!isLoading && hasError ? (
                 <PropertyErrorState onRetry={() => setRetryTick((n) => n + 1)} />
               ) : !isLoading && properties.length === 0 ? (
-                <PropertyEmptyState filters={filters} setFilter={setFilter} toggleAmenity={toggleAmenity} onClearAll={clearAll} hasActiveFilters={hasActiveFilters} />
+                <PropertyEmptyState filters={filters} setFilter={setFilter} toggleAmenity={toggleAmenity} toggleBedType={toggleBedType} onClearAll={clearAll} hasActiveFilters={hasActiveFilters} />
               ) : (
                 <>
                   <PropertyGrid properties={properties} isLoading={isLoading} hasActiveFilters={hasActiveFilters} />

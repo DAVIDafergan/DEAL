@@ -4920,54 +4920,41 @@ label { color: var(--color-text-secondary); }
   background: #25d366; color: #fff; flex: 0 0 40px;
 }
 
-/* ── Settings page — full-width layout ────────────────────────────────────── */
+/* ── Settings page — centered single-column layout (11.6) ────────────────── */
 .settings-page {
-  max-width: 960px;
+  max-width: 720px;
   margin: 0 auto;
-  padding: 24px 20px 80px;
+  padding: var(--sp-6) var(--sp-5) calc(var(--sp-16) + var(--sp-4));
   min-height: 100vh;
   color: var(--color-text-primary);
 }
 .settings-page__header {
-  display: flex; align-items: center; gap: 12px; margin-bottom: 28px;
+  display: flex; align-items: center; gap: var(--sp-3); margin-bottom: var(--sp-6);
   flex-wrap: wrap;
 }
 .settings-page__title {
   margin: 0; font-size: 1.4rem; font-weight: 800;
 }
 .settings-page__back {
-  display: inline-flex; align-items: center; gap: 5px;
+  display: inline-flex; align-items: center; gap: var(--sp-1);
   font-size: 0.88rem; font-weight: 600; color: var(--color-text-secondary);
   text-decoration: none; border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm); padding: 6px 12px;
+  border-radius: var(--radius-sm); padding: var(--sp-2) var(--sp-3);
   transition: border-color 0.15s, color 0.15s;
 }
 .settings-page__back:hover { border-color: var(--color-text-muted); color: var(--color-text-primary); }
 
 /* 11.2: same settings-page look, dropped into a dashboard tab instead of its own route — no
    min-height:100vh (the dashboard shell already provides page height) and no back-link. */
-.settings-page--embedded { min-height: 0; padding: 24px 0 40px; max-width: none; }
-.settings-page__header--embedded { margin-bottom: 20px; }
+.settings-page--embedded { min-height: 0; padding: var(--sp-6) 0 var(--sp-10); }
+.settings-page__header--embedded { margin-bottom: var(--sp-5); }
 
+/* 11.6: cards stack in a single centered column (max-width lives on .settings-page itself) —
+   a 720px-wide 2-up card grid left too little room for the 2-col field rows inside each card. */
 .settings-page__grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  align-items: start;
-}
-@media (max-width: 640px) {
-  .settings-page__grid { grid-template-columns: 1fr; }
-}
-
-.settings-card--wide { grid-column: 1 / -1; }
-
-.settings-card .settings-fields-2col {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-@media (max-width: 500px) {
-  .settings-card .settings-fields-2col { grid-template-columns: 1fr; }
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-6);
 }
 
 /* ── How It Works — homepage animated explainer (upgraded) ───────────────── */

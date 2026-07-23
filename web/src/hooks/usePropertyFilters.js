@@ -5,13 +5,14 @@ import { useSearchParams } from 'react-router-dom';
 const KEYS = {
   region: 'region', city: 'city', checkIn: 'checkin', checkOut: 'checkout',
   guests: 'guests', bedrooms: 'bedrooms', minPrice: 'minprice', maxPrice: 'maxprice',
-  propertyType: 'type', kosherLevel: 'kosher', viewType: 'view', amenities: 'amenities', sort: 'sort',
+  propertyType: 'type', kosherLevel: 'kosher', viewType: 'view', amenities: 'amenities',
+  bedTypes: 'beds', sort: 'sort',
 };
 
 const EMPTY = {
   region: '', city: '', checkIn: '', checkOut: '',
   guests: '', bedrooms: '', minPrice: '', maxPrice: '',
-  propertyType: '', kosherLevel: '', viewType: '', amenities: [], sort: 'recommended',
+  propertyType: '', kosherLevel: '', viewType: '', amenities: [], bedTypes: [], sort: 'recommended',
 };
 
 /** Filter state lives entirely in the URL query string (7.2: "מצב הסינון נשמר ב-query params")
@@ -34,6 +35,7 @@ export function usePropertyFilters() {
       kosherLevel: searchParams.get(KEYS.kosherLevel) || '',
       viewType: searchParams.get(KEYS.viewType) || '',
       amenities: amenitiesRaw ? amenitiesRaw.split(',').filter(Boolean) : [],
+      bedTypes: (searchParams.get(KEYS.bedTypes) || '').split(',').filter(Boolean),
       sort: searchParams.get(KEYS.sort) || 'recommended',
     };
   }, [searchParams]);
@@ -64,6 +66,12 @@ export function usePropertyFilters() {
     setFilter({ amenities: next });
   }, [filters.amenities, setFilter]);
 
+  const toggleBedType = useCallback((value) => {
+    const current = filters.bedTypes;
+    const next = current.includes(value) ? current.filter((b) => b !== value) : [...current, value];
+    setFilter({ bedTypes: next });
+  }, [filters.bedTypes, setFilter]);
+
   const clearAll = useCallback(() => setSearchParams(new URLSearchParams(), { replace: true }), [setSearchParams]);
 
   const clearField = useCallback((field) => setFilter({ [field]: EMPTY[field] }), [setFilter]);
@@ -80,6 +88,7 @@ export function usePropertyFilters() {
     if (filters.kosherLevel) n++;
     if (filters.viewType) n++;
     n += filters.amenities.length;
+    n += filters.bedTypes.length;
     return n;
   }, [filters]);
 
@@ -94,10 +103,11 @@ export function usePropertyFilters() {
     kosher_level: filters.kosherLevel || undefined,
     view_type: filters.viewType || undefined,
     amenities: filters.amenities,
+    bed_types: filters.bedTypes,
     check_in: filters.checkIn && filters.checkOut ? filters.checkIn : undefined,
     check_out: filters.checkIn && filters.checkOut ? filters.checkOut : undefined,
     sort: filters.sort && filters.sort !== 'recommended' ? filters.sort : undefined,
   }), [filters]);
 
-  return { filters, setFilter, toggleAmenity, clearAll, clearField, activeCount, apiFilters, hasActiveFilters: activeCount > 0 };
+  return { filters, setFilter, toggleAmenity, toggleBedType, clearAll, clearField, activeCount, apiFilters, hasActiveFilters: activeCount > 0 };
 }
