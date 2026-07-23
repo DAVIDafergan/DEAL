@@ -372,6 +372,8 @@ export function PropertyWizard({ initialData = null, propertyId: initialProperty
                   onChange={(images) => { setOwnerImages(images); persist({ owner_images: images }); }}
                   label="תמונות המתחם (אזורים/מתקנים משותפים)"
                   minRequired={3}
+                  maxImages={15}
+                  propertyId={propertyId}
                 />
               </WizardStep>
             </motion.div>

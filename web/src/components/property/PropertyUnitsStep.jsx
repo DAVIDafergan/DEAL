@@ -5,7 +5,7 @@ import { propertyApi } from '../../api/client.js';
 import { UNIT_AMENITIES } from '../../data/propertyOptions.js';
 import { PropertyPhotoUploader } from './PropertyPhotoUploader.jsx';
 
-function UnitEditor({ unit, onSave }) {
+function UnitEditor({ unit, onSave, propertyId }) {
   function set(key) {
     return (e) => onSave({ ...unit, [key]: e.target.value });
   }
@@ -68,6 +68,9 @@ function UnitEditor({ unit, onSave }) {
         onChange={(images) => onSave({ ...unit, images })}
         label="תמונות היחידה"
         minRequired={1}
+        maxImages={10}
+        propertyId={propertyId}
+        unitId={unit.id}
       />
     </div>
   );
@@ -162,7 +165,7 @@ export function PropertyUnitsStep({ propertyId, units, onUnitsChange }) {
                 <ChevronDown size={16} style={{ transform: openId === unit.id ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
               </div>
             </div>
-            {openId === unit.id && <UnitEditor unit={unit} onSave={handleSave} />}
+            {openId === unit.id && <UnitEditor unit={unit} onSave={handleSave} propertyId={propertyId} />}
           </div>
         ))}
       </div>

@@ -58,7 +58,7 @@ function esc(str) {
 }
 
 function buildOgHtml(baseHtml, { title, description, imageUrl, pageUrl, jsonLd }) {
-  const img = imageUrl || `${SITE_URL}/og-image.svg`;
+  const img = imageUrl || `${SITE_URL}/og-image.png`;
   // Encode </script> sequences inside JSON-LD to prevent early script close
   const jsonLdStr = jsonLd
     ? JSON.stringify(jsonLd, null, 0).replace(/<\//g, '<\\/')
@@ -224,7 +224,7 @@ function dealToOgMeta(deal) {
         '@type': 'Product',
         '@id': `${pageUrl}#product`,
         name: title,
-        image: imageUrl || `${SITE_URL}/og-image.svg`,
+        image: imageUrl || `${SITE_URL}/og-image.png`,
         description,
         url: pageUrl,
         offers: {
@@ -265,7 +265,7 @@ function agentToOgMeta(agent) {
         '@id': `${pageUrl}#agency`,
         name,
         url: pageUrl,
-        image: imageUrl || `${SITE_URL}/og-image.svg`,
+        image: imageUrl || `${SITE_URL}/og-image.png`,
         description,
         parentOrganization: { '@type': 'Organization', name: 'Dealim', url: SITE_URL },
       },
@@ -401,7 +401,7 @@ function propertyToOgMeta(property) {
         '@type': property.status === 'unclaimed' ? 'LodgingBusiness' : 'Product',
         '@id': `${pageUrl}#listing`,
         name: title,
-        image: imageUrl || `${SITE_URL}/og-image.svg`,
+        image: imageUrl || `${SITE_URL}/og-image.png`,
         description,
         url: pageUrl,
         ...(property.base_price_night ? {
@@ -452,7 +452,7 @@ function ownerToOgMeta(owner) {
         '@id': `${pageUrl}#owner`,
         name,
         url: pageUrl,
-        image: imageUrl || `${SITE_URL}/og-image.svg`,
+        image: imageUrl || `${SITE_URL}/og-image.png`,
         description,
         parentOrganization: { '@type': 'Organization', name: 'Dealim', url: SITE_URL },
       },
@@ -483,7 +483,7 @@ function seoJsonLd(data, pageUrl) {
         '@id': `${SITE_URL}/property/${p.id}`,
         name: esc(p.name || ''),
         url: `${SITE_URL}/property/${p.id}`,
-        image: p.owner_images?.[0] || `${SITE_URL}/og-image.svg`,
+        image: p.owner_images?.[0] || `${SITE_URL}/og-image.png`,
         ...(p.price_from ? { priceRange: `${Math.round(p.price_from)} ${p.currency || 'ILS'}` } : {}),
       },
     })),
@@ -546,7 +546,7 @@ function buildSeoPageHtml(data, requestPath, baseHtml) {
     `<meta property="og:title" content="${esc(data.title)}" />`,
     `<meta property="og:description" content="${esc(data.description)}" />`,
     `<meta property="og:url" content="${esc(pageUrl)}" />`,
-    `<meta property="og:image" content="${SITE_URL}/og-image.svg" />`,
+    `<meta property="og:image" content="${SITE_URL}/og-image.png" />`,
     `<meta property="og:locale" content="he_IL" />`,
     `<meta name="twitter:card" content="summary_large_image" />`,
     `<meta name="twitter:title" content="${esc(data.title)}" />`,
@@ -645,7 +645,7 @@ export function createApp() {
               '@id': `${SITE_URL}/property/${p.id}`,
               name: esc(p.name || ''),
               url: `${SITE_URL}/property/${p.id}`,
-              image: p.owner_images?.[0] || `${SITE_URL}/og-image.svg`,
+              image: p.owner_images?.[0] || `${SITE_URL}/og-image.png`,
               ...(p.base_price_night ? {
                 offers: {
                   '@type': 'Offer',

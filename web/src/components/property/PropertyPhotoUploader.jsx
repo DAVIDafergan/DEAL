@@ -4,13 +4,20 @@ import { Upload, X, Star, GripVertical } from 'lucide-react';
 import { useAgentAuth } from '../../context/AgentAuthContext.jsx';
 import { uploadApi } from '../../api/client.js';
 import { compressImageFile, ACCEPTED_IMAGE_TYPES, MAX_IMAGE_BYTES } from '../../utils/imageCompress.js';
+import { optimizedImageUrl } from '../../utils/imageUrl.js';
+
+const FRIENDLY_TYPE_ERROR = 'סוג הקובץ לא נתמך — אפשר להעלות JPG, PNG, WEBP או HEIC בלבד';
+const FRIENDLY_SIZE_ERROR = 'הקובץ גדול מדי (מקסימום 10MB לפני דחיסה)';
 
 /**
  * PropertyPhotoUploader — drag & drop + multi-select + immediate previews + drag-reorder + cover
  * pick + delete + per-file progress (7.4). `images` is the array of already-uploaded URLs (the
  * source of truth); uploads-in-progress are tracked locally and appended once each one finishes.
+ * 11.5: propertyId/unitId associate uploads with a listing for the db ImageStorage backend
+ * (ownership-checked server-side) — both are optional and omitted for the one non-property use
+ * of this same component, the owner's own profile photo (OwnerSettingsPage).
  */
-export function PropertyPhotoUploader({ images, onChange, label, minRequired = 0, maxImages = Infinity }) {
+export function PropertyPhotoUploader({ images, onChange, label, minRequired = 0, maxImages = Infinity, propertyId, unitId }) {
   const { token } = useAgentAuth();
   const [uploading, setUploading] = useState([]); // [{ id, name, progress, error }]
   const [dragOver, setDragOver] = useState(false);
@@ -22,18 +29,30 @@ export function PropertyPhotoUploader({ images, onChange, label, minRequired = 0
     const files = Array.from(fileList);
     for (const file of files) {
       if (images.length + uploading.length >= maxImages) break;
-      if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) continue;
-      if (file.size > MAX_IMAGE_BYTES) continue;
+
+      if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+        const id = `${file.name}-${Date.now()}-${Math.random()}`;
+        setUploading((prev) => [...prev, { id, name: file.name, progress: 0, error: FRIENDLY_TYPE_ERROR }]);
+        continue;
+      }
+      if (file.size > MAX_IMAGE_BYTES) {
+        const id = `${file.name}-${Date.now()}-${Math.random()}`;
+        setUploading((prev) => [...prev, { id, name: file.name, progress: 0, error: FRIENDLY_SIZE_ERROR }]);
+        continue;
+      }
+
       const id = `${file.name}-${Date.now()}-${Math.random()}`;
       setUploading((prev) => [...prev, { id, name: file.name, progress: 0, error: null }]);
       try {
-        const compressed = await compressImageFile(file);
-        const { url } = await uploadApi.propertyImage(token, compressed, (p) => {
-          setUploading((prev) => prev.map((u) => (u.id === id ? { ...u, progress: p } : u)));
-        });
+        const { file: compressed, thumbFile, width, height } = await compressImageFile(file);
+        const { url } = await uploadApi.propertyImage(
+          token, compressed,
+          (p) => setUploading((prev) => prev.map((u) => (u.id === id ? { ...u, progress: p } : u))),
+          { thumbFile, fields: { propertyId, unitId, width, height } }
+        );
         onChange([...images, url]);
       } catch (err) {
-        setUploading((prev) => prev.map((u) => (u.id === id ? { ...u, error: err.message } : u)));
+        setUploading((prev) => prev.map((u) => (u.id === id ? { ...u, error: err.message || 'ההעלאה נכשלה, נסו שוב' } : u)));
         continue;
       }
       setUploading((prev) => prev.filter((u) => u.id !== id));
@@ -47,7 +66,11 @@ export function PropertyPhotoUploader({ images, onChange, label, minRequired = 0
   }
 
   function removeImage(index) {
+    const url = images[index];
     onChange(images.filter((_, i) => i !== index));
+    // Best-effort — the array (source of truth for the listing) is already updated regardless
+    // of whether the server-side blob cleanup succeeds.
+    uploadApi.deletePropertyImage(token, url).catch(() => {});
   }
 
   function makeCover(index) {
@@ -65,6 +88,10 @@ export function PropertyPhotoUploader({ images, onChange, label, minRequired = 0
     next.splice(index, 0, moved);
     onChange(next);
     setDragIndex(null);
+  }
+
+  function dismissError(id) {
+    setUploading((prev) => prev.filter((u) => u.id !== id));
   }
 
   return (
@@ -105,7 +132,7 @@ export function PropertyPhotoUploader({ images, onChange, label, minRequired = 0
               onDragOver={(e) => e.preventDefault()}
               onDrop={() => handleThumbDrop(i)}
             >
-              <img src={url} alt="" className="ppu__thumb-img" />
+              <img src={optimizedImageUrl(url, { width: 160 })} alt="" className="ppu__thumb-img" />
               <span className="ppu__thumb-drag"><GripVertical size={13} /></span>
               {i === 0 ? (
                 <span className="ppu__thumb-cover">תמונה ראשית</span>
@@ -120,9 +147,14 @@ export function PropertyPhotoUploader({ images, onChange, label, minRequired = 0
             </div>
           ))}
           {uploading.map((u) => (
-            <div key={u.id} className="ppu__thumb ppu__thumb--uploading">
+            <div key={u.id} className={`ppu__thumb ppu__thumb--uploading${u.error ? ' ppu__thumb--error' : ''}`}>
               {u.error ? (
-                <span className="ppu__thumb-error">{u.error}</span>
+                <>
+                  <span className="ppu__thumb-error">{u.error}</span>
+                  <button type="button" className="ppu__thumb-remove" onClick={() => dismissError(u.id)} aria-label="סגור הודעה">
+                    <X size={13} />
+                  </button>
+                </>
               ) : (
                 <>
                   <motion.div className="ppu__progress-ring" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }} />

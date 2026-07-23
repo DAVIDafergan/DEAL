@@ -878,6 +878,32 @@ const SCHEMA_STATEMENTS = [
     INDEX idx_property_info_reports_property (property_id),
     CONSTRAINT fk_property_info_reports_property FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE
   ) ENGINE=InnoDB`,
+  // 11.5 — local (in-DB) image storage, the "db" ImageStorage backend (see media/imageStorage/).
+  // No external service required — an alternative to Cloudinary when CLOUDINARY_URL isn't set.
+  // property_id is nullable — the one non-property use of the same upload endpoint+component
+  // (the owner's own profile/logo photo, OwnerSettingsPage) has no property to attach to at
+  // all. unit_id is nullable too: an image belongs either directly to the property
+  // (complex/shared photos) or to one specific unit, never both. thumb_bytes is a second,
+  // separately-generated 400px copy — cards request it instead of the full image (see
+  // GET /api/images/:id?size=thumb).
+  `CREATE TABLE IF NOT EXISTS property_images (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    property_id INT NULL,
+    unit_id INT NULL,
+    mime_type VARCHAR(64) NOT NULL,
+    bytes MEDIUMBLOB NOT NULL,
+    thumb_bytes MEDIUMBLOB NULL,
+    width SMALLINT UNSIGNED NULL,
+    height SMALLINT UNSIGNED NULL,
+    size_bytes INT UNSIGNED NOT NULL,
+    sort_order SMALLINT NOT NULL DEFAULT 0,
+    is_primary TINYINT(1) NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL,
+    INDEX idx_property_images_property (property_id),
+    INDEX idx_property_images_unit (unit_id),
+    CONSTRAINT fk_property_images_property FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE,
+    CONSTRAINT fk_property_images_unit FOREIGN KEY (unit_id) REFERENCES property_units(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB`,
 ];
 
 /**

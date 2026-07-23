@@ -70,8 +70,14 @@ async function deleteReq(path, token = null) {
   return res.json();
 }
 
-/** XHR (not fetch) — fetch has no upload-progress event, and 7.4 wants a real progress bar. */
-function uploadFileWithProgress(path, file, token, onProgress) {
+/** XHR (not fetch) — fetch has no upload-progress event, and 7.4 wants a real progress bar.
+ * 11.5: extended to send an optional "thumb" file plus arbitrary extra text fields
+ * (propertyId/unitId/width/height) alongside "file" — the db ImageStorage backend uses these;
+ * the cloudinary backend just ignores the ones it doesn't need. Error messages coming back
+ * from the server are already user-facing Hebrew (see server/routes/uploads.js); the two
+ * generic fallbacks here (network error, unparseable response) are the only strings this file
+ * itself needs to localize. */
+function uploadFileWithProgress(path, file, token, onProgress, { thumbFile, fields } = {}) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('POST', `${API_BASE}${path}`);
@@ -83,11 +89,15 @@ function uploadFileWithProgress(path, file, token, onProgress) {
       let body = {};
       try { body = JSON.parse(xhr.responseText); } catch { /* ignore */ }
       if (xhr.status >= 200 && xhr.status < 300) resolve(body);
-      else reject(new Error(body.error || `Upload failed with status ${xhr.status}`));
+      else reject(new Error(body.error || 'ההעלאה נכשלה, נסו שוב'));
     };
-    xhr.onerror = () => reject(new Error('Upload failed'));
+    xhr.onerror = () => reject(new Error('בעיית רשת — בדקו את החיבור ונסו שוב'));
     const form = new FormData();
     form.append('file', file);
+    if (thumbFile) form.append('thumb', thumbFile);
+    for (const [key, value] of Object.entries(fields || {})) {
+      if (value !== undefined && value !== null) form.append(key, value);
+    }
     xhr.send(form);
   });
 }
@@ -245,7 +255,8 @@ export const reviewApi = {
 };
 
 export const uploadApi = {
-  propertyImage: (token, file, onProgress) => uploadFileWithProgress('/uploads/property-image', file, token, onProgress),
+  propertyImage: (token, file, onProgress, opts) => uploadFileWithProgress('/uploads/property-image', file, token, onProgress, opts),
+  deletePropertyImage: (token, url) => deleteReq(`/uploads/property-image?url=${encodeURIComponent(url)}`, token),
 };
 
 export const removeApi = {
@@ -290,6 +301,7 @@ export const adminApi = {
   approveAutoProperty: (tok, id) => postJson(`/admin/properties/${id}/approve-auto`, {}, tok),
   rejectAutoProperty: (tok, id) => postJson(`/admin/properties/${id}/reject-auto`, {}, tok),
   getPropertyStats: (tok) => getJson('/admin/properties/stats', tok),
+  getImageStorageStatus: (tok) => getJson('/admin/image-storage-status', tok),
   getPropertyEventStats: (tok, days) => getJson(`/admin/property-events${buildQuery({ days })}`, tok),
   getReportedReviews: (tok) => getJson('/admin/reviews/reported', tok),
   hideReview: (tok, id) => postJson(`/admin/reviews/${id}/hide`, {}, tok),

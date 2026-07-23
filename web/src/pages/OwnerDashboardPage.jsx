@@ -14,7 +14,7 @@ import { DeletePropertyModal } from '../components/property/DeletePropertyModal.
 import { PropertyTrashPanel } from '../components/property/PropertyTrashPanel.jsx';
 import { BulkPriceEditor } from '../components/property/BulkPriceEditor.jsx';
 import { DashListSkeleton } from '../components/DashListSkeleton.jsx';
-import { OwnerProfileProgress } from '../components/OwnerProfileProgress.jsx';
+import { OwnerDashboardTips } from '../components/OwnerDashboardTips.jsx';
 import { RouteLoading } from '../components/RouteLoading.jsx';
 import { OwnerSettingsPanel } from './OwnerSettingsPage.jsx';
 import { PropertyStatsPanel } from './PropertyStatsPage.jsx';
@@ -298,7 +298,7 @@ export function OwnerDashboardPage() {
 
       {activeTab === 'overview' && (
       <>
-      <OwnerProfileProgress agent={agent} properties={properties} />
+      <OwnerDashboardTips agent={agent} properties={properties} />
 
       <div id="onb-kpis" className="dash-kpis container">
         <KpiCard icon={Home} label="נכסים" value={properties.length} iconColor="var(--ds-hearth)" iconBg="rgba(193,89,43,0.12)" index={0} />

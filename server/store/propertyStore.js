@@ -111,8 +111,9 @@ export async function listUnitsForProperty(propertyId, { activeOnly = false } = 
   return rows.map(parseUnit);
 }
 
-/** Ownership-scoped lookup, used by every owner-facing unit mutation below. */
-async function getUnitOwnedBy(unitId, ownerId) {
+/** Ownership-scoped lookup, used by every owner-facing unit mutation below (and, since 11.5,
+ * by the image upload route to verify a unit_id belongs to the uploading agent). */
+export async function getUnitOwnedBy(unitId, ownerId) {
   const pool = getPool();
   const [rows] = await pool.query(
     `SELECT pu.* FROM property_units pu JOIN properties p ON p.id = pu.property_id

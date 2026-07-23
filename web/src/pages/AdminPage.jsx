@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, XCircle, Eye, RefreshCw, ArrowLeft, Trash2, ChevronLeft, ChevronRight, User, LogOut, Users, FileCheck, LayoutDashboard, Clock, Home, BarChart3, Search, ShoppingBag, MousePointerClick, Bot, ShieldCheck, PlayCircle, MapPin, AlertTriangle, Flag } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, RefreshCw, ArrowLeft, Trash2, ChevronLeft, ChevronRight, User, LogOut, Users, FileCheck, LayoutDashboard, Clock, Home, BarChart3, Search, ShoppingBag, MousePointerClick, Bot, ShieldCheck, PlayCircle, MapPin, AlertTriangle, Flag, Image as ImageIcon } from 'lucide-react';
 import { Link } from '../components/LocalizedLink.jsx';
 import { adminApi } from '../api/client.js';
 import { Logo } from '../components/Logo.jsx';
@@ -263,6 +263,50 @@ function PropertyAnalyticsTab({ token }) {
           </table>
         </>
       )}
+    </div>
+  );
+}
+
+/** 11.5 — which ImageStorage backend is live, and (for the "db" backend) how much room it's
+ * using. Cloudinary doesn't expose a free storage-usage endpoint here, so those fields show
+ * "—" rather than a fake number when that backend is active. */
+function ImageStorageTab({ token }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    adminApi.getImageStorageStatus(token).then(setData).catch(() => setData(null)).finally(() => setLoading(false));
+  }, [token]);
+
+  if (loading) return <p style={{ textAlign: 'center', padding: 32, color: 'var(--color-text-muted)' }}>טוען…</p>;
+  if (!data) return <p style={{ textAlign: 'center', padding: 32, color: 'var(--color-text-muted)' }}>שגיאה בטעינת הנתונים</p>;
+
+  const mb = data.totalBytes != null ? (data.totalBytes / (1024 * 1024)).toFixed(1) : null;
+
+  return (
+    <div className="adm-analytics" dir="rtl">
+      <div className="adm-analytics__grid">
+        <div className="adm-analytics-kpi">
+          <div className="adm-analytics-kpi__value" style={{ fontSize: '1.3rem' }}>
+            {data.mode === 'db' ? 'מסד נתונים (מקומי)' : 'Cloudinary'}
+          </div>
+          <div className="adm-analytics-kpi__label">מנגנון אחסון פעיל</div>
+        </div>
+        <div className="adm-analytics-kpi">
+          <div className="adm-analytics-kpi__value">{data.count ?? '—'}</div>
+          <div className="adm-analytics-kpi__label">תמונות מאוחסנות</div>
+        </div>
+        <div className="adm-analytics-kpi">
+          <div className="adm-analytics-kpi__value">{mb ?? '—'}</div>
+          <div className="adm-analytics-kpi__label">מ״ב בשימוש</div>
+        </div>
+      </div>
+      <p className="agent-form__hint" style={{ marginTop: 16 }}>
+        {data.mode === 'db'
+          ? 'התמונות מאוחסנות ישירות במסד הנתונים — לא נדרש חיבור לשירות חיצוני.'
+          : 'התמונות מאוחסנות ב-Cloudinary.'}
+        {' '}{data.cloudinaryConfigured ? 'CLOUDINARY_URL מוגדר בשרת.' : 'CLOUDINARY_URL אינו מוגדר בשרת — האחסון המקומי פעיל כברירת מחדל.'}
+      </p>
     </div>
   );
 }
@@ -913,6 +957,9 @@ export function AdminPage() {
         <button className={`adm-tabs__btn${tab === 'engine' ? ' is-active' : ''}`} onClick={() => setTab('engine')}>
           <Bot size={14} /> מנוע איסוף
         </button>
+        <button className={`adm-tabs__btn${tab === 'image-storage' ? ' is-active' : ''}`} onClick={() => setTab('image-storage')}>
+          <ImageIcon size={14} /> אחסון תמונות
+        </button>
       </div>
 
       {/* Search bar — visible on agents / deals tabs */}
@@ -987,6 +1034,7 @@ export function AdminPage() {
 
       {/* Collection engine (Step 3/4) */}
       {tab === 'engine' && <EngineTab token={token} notify={notify} />}
+      {tab === 'image-storage' && <ImageStorageTab token={token} />}
 
       {/* Contact Submissions */}
       {tab === 'contact' && (

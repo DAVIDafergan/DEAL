@@ -2,8 +2,34 @@ import { Router } from 'express';
 import { getDestinationImage } from '../../images/destinationImageService.js';
 import { searchPexelsVideo } from '../../images/pexelsClient.js';
 import { getCityName } from '../../web/src/data/cityNames.js';
+import { getImageRow } from '../../media/imageStorage/dbStorage.js';
 
 const router = Router();
+
+/** GET /api/images/:id?size=thumb — 11.5 "db" ImageStorage backend: serves the raw bytes
+ * straight out of MySQL. Registered before the /:iataCode route below and constrained to
+ * digits only, since IATA codes are always 3 letters — the two can never collide, but the
+ * numeric route must come first or Express would never reach it (both are single-segment
+ * patterns at the same level). Long-cache + ETag: property_images rows are immutable (a new
+ * upload is a new row, never an edit-in-place), so this is safe to cache hard. */
+router.get('/:id(\\d+)', async (req, res) => {
+  try {
+    const wantThumb = req.query.size === 'thumb';
+    const row = await getImageRow(req.params.id, { thumb: wantThumb });
+    if (!row || !row.bytes) return res.status(404).json({ error: 'התמונה לא נמצאה' });
+    const etag = `"img-${req.params.id}-${wantThumb ? 't' : 'f'}"`;
+    if (req.headers['if-none-match'] === etag) return res.status(304).end();
+    res.set({
+      'Content-Type': row.mime_type,
+      'Cache-Control': 'public, max-age=31536000, immutable',
+      ETag: etag,
+    });
+    res.send(row.bytes);
+  } catch (err) {
+    console.error('[images] serve error:', err.message);
+    res.status(500).json({ error: 'שגיאה בטעינת התמונה' });
+  }
+});
 
 // In-memory video cache — TTL 24h (avoids hammering Pexels per-request)
 const videoCache = new Map();

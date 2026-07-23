@@ -15,6 +15,8 @@ import { getSessionCost } from '../../engine/extractor/costLogger.js';
 import { authRateLimiter } from '../middleware/rateLimiter.js';
 import { getSiteEventStats } from '../store/propertyEventStore.js';
 import { listReportedReviews, setReviewStatus } from '../store/reviewStore.js';
+import { getImageStorage, resolveImageStorageMode } from '../../media/imageStorage/index.js';
+import { isCloudinaryConfigured } from '../../media/cloudinaryUpload.js';
 
 const router = Router();
 
@@ -132,6 +134,18 @@ router.post('/properties/:id/approve-auto', async (req, res) => {
 router.post('/properties/:id/reject-auto', async (req, res) => {
   try { await rejectAutoProperty(req.params.id); res.json({ ok: true }); }
   catch { res.status(500).json({ error: 'Internal error' }); }
+});
+
+// ── 11.5: image storage status (which backend is active, how much it's storing) ──────────────
+router.get('/image-storage-status', async (_req, res) => {
+  try {
+    const mode = resolveImageStorageMode();
+    const stats = await getImageStorage().getStorageStats();
+    res.json({ mode, cloudinaryConfigured: isCloudinaryConfigured(), ...stats });
+  } catch (err) {
+    console.error('[admin] image-storage-status error:', err.message);
+    res.status(500).json({ error: 'Internal error' });
+  }
 });
 
 router.get('/properties/stats', async (_req, res) => {

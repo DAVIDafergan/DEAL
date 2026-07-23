@@ -183,9 +183,14 @@ export function PropertyReviews({ propertyId, ownerId }) {
           {reviews.map((r) => (
             <div key={r.id} className="pp-review-card">
               <div className="pp-review-card__head">
-                <StarDisplay value={r.rating} />
-                <span className="pp-review-card__author">{r.reviewer_name}</span>
-                <span className="pp-review-card__date">{String(r.created_at).slice(0, 10)}</span>
+                <span className="pp-review-card__avatar" aria-hidden="true">{(r.reviewer_name || '?').trim()[0]}</span>
+                <div className="pp-review-card__head-text">
+                  <span className="pp-review-card__author">{r.reviewer_name}</span>
+                  <span className="pp-review-card__meta">
+                    <StarDisplay value={r.rating} size={12} />
+                    <span className="pp-review-card__date">{String(r.created_at).slice(0, 10)}</span>
+                  </span>
+                </div>
               </div>
               {r.title && <div className="pp-review-card__title">{r.title}</div>}
               <p className="pp-review-card__body">{r.body}</p>
