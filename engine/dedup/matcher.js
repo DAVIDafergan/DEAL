@@ -1,5 +1,5 @@
 import { findAutoPropertyByPhoneOrDomain } from '../../server/store/propertyStore.js';
-import { normalizePhone, normalizeDomain } from '../../core/compliance/blocklist.js';
+import { normalizePhone } from '../../core/compliance/blocklist.js';
 
 function tokenize(name) {
   return new Set((name || '').toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, '').split(/\s+/).filter(Boolean));
@@ -21,7 +21,7 @@ function nameSimilarity(a, b) {
 const NAME_SIMILARITY_THRESHOLD = 0.5;
 
 /**
- * Step 3.4 Deduplicator: phone -> domain -> city+name-similarity, in that priority order.
+ * Step 3.4 Deduplicator: phone -> exact source URL -> city+name-similarity, in that priority order.
  * Returns the existing property row to merge into, or null for "this is a new property".
  */
 export async function findDuplicate({ phone, whatsapp, sourceUrl, city, name }) {
@@ -31,10 +31,9 @@ export async function findDuplicate({ phone, whatsapp, sourceUrl, city, name }) 
     if (byPhone) return byPhone;
   }
 
-  const domain = sourceUrl ? normalizeDomain(sourceUrl) : null;
-  if (domain) {
-    const byDomain = await findAutoPropertyByPhoneOrDomain({ domain });
-    if (byDomain) return byDomain;
+  if (sourceUrl) {
+    const byUrl = await findAutoPropertyByPhoneOrDomain({ sourceUrl });
+    if (byUrl) return byUrl;
   }
 
   if (city && name) {

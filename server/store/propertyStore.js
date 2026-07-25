@@ -350,16 +350,21 @@ export async function updateAutoCollectedProperty(id, fields) {
   }
 }
 
-/** Finds an existing auto-collected property by normalized phone or matching source domain —
- * used by the Deduplicator to decide "update existing" vs. "create new". */
-export async function findAutoPropertyByPhoneOrDomain({ phone, domain }) {
+/** Finds an existing auto-collected property by normalized phone or by the exact source URL
+ * already on record — used by the Deduplicator to decide "update existing" vs. "create new".
+ * Matches the exact `source_url`, not a bare-domain substring: a bare-domain LIKE match is wrong
+ * whenever the domain hosts more than one distinct listing at different paths (a regional tourism
+ * association's own site listing dozens of independent zimmer owners each as its own subpage, for
+ * example) — that pattern previously collapsed every listing on the same domain into a single
+ * merged/overwritten row the first time this ran against a real multi-tenant directory. */
+export async function findAutoPropertyByPhoneOrDomain({ phone, sourceUrl }) {
   const pool = getPool();
   if (phone) {
     const [rows] = await pool.query(`SELECT * FROM properties WHERE source = 'auto' AND (phone = ? OR whatsapp = ?) LIMIT 1`, [phone, phone]);
     if (rows[0]) return parseProperty(rows[0]);
   }
-  if (domain) {
-    const [rows] = await pool.query(`SELECT * FROM properties WHERE source = 'auto' AND source_url LIKE CONCAT('%', ?, '%') LIMIT 1`, [domain]);
+  if (sourceUrl) {
+    const [rows] = await pool.query(`SELECT * FROM properties WHERE source = 'auto' AND source_url = ? LIMIT 1`, [sourceUrl]);
     if (rows[0]) return parseProperty(rows[0]);
   }
   return null;
