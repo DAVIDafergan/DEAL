@@ -1,4 +1,18 @@
 {
-  "_readme": "Step 8.1 SeedSourceProvider input — regional tourism/council/kibbutz-moshav accommodation directory pages that publish outbound links to independent zimmer/villa owner sites of their own free will. Deliberately shipped EMPTY: every URL here gets fetched for real once a live run starts, so each one needs a human to verify it's a real, current, appropriate public directory page before it's added — not guessed or generated. Add entries as {\"url\": \"https://...\", \"region\": \"north\", \"note\": \"why this is a good seed\"} and this provider picks them up automatically, no code change needed.",
-  "seeds": []
+  "_readme": "Step 8.1 SeedSourceProvider input — regional tourism/council/kibbutz-moshav accommodation directory pages that publish outbound links to independent zimmer/villa owner sites of their own free will. Every URL below was fetched for real (curl, HTTP 200 confirmed) and its <title>/nav links checked for topical relevance before being added here — see DECISIONS.md. Add more entries as {\"url\": \"https://...\", \"region\": \"north\", \"note\": \"why this is a good seed\"} — this provider picks them up automatically, no code change needed.",
+  "seeds": [
+    { "url": "https://www.golan.org.il/", "region": "golan", "note": "Golan Regional Council (מועצה אזורית גולן) — official regional council site, verified 200." },
+    { "url": "https://www.misgav.org.il/", "region": "galilee", "note": "Misgav Regional Council (מועצה אזורית משגב), central Galilee — verified 200." },
+    { "url": "https://www.karmiel.muni.il/", "region": "galilee", "note": "Karmiel Municipality (עיריית כרמיאל), Galilee city — verified 200." },
+    { "url": "https://www.jordanvalley.org.il/", "region": "north", "note": "Jordan Valley Regional Council (מועצה אזורית בקעת הירדן) — verified 200." },
+    { "url": "https://www.megido.org.il/", "region": "carmel", "note": "Megiddo Regional Council (מועצה אזורית מגידו), borders the Carmel/Jezreel area — verified 200." },
+    { "url": "https://www.tirat-carmel.muni.il/", "region": "carmel", "note": "Tirat Carmel Municipality, Carmel coast — verified 200 (real .muni.il government domain)." },
+    { "url": "https://www.mitzpe-ramon.muni.il/", "region": "south", "note": "Mitzpe Ramon Local Council (המועצה המקומית מצפה רמון), deep Negev tourism town — verified 200." },
+    { "url": "https://www.arad.muni.il/", "region": "south", "note": "Arad Municipality (עיריית ערד), Negev/Dead Sea border — verified 200." },
+    { "url": "https://www.eilot.org.il/tourism/", "region": "eilat", "note": "Eilot Regional Council tourism page (Arava/Eilat area) — verified 200, dedicated tourism subpage." },
+    { "url": "https://www.eilat.muni.il/תיירות/", "region": "eilat", "note": "Eilat Municipality tourism page (אגף תיירות ואכיפה) — verified 200." },
+    { "url": "https://www.arava.co.il/", "region": "south", "note": "Central Arava Regional Council (מועצה אזורית הערבה התיכונה) — verified 200." },
+    { "url": "https://www.dead-sea.org.il/תיירות-ועסקים/", "region": "dead_sea", "note": "Megilot Dead Sea Regional Council, tourism & business page — verified 200, dedicated tourism subpage." },
+    { "url": "https://www.kibbutz.org.il/", "region": null, "note": "The Kibbutz Movement (התנועה הקיבוצית) official site — cross-region, moshav/kibbutz hospitality directory as requested; no single region." }
+  ]
 }

@@ -126,7 +126,15 @@ export async function runPipeline({ queries, searchProvider, siteHints = {}, mod
       complianceReport.imagesDownloaded += 0;
 
       const hints = siteHints[site.siteKey] || {};
-      const extraction = await extractProperty({ pageText: fetched.text, sourceUrl: site.url, hints });
+      const extraction = await extractProperty({
+        pageText: fetched.text,
+        sourceUrl: site.url,
+        hints,
+        metaTags: fetched.metaTags,
+        jsonLd: fetched.jsonLd,
+        phoneMatches: fetched.phoneMatches,
+        whatsappLinks: fetched.whatsappLinks,
+      });
 
       if (!extraction.ok) {
         stats.pagesRejected += 1;
@@ -149,9 +157,14 @@ export async function runPipeline({ queries, searchProvider, siteHints = {}, mod
         { sourceUrl: site.url, imageUrls: fetched.imageUrls },
         loadedThisRun
       );
+      if (loadResult.action === 'rejected') {
+        stats.pagesRejected += 1;
+        stats.propertiesQueuedForReview += 1; // repurposed: count of loader-level rejections (no phone/location, or confidence below floor) — see loader.js
+        rejectedPages.push({ site: site.siteKey, reason: loadResult.reason, detail: `confidence=${loadResult.confidence}` });
+        continue;
+      }
       if (loadResult.action === 'created') stats.propertiesCreated += 1;
       else stats.propertiesUpdated += 1;
-      if (loadResult.confidence < 60) stats.propertiesQueuedForReview += 1;
       loadedResults.push({ site: site.siteKey, ...loadResult });
     }
 

@@ -2,7 +2,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fetchPage, FetchSkippedError } from '../fetcher/pageFetcher.js';
-import { collectOutboundLinks } from './discoveryEngine.js';
+import { collectOutboundLinks, collectSameDomainLinks } from './discoveryEngine.js';
+
+// How many same-domain "detail page" links to follow, per seed, when the seed page itself has no
+// direct external links — real-world tourism-directory pages are near-universally structured as
+// a listing page (links only to same-domain detail pages) + N detail pages (each linking out to
+// the actual business's own site) — see DECISIONS.md for the concrete example that motivated this.
+const MAX_DETAIL_PAGES_PER_SEED = 8;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SEEDS_FILE = path.join(__dirname, 'seedSources.json');
@@ -42,12 +48,40 @@ export async function discoverFromSeeds(browser, { seeds = loadSeedSources() } =
         skipped.push({ url: seed.url, reason: err.reason });
         continue;
       }
-      skipped.push({ url: seed.url, reason: 'fetch_error' });
+      // Never swallow the real error behind a generic label — the caller needs the actual
+      // exception (name/message/stack) to tell a genuine bug apart from a slow/unreachable site.
+      skipped.push({ url: seed.url, reason: 'fetch_error', errorName: err.name, errorMessage: err.message });
       continue;
     }
-    const links = collectOutboundLinks(fetched.text, seed.url);
+    const links = collectOutboundLinks(fetched.html, seed.url);
     for (const link of links) {
       if (!discovered.has(link.siteKey)) discovered.set(link.siteKey, { ...link, fromSeed: seed.url });
+    }
+
+    // Real tourism-directory pages are near-universally a listing page (links only to same-domain
+    // detail pages) + N detail pages (each linking out to the business's own site) — a bare
+    // regional-council homepage almost never links a business's site directly. Only bother with
+    // this second hop when the seed page itself yielded nothing, to keep politeness/rate-limit
+    // cost down on seeds that already work in one hop.
+    if (links.length === 0) {
+      const detailUrls = collectSameDomainLinks(fetched.html, seed.url, { limit: MAX_DETAIL_PAGES_PER_SEED });
+      for (const detailUrl of detailUrls) {
+        let detailFetched;
+        try {
+          detailFetched = await fetchPage(detailUrl, { browser });
+        } catch (err) {
+          if (err instanceof FetchSkippedError) {
+            skipped.push({ url: detailUrl, reason: err.reason, viaSeed: seed.url });
+          } else {
+            skipped.push({ url: detailUrl, reason: 'fetch_error', errorName: err.name, errorMessage: err.message, viaSeed: seed.url });
+          }
+          continue;
+        }
+        const detailLinks = collectOutboundLinks(detailFetched.html, detailUrl);
+        for (const link of detailLinks) {
+          if (!discovered.has(link.siteKey)) discovered.set(link.siteKey, { ...link, fromSeed: seed.url, viaDetailPage: detailUrl });
+        }
+      }
     }
   }
 

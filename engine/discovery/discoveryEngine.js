@@ -59,27 +59,74 @@ export async function runDiscovery(queries, searchProvider) {
   };
 }
 
+// Matches only <a ...href="...">, not <link href="..."> (stylesheets), not other tags that
+// happen to carry an href-like attribute — the original naive `href=` regex here (matching in
+// ANY tag) was picking up CSS/font/CDN resource URLs as "candidate sites", which then correctly
+// failed extraction for the obvious reason that a .css file isn't a webpage — confirmed on a
+// real crawl (cdnjs.cloudflare.com/.../all.min.css got treated as candidate #0). `[^>]*?` allows
+// other attributes (class, target, rel, ...) to appear before href within the same <a> tag.
+const ANCHOR_HREF_PATTERN = /<a\s[^>]*?href=["']([^"']+)["']/gi;
+
+// Defensive second layer even within <a> tags — some sites do put a direct asset link in an
+// anchor (e.g. a "download brochure" PDF link).
+const STATIC_ASSET_EXTENSION = /\.(css|js|mjs|json|xml|ico|png|jpe?g|gif|svg|webp|woff2?|ttf|eot|pdf|zip|mp4|mp3)(\?|#|$)/i;
+
+function isNavigablePage(url) {
+  if (!/^https?:$/.test(url.protocol)) return false; // excludes mailto:, tel:, javascript:, etc.
+  return !STATIC_ASSET_EXTENSION.test(url.pathname);
+}
+
 /**
  * "מכל אתר שנסרק, איסוף קישורים יוצאים לאתרי צימרים נוספים" — called by the pipeline after the
  * Fetcher retrieves a page's HTML, feeding newly-discovered sites back into the crawl queue.
  * Deliberately dumb regex link extraction (no DOM parsing) — the Fetcher already did the real
  * page load via Playwright; this just mines additional candidate sites from what it got back.
+ * Must be called with raw HTML (href attributes don't survive HTML-tag stripping — see
+ * engine/fetcher/pageFetcher.js's `html` field, not its `text` field).
  */
 export function collectOutboundLinks(html, baseUrl) {
   const found = new Map(); // siteKey -> url
   const base = parseSite(baseUrl);
-  const hrefPattern = /href=["']([^"']+)["']/gi;
   let match;
-  while ((match = hrefPattern.exec(html))) {
+  while ((match = ANCHOR_HREF_PATTERN.exec(html))) {
     try {
-      const resolvedUrl = new URL(match[1], baseUrl).toString();
-      const parsed = parseSite(resolvedUrl);
+      const resolvedUrl = new URL(match[1], baseUrl);
+      if (!isNavigablePage(resolvedUrl)) continue;
+      const parsed = parseSite(resolvedUrl.toString());
       if (parsed && parsed.siteKey !== base?.siteKey && !looksLikePortal(parsed.domain) && !found.has(parsed.siteKey)) {
-        found.set(parsed.siteKey, resolvedUrl);
+        found.set(parsed.siteKey, resolvedUrl.toString());
       }
     } catch {
-      // ignore malformed hrefs (mailto:, javascript:, relative fragments, etc.)
+      // ignore malformed hrefs (relative fragments that don't resolve, etc.)
     }
   }
   return [...found.entries()].map(([siteKey, url]) => ({ siteKey, url }));
+}
+
+/**
+ * Companion to collectOutboundLinks, for the very common "business directory" page shape a
+ * tourism-cluster/regional-council directory actually uses in practice: a category/listing page
+ * that links to same-domain detail pages (one per business), each of which then links out to the
+ * business's own external website — never a direct external link from the category page itself.
+ * Same-page, same-domain, distinct-path links only (never revisits the page itself). Capped by
+ * `limit` — this exists to go one hop deeper into a *seed*, not to crawl an entire directory site.
+ */
+export function collectSameDomainLinks(html, baseUrl, { limit = 15 } = {}) {
+  const base = parseSite(baseUrl);
+  const basePathname = new URL(baseUrl).pathname;
+  const found = new Map(); // path -> url
+  let match;
+  while ((match = ANCHOR_HREF_PATTERN.exec(html)) && found.size < limit) {
+    try {
+      const resolvedUrl = new URL(match[1], baseUrl);
+      if (!isNavigablePage(resolvedUrl)) continue;
+      const parsed = parseSite(resolvedUrl.toString());
+      if (!parsed || parsed.siteKey !== base?.siteKey) continue;
+      if (resolvedUrl.pathname === basePathname) continue; // skip self-links/anchors
+      if (!found.has(resolvedUrl.pathname)) found.set(resolvedUrl.pathname, resolvedUrl.toString());
+    } catch {
+      // ignore malformed hrefs
+    }
+  }
+  return [...found.values()];
 }

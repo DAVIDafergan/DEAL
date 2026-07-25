@@ -2,6 +2,8 @@ import { upsertAutoCollectedProperty, updateAutoCollectedProperty } from '../../
 import { findDuplicate, matchAgainstCandidates } from '../dedup/matcher.js';
 import { mergeExtractions } from '../dedup/merger.js';
 
+const MIN_CONFIDENCE = 60;
+
 function computeOverallConfidence(fieldConfidence) {
   const scores = Object.values(fieldConfidence || {}).filter((s) => typeof s === 'number');
   if (scores.length === 0) return 0;
@@ -12,11 +14,29 @@ function computeOverallConfidence(fieldConfidence) {
  * Step 3.4 Loader: writes one extracted+validated record to `properties`, deduplicating against
  * existing auto-collected rows first (matcher.js). `loadedThisRun` accumulates rows created in
  * this same pipeline run so the city+name-similarity fallback tier has something to compare
- * against (see matcher.js). Returns { action: 'created'|'updated', id, confidence }.
+ * against (see matcher.js). Returns { action: 'created'|'updated'|'rejected', id, confidence }.
+ *
+ * Step 11.7 hard floor: a record with neither a phone nor an identified location (city/region) is
+ * unusable as a lodging listing regardless of what else it contains, and anything below
+ * MIN_CONFIDENCE is too unreliable to publish even into the unclaimed review queue — both are
+ * rejected before ever touching `properties` (logged, not silently dropped). This is what should
+ * have caught binaa.co.il (confidence 51, no phone) — the classifier fix is the first line of
+ * defense, this is the second.
  */
 export async function loadProperty(extraction, meta, loadedThisRun) {
   const { sourceUrl, imageUrls } = meta;
   const overallConfidence = computeOverallConfidence(extraction.field_confidence);
+
+  const hasPhone = Boolean(extraction.phone);
+  const hasLocation = Boolean(extraction.city || extraction.region);
+  if (!hasPhone && !hasLocation) {
+    console.log(`[loader] Rejected — no phone and no identified location: "${extraction.name || 'unnamed'}" (${sourceUrl})`);
+    return { action: 'rejected', reason: 'no_phone_and_no_location', confidence: overallConfidence, name: extraction.name, city: extraction.city };
+  }
+  if (overallConfidence < MIN_CONFIDENCE) {
+    console.log(`[loader] Rejected — confidence ${overallConfidence} < ${MIN_CONFIDENCE}: "${extraction.name || 'unnamed'}" (${sourceUrl})`);
+    return { action: 'rejected', reason: 'confidence_below_threshold', confidence: overallConfidence, name: extraction.name, city: extraction.city };
+  }
 
   const candidate = { ...extraction, source_url: sourceUrl, source_image_urls: imageUrls, confidence: overallConfidence };
 

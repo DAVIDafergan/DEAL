@@ -31,9 +31,17 @@ function extractFromHtml(html, baseUrl) {
     .replace(/\s+/g, ' ')
     .trim();
 
+  // Two passes: `name=` (standard meta, e.g. "description") and `property=` (Open Graph, e.g.
+  // "og:title") — real pages use both, and og: tags in particular are a strong, structured
+  // signal for name/description that the RuleBasedExtractor leans on (see ruleBasedExtractor.js).
+  // Each pass also tries content-before-name/property attribute order, since real markup isn't
+  // always written in the same order.
   const metaTags = {};
-  for (const m of html.matchAll(/<meta[^>]+name=["']([^"']+)["'][^>]+content=["']([^"']*)["']/gi)) {
-    metaTags[m[1]] = m[2];
+  for (const attr of ['name', 'property']) {
+    const forward = new RegExp(`<meta[^>]+${attr}=["']([^"']+)["'][^>]+content=["']([^"']*)["']`, 'gi');
+    const backward = new RegExp(`<meta[^>]+content=["']([^"']*)["'][^>]+${attr}=["']([^"']+)["']`, 'gi');
+    for (const m of html.matchAll(forward)) metaTags[m[1]] = m[2];
+    for (const m of html.matchAll(backward)) if (!(m[2] in metaTags)) metaTags[m[2]] = m[1];
   }
 
   const imageUrls = [...new Set(
@@ -78,7 +86,7 @@ export async function fetchPage(url, { browser, useCache = true, robotsFetchImpl
 
   if (useCache) {
     const cached = getCached(url);
-    if (cached) return { url, domain, fromCache: true, ...extractFromHtml(cached, url) };
+    if (cached) return { url, domain, fromCache: true, html: cached, ...extractFromHtml(cached, url) };
   }
 
   const allowed = robotsFetchImpl ? await isAllowedByRobots(url, robotsFetchImpl) : await isAllowedByRobots(url);
@@ -91,7 +99,14 @@ export async function fetchPage(url, { browser, useCache = true, robotsFetchImpl
       let page;
       try {
         page = await browser.newPage({ userAgent: USER_AGENT });
-        await page.goto(url, { waitUntil: 'networkidle', timeout: FETCH_TIMEOUT_MS });
+        // 'networkidle' (500ms with zero in-flight requests) sounds right for "page fully
+        // loaded" but real-world sites almost never satisfy it — analytics beacons, chat
+        // widgets, and accessibility-tool polling keep the network "busy" indefinitely, so the
+        // page never goes idle even though it's fully rendered and scrapeable. Verified against
+        // real regional-council sites: curl gets a clean 200 from all of them, but 'networkidle'
+        // timed out on 12/13. 'domcontentloaded' plus the scroll-triggered lazy-load pass below
+        // is what every other page-scraping tool in this space actually uses.
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: FETCH_TIMEOUT_MS });
         await page.evaluate(() => new Promise((resolve) => {
           let total = 0;
           const step = 400;
@@ -103,7 +118,10 @@ export async function fetchPage(url, { browser, useCache = true, robotsFetchImpl
         }));
         const html = await page.content();
         setCached(url, html);
-        return { url, domain, fromCache: false, ...extractFromHtml(html, url) };
+        // `html` (raw) is returned alongside `text` (tags stripped) — discovery's
+        // collectOutboundLinks/collectSameDomainLinks need real href="..." attributes to match
+        // against, which `text` structurally cannot contain (all tags are stripped out of it).
+        return { url, domain, fromCache: false, html, ...extractFromHtml(html, url) };
       } catch (err) {
         lastError = err;
         if (attempt < MAX_RETRIES) await sleep(1000 * 2 ** attempt);

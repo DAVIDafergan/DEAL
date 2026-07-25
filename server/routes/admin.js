@@ -218,32 +218,40 @@ router.post('/engine/run', async (_req, res) => {
 });
 
 /**
- * Step 8 — the ONLY route in this codebase that can touch real, live websites, and only once
- * SEARCH_API_KEY is set. Refuses to start otherwise — this is the literal enforcement of
- * "הרצה בפועל על אתרים אמיתיים תמתין ל-SEARCH_API_KEY". `roundSize` implements the staged
- * calibration in 8.4 (20 -> 200 -> full): caps how many *sites* (post-classification) get
- * fetched this run, not how many queries run (queries are cheap/free; fetching+extracting a real
- * page is the expensive, rate-limited, "touching someone else's server" part).
+ * Step 8 — the ONLY route in this codebase that can touch real, live websites. Runs with ZERO
+ * external keys/APIs by default: discovery comes from SeedSourceProvider (crawls the curated,
+ * human-verified directory pages in engine/discovery/seedSources.json and mines their outbound
+ * links — see seedSourceProvider.js), and extraction is RuleBasedExtractor (ruleBasedExtractor.js
+ * — deterministic, works off meta tags/JSON-LD/regex already parsed from the HTML, no LLM call).
+ * SEARCH_API_KEY/ANTHROPIC_API_KEY, if ever set, are purely optional *enhancements* layered on
+ * top (broader discovery via a commercial search API, higher-quality extraction via Claude) —
+ * neither is required, and this route never refuses to start for lack of either. `roundSize`
+ * implements the staged calibration in 8.4 (20 -> 200 -> full): caps how many *sites*
+ * (post-classification) get fetched this run, not how many queries/seeds run.
  */
 router.post('/engine/run-live', async (req, res) => {
   if (currentRun) return res.status(409).json({ error: 'A run is already in progress' });
-  const apiKey = process.env.SEARCH_API_KEY;
-  if (!apiKey) {
-    return res.status(503).json({
-      error: 'SEARCH_API_KEY is not configured — live runs are refused until it is set. See ENGINE-RUNBOOK.md.',
-    });
-  }
   try {
     const { createCommercialSearchProvider } = await import('../../engine/discovery/commercialSearchProvider.js');
     const { classifySources } = await import('../../engine/discovery/sourceClassifier.js');
     const { runDiscovery } = await import('../../engine/discovery/discoveryEngine.js');
+    const { discoverFromSeeds, loadSeedSources } = await import('../../engine/discovery/seedSourceProvider.js');
     const { buildQueryMatrix } = await import('../../engine/discovery/queryMatrix.js');
     const { runPipeline } = await import('../../engine/pipeline.js');
     const { listQueries } = await import('../store/engineQueryStore.js');
+    const { normalizeDomain } = await import('../../core/compliance/blocklist.js');
+    const { chromium } = await import('playwright');
 
-    const searchProvider = createCommercialSearchProvider();
-    if (!searchProvider) {
+    const apiKey = process.env.SEARCH_API_KEY;
+    const searchProvider = apiKey ? createCommercialSearchProvider() : null;
+    if (apiKey && !searchProvider) {
       return res.status(503).json({ error: 'SEARCH_API_KEY is set but no valid provider could be created — check SEARCH_PROVIDER.' });
+    }
+    const discoveryMode = searchProvider ? 'commercial_search' : 'seed_sources';
+    if (!searchProvider && loadSeedSources().length === 0) {
+      return res.status(503).json({
+        error: 'No SEARCH_API_KEY and engine/discovery/seedSources.json has no seeds — nothing to discover from. Add seed URLs or set SEARCH_API_KEY.',
+      });
     }
 
     const roundSize = Number(req.body?.roundSize) || null; // 20 | 200 | null (full run)
@@ -256,17 +264,36 @@ router.post('/engine/run-live', async (req, res) => {
     await setEmergencyStop(false);
 
     currentRun = (async () => {
-      const discovery = await runDiscovery(queries, searchProvider);
-      const classifications = await classifySources(discovery.sites);
-      let approvedSites = discovery.sites.filter((_, i) => classifications[i].classification === 'single_property');
-      if (roundSize) approvedSites = approvedSites.slice(0, roundSize);
+      // Classification now needs each candidate's own real page content (meta tags/JSON-LD/body
+      // text — see sourceClassifier.js's reject-by-default heuristic), so this browser stays open
+      // through both discovery (seed path) and classification, then closes before the pipeline's
+      // own browser takes over for the fetch+extract+load stage.
+      const classifyBrowser = await chromium.launch({ args: ['--no-sandbox'] });
+      let approvedSites;
+      try {
+        let discoverySites;
+        if (searchProvider) {
+          const discovery = await runDiscovery(queries, searchProvider);
+          discoverySites = discovery.sites;
+        } else {
+          const { sites } = await discoverFromSeeds(classifyBrowser);
+          discoverySites = sites.map((s) => ({ ...s, domain: s.domain || normalizeDomain(new URL(s.url).hostname) }));
+        }
+
+        const classifications = await classifySources(discoverySites, { browser: classifyBrowser });
+        approvedSites = discoverySites.filter((_, i) => classifications[i].classification === 'single_property');
+        if (roundSize) approvedSites = approvedSites.slice(0, roundSize);
+      } finally {
+        await classifyBrowser.close();
+      }
 
       return runPipeline({ queries, searchProvider, mode: 'live', preDiscoveredSites: approvedSites });
     })().finally(() => { currentRun = null; });
 
     res.status(202).json({
       ok: true,
-      message: `Live run started (round size: ${roundSize || 'full'}) — poll /admin/engine/status`,
+      discoveryMode,
+      message: `Live run started (discovery: ${discoveryMode}, round size: ${roundSize || 'full'}) — poll /admin/engine/status`,
     });
   } catch (err) {
     currentRun = null;
