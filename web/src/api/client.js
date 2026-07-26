@@ -300,6 +300,7 @@ export const adminApi = {
   getPropertyReviewQueue: (tok) => getJson('/admin/properties/review-queue', tok),
   approveAutoProperty: (tok, id) => postJson(`/admin/properties/${id}/approve-auto`, {}, tok),
   rejectAutoProperty: (tok, id) => postJson(`/admin/properties/${id}/reject-auto`, {}, tok),
+  updateAutoProperty: (tok, id, data) => patchJson(`/admin/properties/${id}/auto`, data, tok),
   getPropertyStats: (tok) => getJson('/admin/properties/stats', tok),
   getImageStorageStatus: (tok) => getJson('/admin/image-storage-status', tok),
   getPropertyEventStats: (tok, days) => getJson(`/admin/property-events${buildQuery({ days })}`, tok),

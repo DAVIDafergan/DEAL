@@ -5,7 +5,7 @@ import { listPendingDeals, updateAgentDealStatus, listAllApprovedDealsAdmin, adm
 import { getAllUsers, deleteUserById } from '../store/userStore.js';
 import {
   listPendingClaims, approveClaim, rejectClaim,
-  listPropertiesPendingReview, approveAutoProperty, rejectAutoProperty,
+  listPropertiesPendingReview, approveAutoProperty, rejectAutoProperty, updateAutoCollectedProperty,
   getPropertyStats, hardDeletePropertyAdmin, listInfoReports, dismissInfoReport,
 } from '../store/propertyStore.js';
 import { listEngineRuns, getEngineRun, getLatestEngineRun } from '../store/engineRunStore.js';
@@ -134,6 +134,14 @@ router.post('/properties/:id/approve-auto', async (req, res) => {
 router.post('/properties/:id/reject-auto', async (req, res) => {
   try { await rejectAutoProperty(req.params.id); res.json({ ok: true }); }
   catch { res.status(500).json({ error: 'Internal error' }); }
+});
+
+// Lets an admin correct extracted fields before approving — updateAutoCollectedProperty already
+// whitelists which columns are settable and scopes the UPDATE to source='auto', so this can't
+// touch owner-managed or non-auto-collected rows.
+router.patch('/properties/:id/auto', async (req, res) => {
+  try { await updateAutoCollectedProperty(req.params.id, req.body || {}); res.json({ ok: true }); }
+  catch (err) { console.error('[admin] property auto-edit error:', err.message); res.status(500).json({ error: 'Internal error' }); }
 });
 
 // ── 11.5: image storage status (which backend is active, how much it's storing) ──────────────

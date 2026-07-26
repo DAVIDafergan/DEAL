@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, XCircle, Eye, RefreshCw, ArrowLeft, Trash2, ChevronLeft, ChevronRight, User, LogOut, Users, FileCheck, LayoutDashboard, Clock, Home, BarChart3, Search, ShoppingBag, MousePointerClick, Bot, ShieldCheck, PlayCircle, MapPin, AlertTriangle, Flag, Image as ImageIcon } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, RefreshCw, ArrowLeft, Trash2, ChevronLeft, ChevronRight, User, LogOut, Users, FileCheck, LayoutDashboard, Clock, Home, BarChart3, Search, ShoppingBag, MousePointerClick, Bot, ShieldCheck, PlayCircle, MapPin, AlertTriangle, Flag, Image as ImageIcon, Pencil, Save, X } from 'lucide-react';
 import { Link } from '../components/LocalizedLink.jsx';
 import { adminApi } from '../api/client.js';
 import { Logo } from '../components/Logo.jsx';
@@ -573,11 +573,18 @@ function EngineTab({ token, notify }) {
   );
 }
 
+const PROPERTY_REVIEW_REGIONS = ['north', 'galilee', 'golan', 'carmel', 'center', 'jerusalem', 'south', 'dead_sea', 'eilat'];
+const PROPERTY_REVIEW_TYPES = ['zimmer', 'villa', 'cottage', 'suite'];
+const PROPERTY_EDIT_FIELDS = ['name', 'property_type', 'region', 'city', 'address', 'phone', 'whatsapp', 'email', 'guest_capacity', 'bedrooms', 'beds', 'bathrooms', 'description'];
+
 function PropertyReviewTab({ token, notify }) {
   const [queue, setQueue] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [deletePropertyConfirmId, setDeletePropertyConfirmId] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({});
+  const [savingEdit, setSavingEdit] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -622,6 +629,29 @@ function PropertyReviewTab({ token, notify }) {
     } catch (err) { notify(err.message, 'error'); }
   }
 
+  function startEdit(p) {
+    const form = {};
+    for (const key of PROPERTY_EDIT_FIELDS) form[key] = p[key] ?? '';
+    setEditForm(form);
+    setEditingId(p.id);
+  }
+
+  async function saveEdit(id) {
+    setSavingEdit(true);
+    try {
+      const payload = {};
+      for (const key of PROPERTY_EDIT_FIELDS) {
+        const raw = editForm[key];
+        payload[key] = raw === '' ? null : (['guest_capacity', 'bedrooms', 'beds', 'bathrooms'].includes(key) ? Number(raw) : raw);
+      }
+      await adminApi.updateAutoProperty(token, id, payload);
+      notify('הנכס עודכן ✓');
+      setQueue((prev) => prev.map((p) => (p.id === id ? { ...p, ...payload } : p)));
+      setEditingId(null);
+    } catch (err) { notify(err.message, 'error'); }
+    finally { setSavingEdit(false); }
+  }
+
   return (
     <div dir="rtl">
       {stats && (
@@ -657,38 +687,90 @@ function PropertyReviewTab({ token, notify }) {
           {queue.length === 0 && <p className="adm-list__empty">אין נכסים הממתינים לאישור</p>}
           {queue.map((p) => (
             <div key={p.id} className="adm-row">
-              <div className="adm-row__info">
-                <strong>{p.name}</strong>
-                <span>{p.region} · {p.city || '—'} · confidence: {p.confidence}</span>
-                {p.source_url && (
-                  <a href={p.source_url} target="_blank" rel="noopener noreferrer" className="adm-agent-detail__link">
-                    <Eye size={12} /> מקור
-                  </a>
-                )}
-                {p.description && <span className="adm-row__meta">{p.description}</span>}
-                <span className="adm-row__date">נאסף: {new Date(p.collected_at).toLocaleDateString('he-IL')}</span>
-              </div>
-              <div className="adm-row__actions">
-                <motion.button className="adm-row__approve" whileTap={{ scale: 0.97 }} onClick={() => approve(p.id)}>
-                  <CheckCircle size={16} /> אשר ופרסם
-                </motion.button>
-                <motion.button className="adm-row__reject" whileTap={{ scale: 0.97 }} onClick={() => reject(p.id)}>
-                  <XCircle size={16} /> דחה והסתר
-                </motion.button>
-                {deletePropertyConfirmId === p.id ? (
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.8rem', color: '#b91c1c' }}>מחיקה קשיחה — לצמיתות, לא ניתן לשחזור. בטוח?</span>
-                    <button className="adm-row__reject" onClick={() => hardDelete(p.id)}>כן, מחק לצמיתות</button>
-                    <button onClick={() => setDeletePropertyConfirmId(null)}>ביטול</button>
+              {editingId === p.id ? (
+                <div className="adm-row__info" style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+                  <label>שם<input value={editForm.name} onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))} /></label>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <label style={{ flex: 1 }}>סוג נכס
+                      <select value={editForm.property_type} onChange={(e) => setEditForm((f) => ({ ...f, property_type: e.target.value }))}>
+                        {PROPERTY_REVIEW_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </label>
+                    <label style={{ flex: 1 }}>אזור
+                      <select value={editForm.region} onChange={(e) => setEditForm((f) => ({ ...f, region: e.target.value }))}>
+                        {PROPERTY_REVIEW_REGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
+                      </select>
+                    </label>
                   </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <label style={{ flex: 1 }}>עיר<input value={editForm.city} onChange={(e) => setEditForm((f) => ({ ...f, city: e.target.value }))} /></label>
+                    <label style={{ flex: 1 }}>כתובת<input value={editForm.address} onChange={(e) => setEditForm((f) => ({ ...f, address: e.target.value }))} /></label>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <label style={{ flex: 1 }}>טלפון<input value={editForm.phone} onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))} /></label>
+                    <label style={{ flex: 1 }}>וואטסאפ<input value={editForm.whatsapp} onChange={(e) => setEditForm((f) => ({ ...f, whatsapp: e.target.value }))} /></label>
+                    <label style={{ flex: 1 }}>אימייל<input value={editForm.email} onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))} /></label>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <label style={{ flex: 1 }}>אורחים<input type="number" value={editForm.guest_capacity} onChange={(e) => setEditForm((f) => ({ ...f, guest_capacity: e.target.value }))} /></label>
+                    <label style={{ flex: 1 }}>חדרי שינה<input type="number" value={editForm.bedrooms} onChange={(e) => setEditForm((f) => ({ ...f, bedrooms: e.target.value }))} /></label>
+                    <label style={{ flex: 1 }}>מיטות<input type="number" value={editForm.beds} onChange={(e) => setEditForm((f) => ({ ...f, beds: e.target.value }))} /></label>
+                    <label style={{ flex: 1 }}>חדרי רחצה<input type="number" value={editForm.bathrooms} onChange={(e) => setEditForm((f) => ({ ...f, bathrooms: e.target.value }))} /></label>
+                  </div>
+                  <label>תיאור<textarea rows={2} value={editForm.description} onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))} /></label>
+                </div>
+              ) : (
+                <div className="adm-row__info">
+                  <strong>{p.name}</strong>
+                  <span>{p.property_type} · {p.region} · {p.city || '—'} · confidence: {p.confidence}</span>
+                  <span className="adm-row__meta">
+                    טלפון: {p.phone || '—'} · וואטסאפ: {p.whatsapp || '—'} · אימייל: {p.email || '—'} · אורחים: {p.guest_capacity ?? '—'} ·
+                    חדרי שינה: {p.bedrooms ?? '—'} · מיטות: {p.beds ?? '—'} · חדרי רחצה: {p.bathrooms ?? '—'}
+                  </span>
+                  {p.source_url && (
+                    <a href={p.source_url} target="_blank" rel="noopener noreferrer" className="adm-agent-detail__link">
+                      <Eye size={12} /> מקור
+                    </a>
+                  )}
+                  {p.description && <span className="adm-row__meta">{p.description}</span>}
+                  <span className="adm-row__date">נאסף: {new Date(p.collected_at).toLocaleDateString('he-IL')}</span>
+                </div>
+              )}
+              <div className="adm-row__actions">
+                {editingId === p.id ? (
+                  <>
+                    <motion.button className="adm-row__approve" whileTap={{ scale: 0.97 }} disabled={savingEdit} onClick={() => saveEdit(p.id)}>
+                      <Save size={16} /> שמור
+                    </motion.button>
+                    <button onClick={() => setEditingId(null)} disabled={savingEdit}><X size={14} /> ביטול</button>
+                  </>
                 ) : (
-                  <button
-                    className="adm-row__delete"
-                    style={{ color: '#b91c1c', borderColor: 'rgba(185,28,28,0.3)' }}
-                    onClick={() => setDeletePropertyConfirmId(p.id)}
-                  >
-                    <Trash2 size={14} /> מחק לצמיתות
-                  </button>
+                  <>
+                    <motion.button className="adm-row__approve" whileTap={{ scale: 0.97 }} onClick={() => approve(p.id)}>
+                      <CheckCircle size={16} /> אשר ופרסם
+                    </motion.button>
+                    <button onClick={() => startEdit(p)}>
+                      <Pencil size={14} /> ערוך
+                    </button>
+                    <motion.button className="adm-row__reject" whileTap={{ scale: 0.97 }} onClick={() => reject(p.id)}>
+                      <XCircle size={16} /> דחה והסתר
+                    </motion.button>
+                    {deletePropertyConfirmId === p.id ? (
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.8rem', color: '#b91c1c' }}>מחיקה קשיחה — לצמיתות, לא ניתן לשחזור. בטוח?</span>
+                        <button className="adm-row__reject" onClick={() => hardDelete(p.id)}>כן, מחק לצמיתות</button>
+                        <button onClick={() => setDeletePropertyConfirmId(null)}>ביטול</button>
+                      </div>
+                    ) : (
+                      <button
+                        className="adm-row__delete"
+                        style={{ color: '#b91c1c', borderColor: 'rgba(185,28,28,0.3)' }}
+                        onClick={() => setDeletePropertyConfirmId(p.id)}
+                      >
+                        <Trash2 size={14} /> מחק לצמיתות
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             </div>
