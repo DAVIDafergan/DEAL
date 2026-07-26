@@ -12,6 +12,7 @@ import { listEngineRuns, getEngineRun, getLatestEngineRun } from '../store/engin
 import { getQueryStats, listQueries } from '../store/engineQueryStore.js';
 import { isEmergencyStopped, setEmergencyStop } from '../store/engineSettingsStore.js';
 import { getSessionCost } from '../../engine/extractor/costLogger.js';
+import { getProgress } from '../../engine/progressTracker.js';
 import { authRateLimiter } from '../middleware/rateLimiter.js';
 import { getSiteEventStats } from '../store/propertyEventStore.js';
 import { listReportedReviews, setReviewStatus } from '../store/reviewStore.js';
@@ -248,6 +249,8 @@ router.post('/engine/run-live', async (req, res) => {
     const { runPipeline } = await import('../../engine/pipeline.js');
     const { listQueries } = await import('../store/engineQueryStore.js');
     const { normalizeDomain } = await import('../../core/compliance/blocklist.js');
+    const { startEngineRun, finishEngineRun } = await import('../store/engineRunStore.js');
+    const { startProgress, clearProgress } = await import('../../engine/progressTracker.js');
     const { chromium } = await import('playwright');
 
     const apiKey = process.env.SEARCH_API_KEY;
@@ -270,15 +273,17 @@ router.post('/engine/run-live', async (req, res) => {
     const queries = persisted.length > 0 ? persisted.map((q) => q.query_text) : buildQueryMatrix();
 
     await setEmergencyStop(false);
+    clearProgress();
 
     currentRun = (async () => {
       // Classification now needs each candidate's own real page content (meta tags/JSON-LD/body
       // text — see sourceClassifier.js's reject-by-default heuristic), so this browser stays open
       // through both discovery (seed path) and classification, then closes before the pipeline's
       // own browser takes over for the fetch+extract+load stage.
-      const classifyBrowser = await chromium.launch({ args: ['--no-sandbox'] });
       let approvedSites;
+      let classifyBrowser;
       try {
+        classifyBrowser = await chromium.launch({ args: ['--no-sandbox'] });
         let discoverySites;
         if (searchProvider) {
           const discovery = await runDiscovery(queries, searchProvider);
@@ -290,13 +295,23 @@ router.post('/engine/run-live', async (req, res) => {
 
         const classifications = await classifySources(discoverySites, { browser: classifyBrowser });
         approvedSites = discoverySites.filter((_, i) => classifications[i].classification === 'single_property');
+        startProgress({ domainsDiscovered: discoverySites.length, classified: classifications.length, approved: approvedSites.length });
         if (roundSize) approvedSites = approvedSites.slice(0, roundSize);
+      } catch (err) {
+        // Discovery/classification failing here means runPipeline (which normally owns the
+        // engine_runs row for a run) never even starts — record the failure directly so this
+        // attempt shows up in run history with a real reason instead of just silently vanishing.
+        const runId = await startEngineRun('live');
+        await finishEngineRun(runId, { status: 'failed', errorMessage: err.message });
+        throw err;
       } finally {
-        await classifyBrowser.close();
+        if (classifyBrowser) await classifyBrowser.close();
       }
 
       return runPipeline({ queries, searchProvider, mode: 'live', preDiscoveredSites: approvedSites });
-    })().finally(() => { currentRun = null; });
+    })()
+      .catch((err) => { console.error('[admin] live engine run failed:', err.message); })
+      .finally(() => { currentRun = null; });
 
     res.status(202).json({
       ok: true,
@@ -320,6 +335,7 @@ router.get('/engine/status', async (_req, res) => {
       running: currentRun !== null,
       latestRun: latest,
       liveCost: currentRun !== null ? getSessionCost() : null,
+      liveProgress: getProgress(),
       emergencyStopped: await isEmergencyStopped(),
     });
   } catch { res.status(500).json({ error: 'Internal error' }); }

@@ -10,6 +10,7 @@ import { getSessionCost, resetSessionCost } from './extractor/costLogger.js';
 import { startEngineRun, finishEngineRun } from '../server/store/engineRunStore.js';
 import { recordQueryResult } from '../server/store/engineQueryStore.js';
 import { isEmergencyStopped } from '../server/store/engineSettingsStore.js';
+import { updateProgress, pushRejection } from './progressTracker.js';
 
 // Step 8.5 cost/safety ceilings — checked every loop iteration so a run that blows past its
 // budget stops immediately instead of finishing the whole discovered site list regardless.
@@ -113,10 +114,21 @@ export async function runPipeline({ queries, searchProvider, siteHints = {}, mod
           } else if (err.reason === 'hard_blocked_domain') {
             complianceReport.domainsSkippedHardBlocked.push(site.domain);
           }
+          updateProgress({
+        pagesFetched: stats.pagesFetched, pagesExtracted: stats.pagesExtracted, pagesRejected: stats.pagesRejected,
+        propertiesCreated: stats.propertiesCreated, propertiesUpdated: stats.propertiesUpdated,
+        propertiesQueuedForReview: stats.propertiesQueuedForReview,
+      });
           continue;
         }
         rejectedPages.push({ site: site.siteKey, reason: 'fetch_error', detail: err.message });
         stats.pagesRejected += 1;
+        pushRejection(site.siteKey, `שגיאת טעינה: ${err.message}`);
+        updateProgress({
+        pagesFetched: stats.pagesFetched, pagesExtracted: stats.pagesExtracted, pagesRejected: stats.pagesRejected,
+        propertiesCreated: stats.propertiesCreated, propertiesUpdated: stats.propertiesUpdated,
+        propertiesQueuedForReview: stats.propertiesQueuedForReview,
+      });
         continue;
       }
 
@@ -139,9 +151,20 @@ export async function runPipeline({ queries, searchProvider, siteHints = {}, mod
       if (!extraction.ok) {
         stats.pagesRejected += 1;
         rejectedPages.push({ site: site.siteKey, reason: extraction.reason, detail: extraction.errors });
+        pushRejection(site.siteKey, `חילוץ נכשל: ${extraction.reason}`);
+        updateProgress({
+        pagesFetched: stats.pagesFetched, pagesExtracted: stats.pagesExtracted, pagesRejected: stats.pagesRejected,
+        propertiesCreated: stats.propertiesCreated, propertiesUpdated: stats.propertiesUpdated,
+        propertiesQueuedForReview: stats.propertiesQueuedForReview,
+      });
         continue;
       }
       stats.pagesExtracted += 1;
+      updateProgress({
+        pagesFetched: stats.pagesFetched, pagesExtracted: stats.pagesExtracted, pagesRejected: stats.pagesRejected,
+        propertiesCreated: stats.propertiesCreated, propertiesUpdated: stats.propertiesUpdated,
+        propertiesQueuedForReview: stats.propertiesQueuedForReview,
+      });
 
       if (extraction.descriptionRejectedForCopying) {
         complianceReport.descriptionOverlapChecks.push({ site: site.siteKey, result: 'rejected_copied_text' });
@@ -161,10 +184,21 @@ export async function runPipeline({ queries, searchProvider, siteHints = {}, mod
         stats.pagesRejected += 1;
         stats.propertiesQueuedForReview += 1; // repurposed: count of loader-level rejections (no phone/location, or confidence below floor) — see loader.js
         rejectedPages.push({ site: site.siteKey, reason: loadResult.reason, detail: `confidence=${loadResult.confidence}` });
+        pushRejection(site.siteKey, `נפסל בסף השמירה: ${loadResult.reason} (confidence=${loadResult.confidence})`);
+        updateProgress({
+        pagesFetched: stats.pagesFetched, pagesExtracted: stats.pagesExtracted, pagesRejected: stats.pagesRejected,
+        propertiesCreated: stats.propertiesCreated, propertiesUpdated: stats.propertiesUpdated,
+        propertiesQueuedForReview: stats.propertiesQueuedForReview,
+      });
         continue;
       }
       if (loadResult.action === 'created') stats.propertiesCreated += 1;
       else stats.propertiesUpdated += 1;
+      updateProgress({
+        pagesFetched: stats.pagesFetched, pagesExtracted: stats.pagesExtracted, pagesRejected: stats.pagesRejected,
+        propertiesCreated: stats.propertiesCreated, propertiesUpdated: stats.propertiesUpdated,
+        propertiesQueuedForReview: stats.propertiesQueuedForReview,
+      });
       loadedResults.push({ site: site.siteKey, ...loadResult });
     }
 

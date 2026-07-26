@@ -440,8 +440,8 @@ function EngineTab({ token, notify }) {
   async function handleRun() {
     setStarting(true);
     try {
-      await adminApi.runEngine(token);
-      notify('הריצה החלה — מריץ על אתרי בדיקה מקומיים בלבד');
+      await adminApi.runEngineLive(token, null);
+      notify('הריצה החלה — גילוי מ-seedSources.json וחילוץ ללא מפתחות API');
       pollUntilDone('הריצה הסתיימה ✓');
     } catch (err) {
       notify(err.message || 'שגיאה בהפעלת המנוע', 'error');
@@ -484,7 +484,7 @@ function EngineTab({ token, notify }) {
           onClick={handleRun}
           disabled={starting || status?.running}
         >
-          <PlayCircle size={16} /> {status?.running ? 'רץ כרגע…' : starting ? 'מפעיל…' : 'הרץ מנוע (dry-run, אתרי בדיקה בלבד)'}
+          <PlayCircle size={16} /> {status?.running ? 'רץ כרגע…' : starting ? 'מפעיל…' : 'הרץ מנוע'}
         </motion.button>
         {status?.running && (
           <motion.button
@@ -497,14 +497,59 @@ function EngineTab({ token, notify }) {
           </motion.button>
         )}
         <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-          כפתור dry-run תמיד רץ מול אתרי בדיקה מקומיים — לעולם לא סורק אתרים אמיתיים. הרצה חיה
-          זמינה רק דרך ה-API (POST /admin/engine/run-live) ומסורבת ללא SEARCH_API_KEY.
+          מריץ את שרשרת האיסוף האמיתית: SeedSourceProvider (engine/discovery/seedSources.json) +
+          RuleBasedExtractor — סורק אתרים אמיתיים, בלי צורך ב-SEARCH_API_KEY או ANTHROPIC_API_KEY.
+          נכסים חדשים נכנסים כ"ממתין לאישור" בלבד, אף אחד לא מתפרסם אוטומטית.
         </span>
       </div>
 
       {status?.running && status?.liveCost && (
         <div style={{ padding: '0 20px 12px', fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
           עלות מצטברת בזמן אמת: ${status.liveCost.costUsd} ({status.liveCost.callCount} קריאות LLM)
+        </div>
+      )}
+
+      {status?.running && status?.liveProgress && (
+        <div className="adm-analytics__grid" style={{ padding: '0 20px 12px' }}>
+          <div className="adm-analytics-kpi">
+            <div className="adm-analytics-kpi__icon" style={{ color: '#2563EB', background: 'rgba(37,99,235,0.12)' }}><MapPin size={26} /></div>
+            <div className="adm-analytics-kpi__value">{status.liveProgress.domainsDiscovered}</div>
+            <div className="adm-analytics-kpi__label">דומיינים שהתגלו</div>
+          </div>
+          <div className="adm-analytics-kpi">
+            <div className="adm-analytics-kpi__icon" style={{ color: '#0ea5e9', background: 'rgba(14,165,233,0.12)' }}><ShieldCheck size={26} /></div>
+            <div className="adm-analytics-kpi__value">{status.liveProgress.approved}</div>
+            <div className="adm-analytics-kpi__label">סווגו כצימר</div>
+            <div className="adm-analytics-kpi__sub">מתוך {status.liveProgress.classified} שסווגו</div>
+          </div>
+          <div className="adm-analytics-kpi">
+            <div className="adm-analytics-kpi__icon" style={{ color: '#059669', background: 'rgba(5,150,105,0.12)' }}><Home size={26} /></div>
+            <div className="adm-analytics-kpi__value">{status.liveProgress.propertiesCreated + status.liveProgress.propertiesUpdated}</div>
+            <div className="adm-analytics-kpi__label">נשמרו (ממתינים לאישור)</div>
+            <div className="adm-analytics-kpi__sub">{status.liveProgress.propertiesCreated} חדשים · {status.liveProgress.propertiesUpdated} עודכנו</div>
+          </div>
+          <div className="adm-analytics-kpi">
+            <div className="adm-analytics-kpi__icon" style={{ color: '#f59e0b', background: 'rgba(245,158,11,0.12)' }}><XCircle size={26} /></div>
+            <div className="adm-analytics-kpi__value">{status.liveProgress.pagesRejected}</div>
+            <div className="adm-analytics-kpi__label">נדחו</div>
+            <div className="adm-analytics-kpi__sub">מתוך {status.liveProgress.pagesFetched} שנטענו</div>
+          </div>
+        </div>
+      )}
+
+      {status?.running && status?.liveProgress?.recentRejections?.length > 0 && (
+        <div style={{ padding: '0 20px 16px' }}>
+          <h3 className="dash-section-title" style={{ margin: '4px 0' }}>דחיות אחרונות</h3>
+          <div className="adm-list">
+            {status.liveProgress.recentRejections.map((r, i) => (
+              <div key={i} className="adm-row" style={{ padding: '8px 12px' }}>
+                <div className="adm-row__info">
+                  <span style={{ fontSize: '0.82rem' }}>{r.site}</span>
+                  <span className="adm-row__meta" style={{ color: '#b91c1c' }}>{r.reason}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -561,9 +606,22 @@ function EngineTab({ token, notify }) {
           {runs.map((r) => (
             <div key={r.id} className="adm-row">
               <div className="adm-row__info">
-                <strong>ריצה #{r.id} — {r.status === 'completed' ? '✓ הושלמה' : r.status === 'failed' ? '✗ נכשלה' : '⏳ רצה'}</strong>
+                <strong>
+                  ריצה #{r.id} — {r.status === 'completed' ? '✓ הושלמה' : r.status === 'failed' ? '✗ נכשלה' : '⏳ רצה'}
+                  {r.mode === 'dry_run' && (
+                    <span style={{ fontWeight: 400, fontSize: '0.75rem', color: 'var(--color-text-muted)', marginRight: 8 }}>
+                      (בדיקה פנימית — אתרי fixture מקומיים, לא אתרים אמיתיים)
+                    </span>
+                  )}
+                </strong>
                 <span className="adm-row__date">{new Date(r.started_at).toLocaleString('he-IL')}</span>
-                <span>נכסים: {r.properties_created} חדשים, {r.properties_updated} עודכנו · עלות: ${r.llm_cost_usd}</span>
+                <span>
+                  דומיינים: {r.domains_discovered} · נכסים: {r.properties_created} חדשים, {r.properties_updated} עודכנו,{' '}
+                  {r.properties_queued_for_review} נפסלו בסף · עלות: ${r.llm_cost_usd}
+                </span>
+                {r.status === 'failed' && r.error_message && (
+                  <span className="adm-row__meta" style={{ color: '#b91c1c' }}>סיבת הכישלון: {r.error_message}</span>
+                )}
               </div>
             </div>
           ))}
