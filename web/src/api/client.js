@@ -342,4 +342,7 @@ export const adminApi = {
   deleteAgent: (tok, id) => deleteReq(`/admin/agents/${id}`, tok),
   deleteUser: (tok, id) => deleteReq(`/admin/users/${id}`, tok),
   hardDeleteProperty: (tok, id) => deleteReq(`/admin/properties/${id}`, tok),
+  getAllProperties: (tok, params) => getJson(`/admin/properties${buildQuery(params)}`, tok),
+  setPropertyStatus: (tok, id, status) => patchJson(`/admin/properties/${id}/status`, { status }, tok),
+  updateProperty: (tok, id, data) => patchJson(`/admin/properties/${id}`, data, tok),
 };

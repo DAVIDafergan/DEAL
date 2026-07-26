@@ -18,6 +18,24 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// 11.15 — a blind "every <img src> on the page" collector also picks up flag icons, social
+// share/logo icons, and tracking pixels (facebook.com/tr) that aren't property photos at all —
+// discovered when the admin review queue started showing an owner's own site logo and language-
+// switcher flags instead of the actual property. Keyword/domain denylist, not a whitelist: a
+// real photo URL can look like almost anything, but junk assets reliably share these markers.
+const NON_PROPERTY_IMAGE_PATTERNS = [
+  /\/flags?\//i, /\/icons?\//i, /logo/i, /favicon/i, /sprite/i,
+  /like_icon|share_icon|social/i,
+  /logo-facebook|logo-instagram|logo-youtube|logo-twitter/i,
+  /\.svg(\?|$)/i,
+  /facebook\.com\/tr\b/i, // Meta Pixel tracking beacon, not an image
+  /fatfish\.co\.il/i, // third-party widget branding seen on several scraped directory sites
+];
+
+function isLikelyNonPropertyImage(url) {
+  return NON_PROPERTY_IMAGE_PATTERNS.some((pattern) => pattern.test(url));
+}
+
 /**
  * Lightweight regex-based extraction (no DOM-parsing dependency) — meta tags, JSON-LD blocks,
  * image *URLs only* (never downloaded — see the caller), and phone/WhatsApp contact links.
@@ -48,6 +66,7 @@ function extractFromHtml(html, baseUrl) {
     [...html.matchAll(/<img[^>]+src=["']([^"']+)["']/gi)]
       .map((m) => { try { return new URL(m[1], baseUrl).toString(); } catch { return null; } })
       .filter(Boolean)
+      .filter((url) => !isLikelyNonPropertyImage(url))
   )];
 
   const jsonLd = [...html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)]

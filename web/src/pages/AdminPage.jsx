@@ -1,32 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, XCircle, Eye, RefreshCw, ArrowLeft, Trash2, ChevronLeft, ChevronRight, User, LogOut, Users, FileCheck, LayoutDashboard, Clock, Home, BarChart3, Search, ShoppingBag, MousePointerClick, Bot, ShieldCheck, PlayCircle, MapPin, AlertTriangle, Flag, Image as ImageIcon, Pencil, Save, X } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, RefreshCw, ArrowLeft, Trash2, ChevronLeft, ChevronRight, User, LogOut, Users, FileCheck, LayoutDashboard, Clock, Home, BarChart3, Search, ShoppingBag, MousePointerClick, Bot, ShieldCheck, PlayCircle, MapPin, AlertTriangle, Flag, Image as ImageIcon, ImageOff, Pencil, Save, X, EyeOff, ListFilter } from 'lucide-react';
 import { Link } from '../components/LocalizedLink.jsx';
 import { adminApi } from '../api/client.js';
 import { Logo } from '../components/Logo.jsx';
 import { SiteFooter } from '../components/SiteFooter.jsx';
+import { regionLabel } from '../data/propertyOptions.js';
 
-const AGENTS_PER_PAGE = 25;
-
-function DealPreview({ deal }) {
-  return (
-    <div className="adm-deal-preview">
-      {deal.photo_url && <img src={deal.photo_url} alt="" className="adm-deal-preview__img" />}
-      <div className="adm-deal-preview__info">
-        <strong>{deal.destination_name || deal.destination}</strong>
-        <span>{deal.departure_date}{deal.return_date ? ` → ${deal.return_date}` : ''}</span>
-        <span>{deal.price} {deal.currency}</span>
-        {deal.purchase_link && <a href={deal.purchase_link} target="_blank" rel="noopener noreferrer"><Eye size={12} /> צפה בלינק</a>}
-        <span>סוכן: {deal.business_name}</span>
-        {deal.airline && <span>✈ {deal.airline}</span>}
-        {deal.hotel_name && <span>🏨 {deal.hotel_name}{deal.hotel_stars ? ` ${'★'.repeat(Number(deal.hotel_stars))}` : ''}</span>}
-        {deal.car_type && <span>🚗 {deal.car_type}{deal.car_company ? ` · ${deal.car_company}` : ''}</span>}
-        {deal.click_count != null && <span>👆 {deal.click_count} קליקים</span>}
-        {deal.purchase_count > 0 && <span>🛍 {deal.purchase_count} רכישות</span>}
-      </div>
-    </div>
-  );
-}
+const AGENTS_PER_PAGE = 10;
+const PROPERTIES_PER_PAGE = 10;
+const REVIEW_QUEUE_PER_PAGE = 10;
+const USERS_PER_PAGE = 10;
+const CONTACT_PER_PAGE = 10;
 
 function Pagination({ page, totalPages, onPage }) {
   if (totalPages <= 1) return null;
@@ -117,95 +102,7 @@ function LoginScreen({ onLogin }) {
   );
 }
 
-function AnalyticsTab({ token }) {
-  const now = new Date();
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    setLoading(true);
-    adminApi.getAnalytics(token, year, month)
-      .then(d => setData(d))
-      .catch(() => setData(null))
-      .finally(() => setLoading(false));
-  }, [token, year, month]);
-
-  const MONTHS_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
-
-  const yearOptions = [];
-  for (let y = now.getFullYear(); y >= now.getFullYear() - 2; y--) yearOptions.push(y);
-
-  return (
-    <div className="adm-analytics" dir="rtl">
-      {/* Month selector */}
-      <div className="adm-analytics__filters">
-        <select className="adm-analytics__select" value={month} onChange={e => setMonth(Number(e.target.value))}>
-          {MONTHS_HE.map((m, i) => <option key={i+1} value={i+1}>{m}</option>)}
-        </select>
-        <select className="adm-analytics__select" value={year} onChange={e => setYear(Number(e.target.value))}>
-          {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
-        </select>
-      </div>
-
-      {loading && <p style={{ textAlign: 'center', padding: 32, color: 'var(--color-text-muted)' }}>טוען…</p>}
-
-      {!loading && data && (
-        <div className="adm-analytics__grid">
-          <div className="adm-analytics-kpi">
-            <div className="adm-analytics-kpi__icon" style={{ color: '#059669', background: 'rgba(5,150,105,0.12)' }}>
-              <ShoppingBag size={26} />
-            </div>
-            <div className="adm-analytics-kpi__value">{data.purchases_total}</div>
-            <div className="adm-analytics-kpi__label">רכישות החודש</div>
-            <div className="adm-analytics-kpi__sub">{data.purchases_count} דילים נרכשו</div>
-          </div>
-
-          <div className="adm-analytics-kpi">
-            <div className="adm-analytics-kpi__icon" style={{ color: '#f59e0b', background: 'rgba(245,158,11,0.12)' }}>
-              <MousePointerClick size={26} />
-            </div>
-            <div className="adm-analytics-kpi__value">{data.clicks_total}</div>
-            <div className="adm-analytics-kpi__label">קליקים (סה"כ)</div>
-            <div className="adm-analytics-kpi__sub">מצטבר — כל הדילים הפעילים</div>
-          </div>
-
-          <div className="adm-analytics-kpi">
-            <div className="adm-analytics-kpi__icon" style={{ color: '#2563EB', background: 'rgba(37,99,235,0.12)' }}>
-              <FileCheck size={26} />
-            </div>
-            <div className="adm-analytics-kpi__value">{data.deals_active}</div>
-            <div className="adm-analytics-kpi__label">דילים פעילים כרגע</div>
-            <div className="adm-analytics-kpi__sub">{data.deals_published} פורסמו החודש</div>
-          </div>
-
-          <div className="adm-analytics-kpi">
-            <div className="adm-analytics-kpi__icon" style={{ color: '#8b5cf6', background: 'rgba(139,92,246,0.12)' }}>
-              <Users size={26} />
-            </div>
-            <div className="adm-analytics-kpi__value">{data.agents_new}</div>
-            <div className="adm-analytics-kpi__label">סוכנים חדשים החודש</div>
-            <div className="adm-analytics-kpi__sub">סה"כ {data.agents_total} סוכנים</div>
-          </div>
-
-          <div className="adm-analytics-kpi">
-            <div className="adm-analytics-kpi__icon" style={{ color: '#06b6d4', background: 'rgba(6,182,212,0.12)' }}>
-              <User size={26} />
-            </div>
-            <div className="adm-analytics-kpi__value">{data.users_new}</div>
-            <div className="adm-analytics-kpi__label">לקוחות חדשים החודש</div>
-            <div className="adm-analytics-kpi__sub">סה"כ {data.users_total} לקוחות</div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/** 10.5: site-wide property view/click aggregate — distinct from AnalyticsTab above, which is
- * the pre-pivot flight/agent-deals analytics (still live for whatever residual data exists
- * there, not touched). */
+/** 10.5: site-wide property view/click aggregate. */
 function PropertyAnalyticsTab({ token }) {
   const [days, setDays] = useState(30);
   const [data, setData] = useState(null);
@@ -361,7 +258,7 @@ function ReviewModerationTab({ token, notify }) {
             ) : (
               <button className="agent-form__btn agent-form__btn--ghost" onClick={() => act(r.id, 'restore')}>שחזר</button>
             )}
-            <button className="agent-form__btn" style={{ color: '#dc2626' }} onClick={() => act(r.id, 'delete')}>מחק לצמיתות</button>
+            <button className="agent-form__btn" style={{ color: 'var(--ds-wine)' }} onClick={() => act(r.id, 'delete')}>מחק לצמיתות</button>
           </div>
         </div>
       ))}
@@ -512,24 +409,24 @@ function EngineTab({ token, notify }) {
       {status?.running && status?.liveProgress && (
         <div className="adm-analytics__grid" style={{ padding: '0 20px 12px' }}>
           <div className="adm-analytics-kpi">
-            <div className="adm-analytics-kpi__icon" style={{ color: '#2563EB', background: 'rgba(37,99,235,0.12)' }}><MapPin size={26} /></div>
+            <div className="adm-analytics-kpi__icon" style={{ color: 'var(--ds-hearth)', background: 'rgba(193,89,43,0.12)' }}><MapPin size={26} /></div>
             <div className="adm-analytics-kpi__value">{status.liveProgress.domainsDiscovered}</div>
             <div className="adm-analytics-kpi__label">דומיינים שהתגלו</div>
           </div>
           <div className="adm-analytics-kpi">
-            <div className="adm-analytics-kpi__icon" style={{ color: '#0ea5e9', background: 'rgba(14,165,233,0.12)' }}><ShieldCheck size={26} /></div>
+            <div className="adm-analytics-kpi__icon" style={{ color: 'var(--ds-ash)', background: 'rgba(122,108,91,0.12)' }}><ShieldCheck size={26} /></div>
             <div className="adm-analytics-kpi__value">{status.liveProgress.approved}</div>
             <div className="adm-analytics-kpi__label">סווגו כצימר</div>
             <div className="adm-analytics-kpi__sub">מתוך {status.liveProgress.classified} שסווגו</div>
           </div>
           <div className="adm-analytics-kpi">
-            <div className="adm-analytics-kpi__icon" style={{ color: '#059669', background: 'rgba(5,150,105,0.12)' }}><Home size={26} /></div>
+            <div className="adm-analytics-kpi__icon" style={{ color: 'var(--ds-olive)', background: 'rgba(91,107,78,0.12)' }}><Home size={26} /></div>
             <div className="adm-analytics-kpi__value">{status.liveProgress.propertiesCreated + status.liveProgress.propertiesUpdated}</div>
             <div className="adm-analytics-kpi__label">נשמרו (ממתינים לאישור)</div>
             <div className="adm-analytics-kpi__sub">{status.liveProgress.propertiesCreated} חדשים · {status.liveProgress.propertiesUpdated} עודכנו</div>
           </div>
           <div className="adm-analytics-kpi">
-            <div className="adm-analytics-kpi__icon" style={{ color: '#f59e0b', background: 'rgba(245,158,11,0.12)' }}><XCircle size={26} /></div>
+            <div className="adm-analytics-kpi__icon" style={{ color: 'var(--ds-gold)', background: 'rgba(184,134,11,0.12)' }}><XCircle size={26} /></div>
             <div className="adm-analytics-kpi__value">{status.liveProgress.pagesRejected}</div>
             <div className="adm-analytics-kpi__label">נדחו</div>
             <div className="adm-analytics-kpi__sub">מתוך {status.liveProgress.pagesFetched} שנטענו</div>
@@ -545,7 +442,7 @@ function EngineTab({ token, notify }) {
               <div key={i} className="adm-row" style={{ padding: '8px 12px' }}>
                 <div className="adm-row__info">
                   <span style={{ fontSize: '0.82rem' }}>{r.site}</span>
-                  <span className="adm-row__meta" style={{ color: '#b91c1c' }}>{r.reason}</span>
+                  <span className="adm-row__meta" style={{ color: 'var(--ds-wine)' }}>{r.reason}</span>
                 </div>
               </div>
             ))}
@@ -569,24 +466,24 @@ function EngineTab({ token, notify }) {
         <>
           <div className="adm-analytics__grid" style={{ padding: '0 20px' }}>
             <div className="adm-analytics-kpi">
-              <div className="adm-analytics-kpi__icon" style={{ color: '#2563EB', background: 'rgba(37,99,235,0.12)' }}><MapPin size={26} /></div>
+              <div className="adm-analytics-kpi__icon" style={{ color: 'var(--ds-hearth)', background: 'rgba(193,89,43,0.12)' }}><MapPin size={26} /></div>
               <div className="adm-analytics-kpi__value">{latest.domains_discovered}</div>
               <div className="adm-analytics-kpi__label">דומיינים שהתגלו</div>
             </div>
             <div className="adm-analytics-kpi">
-              <div className="adm-analytics-kpi__icon" style={{ color: '#059669', background: 'rgba(5,150,105,0.12)' }}><CheckCircle size={26} /></div>
+              <div className="adm-analytics-kpi__icon" style={{ color: 'var(--ds-olive)', background: 'rgba(91,107,78,0.12)' }}><CheckCircle size={26} /></div>
               <div className="adm-analytics-kpi__value">{latest.pages_extracted}</div>
               <div className="adm-analytics-kpi__label">דפים חולצו בהצלחה</div>
               <div className="adm-analytics-kpi__sub">{latest.pages_rejected} נדחו</div>
             </div>
             <div className="adm-analytics-kpi">
-              <div className="adm-analytics-kpi__icon" style={{ color: '#f59e0b', background: 'rgba(245,158,11,0.12)' }}><Home size={26} /></div>
+              <div className="adm-analytics-kpi__icon" style={{ color: 'var(--ds-gold)', background: 'rgba(184,134,11,0.12)' }}><Home size={26} /></div>
               <div className="adm-analytics-kpi__value">{latest.properties_created}</div>
               <div className="adm-analytics-kpi__label">נכסים חדשים</div>
               <div className="adm-analytics-kpi__sub">{latest.properties_updated} עודכנו</div>
             </div>
             <div className="adm-analytics-kpi">
-              <div className="adm-analytics-kpi__icon" style={{ color: '#8b5cf6', background: 'rgba(139,92,246,0.12)' }}><AlertTriangle size={26} /></div>
+              <div className="adm-analytics-kpi__icon" style={{ color: 'var(--ds-hearth-dark)', background: 'rgba(156,67,30,0.12)' }}><AlertTriangle size={26} /></div>
               <div className="adm-analytics-kpi__value">{latest.properties_queued_for_review}</div>
               <div className="adm-analytics-kpi__label">ממתינים לאישור ידני</div>
             </div>
@@ -620,7 +517,7 @@ function EngineTab({ token, notify }) {
                   {r.properties_queued_for_review} נפסלו בסף · עלות: ${r.llm_cost_usd}
                 </span>
                 {r.status === 'failed' && r.error_message && (
-                  <span className="adm-row__meta" style={{ color: '#b91c1c' }}>סיבת הכישלון: {r.error_message}</span>
+                  <span className="adm-row__meta" style={{ color: 'var(--ds-wine)' }}>סיבת הכישלון: {r.error_message}</span>
                 )}
               </div>
             </div>
@@ -643,6 +540,7 @@ function PropertyReviewTab({ token, notify }) {
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [savingEdit, setSavingEdit] = useState(false);
+  const [queuePage, setQueuePage] = useState(1);
 
   async function load() {
     setLoading(true);
@@ -715,23 +613,23 @@ function PropertyReviewTab({ token, notify }) {
       {stats && (
         <div className="adm-analytics__grid" style={{ padding: '16px 20px 0' }}>
           <div className="adm-analytics-kpi">
-            <div className="adm-analytics-kpi__icon" style={{ color: '#2563EB', background: 'rgba(37,99,235,0.12)' }}><Home size={26} /></div>
+            <div className="adm-analytics-kpi__icon" style={{ color: 'var(--ds-hearth)', background: 'rgba(193,89,43,0.12)' }}><Home size={26} /></div>
             <div className="adm-analytics-kpi__value">{stats.total}</div>
             <div className="adm-analytics-kpi__label">סה"כ נכסים</div>
           </div>
           <div className="adm-analytics-kpi">
-            <div className="adm-analytics-kpi__icon" style={{ color: '#059669', background: 'rgba(5,150,105,0.12)' }}><Bot size={26} /></div>
+            <div className="adm-analytics-kpi__icon" style={{ color: 'var(--ds-olive)', background: 'rgba(91,107,78,0.12)' }}><Bot size={26} /></div>
             <div className="adm-analytics-kpi__value">{stats.autoCollection.totalAuto}</div>
             <div className="adm-analytics-kpi__label">נאספו אוטומטית</div>
             <div className="adm-analytics-kpi__sub">{stats.autoCollection.successRate}% אחוז פרסום</div>
           </div>
           <div className="adm-analytics-kpi">
-            <div className="adm-analytics-kpi__icon" style={{ color: '#f59e0b', background: 'rgba(245,158,11,0.12)' }}><Clock size={26} /></div>
+            <div className="adm-analytics-kpi__icon" style={{ color: 'var(--ds-gold)', background: 'rgba(184,134,11,0.12)' }}><Clock size={26} /></div>
             <div className="adm-analytics-kpi__value">{stats.autoCollection.pendingReview}</div>
             <div className="adm-analytics-kpi__label">ממתינים לאישור</div>
           </div>
           <div className="adm-analytics-kpi">
-            <div className="adm-analytics-kpi__icon" style={{ color: '#8b5cf6', background: 'rgba(139,92,246,0.12)' }}><ShieldCheck size={26} /></div>
+            <div className="adm-analytics-kpi__icon" style={{ color: 'var(--ds-hearth-dark)', background: 'rgba(156,67,30,0.12)' }}><ShieldCheck size={26} /></div>
             <div className="adm-analytics-kpi__value">{stats.autoCollection.avgConfidence}</div>
             <div className="adm-analytics-kpi__label">confidence ממוצע</div>
           </div>
@@ -743,7 +641,7 @@ function PropertyReviewTab({ token, notify }) {
       {!loading && (
         <div className="adm-list">
           {queue.length === 0 && <p className="adm-list__empty">אין נכסים הממתינים לאישור</p>}
-          {queue.map((p) => (
+          {queue.slice((queuePage - 1) * REVIEW_QUEUE_PER_PAGE, queuePage * REVIEW_QUEUE_PER_PAGE).map((p) => (
             <div key={p.id} className="adm-row">
               {editingId === p.id ? (
                 <div className="adm-row__info" style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
@@ -790,6 +688,25 @@ function PropertyReviewTab({ token, notify }) {
                       <Eye size={12} /> מקור
                     </a>
                   )}
+                  {/* 11.15 — display-only (never downloaded/proxied to our server): straight <img>
+                      tags pointing at the source site's own image URLs, so an admin can actually
+                      see the property before approving it. */}
+                  {p.source_image_urls?.length > 0 ? (
+                    <div className="adm-row__photos">
+                      {p.source_image_urls.slice(0, 6).map((url, i) => (
+                        <img
+                          key={i}
+                          src={url}
+                          alt=""
+                          className="adm-row__photo"
+                          loading="lazy"
+                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="adm-row__no-photos"><ImageOff size={13} /> אין תמונות מקור</span>
+                  )}
                   {p.description && <span className="adm-row__meta">{p.description}</span>}
                   <span className="adm-row__date">נאסף: {new Date(p.collected_at).toLocaleDateString('he-IL')}</span>
                 </div>
@@ -815,14 +732,14 @@ function PropertyReviewTab({ token, notify }) {
                     </motion.button>
                     {deletePropertyConfirmId === p.id ? (
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <span style={{ fontSize: '0.8rem', color: '#b91c1c' }}>מחיקה קשיחה — לצמיתות, לא ניתן לשחזור. בטוח?</span>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--ds-wine)' }}>מחיקה קשיחה — לצמיתות, לא ניתן לשחזור. בטוח?</span>
                         <button className="adm-row__reject" onClick={() => hardDelete(p.id)}>כן, מחק לצמיתות</button>
                         <button onClick={() => setDeletePropertyConfirmId(null)}>ביטול</button>
                       </div>
                     ) : (
                       <button
                         className="adm-row__delete"
-                        style={{ color: '#b91c1c', borderColor: 'rgba(185,28,28,0.3)' }}
+                        style={{ color: 'var(--ds-wine)', borderColor: 'rgba(140,47,57,0.3)' }}
                         onClick={() => setDeletePropertyConfirmId(p.id)}
                       >
                         <Trash2 size={14} /> מחק לצמיתות
@@ -833,6 +750,199 @@ function PropertyReviewTab({ token, notify }) {
               </div>
             </div>
           ))}
+          <Pagination page={queuePage} totalPages={Math.ceil(queue.length / REVIEW_QUEUE_PER_PAGE)} onPage={setQueuePage} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+const PROPERTY_STATUS_VALUES = ['unclaimed', 'claimed', 'active', 'hidden', 'pending', 'draft'];
+const PROPERTY_STATUS_LABELS = {
+  unclaimed: 'לא נתבע', claimed: 'נתבע', active: 'פעיל', hidden: 'מוסתר', pending: 'ממתין לבעלים', draft: 'טיוטה',
+};
+
+/** AllPropertiesTab — 11.15: every property regardless of source/status, with search + region/
+ * status filters and quick actions (edit/hide/delete) — distinct from PropertyReviewTab above
+ * (auto-collected + pending review only). Filters/pagination are server-side (adminApi.getAllProperties)
+ * since this table has no natural size cap the way the review queue does. */
+function AllPropertiesTab({ token, notify }) {
+  const [properties, setProperties] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [searchQ, setSearchQ] = useState('');
+  const [region, setRegion] = useState('');
+  const [status, setStatus] = useState('');
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({});
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const searchDebounceRef = useRef(null);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const result = await adminApi.getAllProperties(token, { search: searchQ, region, status, page });
+      setProperties(result.properties || []);
+      setTotal(result.total || 0);
+    } catch (err) {
+      notify(err.message || 'שגיאה בטעינה', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { load(); }, [token, searchQ, region, status, page]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function handleSearchChange(e) {
+    const v = e.target.value;
+    setSearch(v);
+    clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => { setSearchQ(v.trim()); setPage(1); }, 280);
+  }
+
+  async function toggleHide(p) {
+    const newStatus = p.status === 'hidden' ? 'active' : 'hidden';
+    try {
+      await adminApi.setPropertyStatus(token, p.id, newStatus);
+      notify(newStatus === 'hidden' ? 'הנכס הוסתר' : 'הנכס גלוי שוב');
+      setProperties((prev) => prev.map((x) => (x.id === p.id ? { ...x, status: newStatus } : x)));
+    } catch (err) { notify(err.message, 'error'); }
+  }
+
+  async function hardDelete(id) {
+    try {
+      await adminApi.hardDeleteProperty(token, id);
+      notify('הנכס נמחק לצמיתות');
+      setProperties((prev) => prev.filter((p) => p.id !== id));
+      setDeleteConfirmId(null);
+    } catch (err) { notify(err.message, 'error'); }
+  }
+
+  function startEdit(p) {
+    setEditForm({
+      name: p.name || '', property_type: p.property_type, region: p.region, city: p.city || '',
+      address: p.address || '', phone: p.phone || '', whatsapp: p.whatsapp || '', email: p.email || '',
+      guest_capacity: p.guest_capacity ?? '', bedrooms: p.bedrooms ?? '', beds: p.beds ?? '', bathrooms: p.bathrooms ?? '',
+      description: p.description || '',
+    });
+    setEditingId(p.id);
+  }
+
+  async function saveEdit(id) {
+    setSavingEdit(true);
+    try {
+      const payload = { ...editForm };
+      for (const key of ['guest_capacity', 'bedrooms', 'beds', 'bathrooms']) {
+        payload[key] = payload[key] === '' ? null : Number(payload[key]);
+      }
+      await adminApi.updateProperty(token, id, payload);
+      notify('הנכס עודכן ✓');
+      setProperties((prev) => prev.map((p) => (p.id === id ? { ...p, ...payload } : p)));
+      setEditingId(null);
+    } catch (err) { notify(err.message, 'error'); }
+    finally { setSavingEdit(false); }
+  }
+
+  const totalPages = Math.ceil(total / PROPERTIES_PER_PAGE);
+
+  return (
+    <div dir="rtl">
+      <div className="adm-search-bar" style={{ margin: '0 20px 12px' }}>
+        <Search size={15} className="adm-search-bar__icon" />
+        <input
+          className="adm-search-bar__input"
+          type="text"
+          placeholder="חיפוש לפי שם / עיר / טלפון…"
+          value={search}
+          onChange={handleSearchChange}
+          autoComplete="off"
+        />
+        {search && <button className="adm-search-bar__clear" onClick={() => { setSearch(''); setSearchQ(''); setPage(1); }}>×</button>}
+      </div>
+      <div style={{ display: 'flex', gap: 10, padding: '0 20px 14px', flexWrap: 'wrap' }}>
+        <select value={region} onChange={(e) => { setRegion(e.target.value); setPage(1); }}>
+          <option value="">כל האזורים</option>
+          {PROPERTY_REVIEW_REGIONS.map((r) => <option key={r} value={r}>{regionLabel(r, 'he')}</option>)}
+        </select>
+        <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
+          <option value="">כל הסטטוסים</option>
+          {PROPERTY_STATUS_VALUES.map((s) => <option key={s} value={s}>{PROPERTY_STATUS_LABELS[s]}</option>)}
+        </select>
+        <span style={{ alignSelf: 'center', fontSize: '0.82rem', color: 'var(--ds-ash)' }}>{total} נכסים</span>
+      </div>
+
+      {loading && <p style={{ textAlign: 'center', padding: 32, color: 'var(--ds-ash)' }}>טוען…</p>}
+
+      {!loading && (
+        <div className="adm-list">
+          {properties.length === 0 && <p className="adm-list__empty">לא נמצאו נכסים</p>}
+          {properties.map((p) => (
+            <div key={p.id} className="adm-row">
+              {editingId === p.id ? (
+                <div className="adm-row__info" style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+                  <label>שם<input value={editForm.name} onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))} /></label>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <label style={{ flex: 1 }}>עיר<input value={editForm.city} onChange={(e) => setEditForm((f) => ({ ...f, city: e.target.value }))} /></label>
+                    <label style={{ flex: 1 }}>כתובת<input value={editForm.address} onChange={(e) => setEditForm((f) => ({ ...f, address: e.target.value }))} /></label>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <label style={{ flex: 1 }}>טלפון<input value={editForm.phone} onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))} /></label>
+                    <label style={{ flex: 1 }}>וואטסאפ<input value={editForm.whatsapp} onChange={(e) => setEditForm((f) => ({ ...f, whatsapp: e.target.value }))} /></label>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <label style={{ flex: 1 }}>אורחים<input type="number" value={editForm.guest_capacity} onChange={(e) => setEditForm((f) => ({ ...f, guest_capacity: e.target.value }))} /></label>
+                    <label style={{ flex: 1 }}>חדרי שינה<input type="number" value={editForm.bedrooms} onChange={(e) => setEditForm((f) => ({ ...f, bedrooms: e.target.value }))} /></label>
+                  </div>
+                  <label>תיאור<textarea rows={2} value={editForm.description} onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))} /></label>
+                </div>
+              ) : (
+                <div className="adm-row__info">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <strong>{p.name}</strong>
+                    <span className={`adm-status ${p.status === 'active' || p.status === 'claimed' ? 'adm-status--approved' : p.status === 'hidden' ? 'adm-status--rejected' : 'adm-status--pending'}`}>
+                      {PROPERTY_STATUS_LABELS[p.status] || p.status}
+                    </span>
+                    {p.source === 'auto' && <span className="adm-tabs__badge adm-tabs__badge--neutral"><Bot size={11} /> אוטומטי</span>}
+                  </div>
+                  <span>{p.property_type} · {regionLabel(p.region, 'he')} · {p.city || '—'}</span>
+                  <span className="adm-row__meta">טלפון: {p.phone || '—'} · וואטסאפ: {p.whatsapp || '—'}</span>
+                  <span className="adm-row__date">עודכן: {new Date(p.updated_at).toLocaleDateString('he-IL')}</span>
+                </div>
+              )}
+              <div className="adm-row__actions">
+                {editingId === p.id ? (
+                  <>
+                    <motion.button className="adm-row__approve" whileTap={{ scale: 0.97 }} disabled={savingEdit} onClick={() => saveEdit(p.id)}>
+                      <Save size={16} /> שמור
+                    </motion.button>
+                    <button onClick={() => setEditingId(null)} disabled={savingEdit}><X size={14} /> ביטול</button>
+                  </>
+                ) : (
+                  <>
+                    <button onClick={() => startEdit(p)}><Pencil size={14} /> ערוך</button>
+                    <button onClick={() => toggleHide(p)}>
+                      {p.status === 'hidden' ? <><Eye size={14} /> הצג</> : <><EyeOff size={14} /> הסתר</>}
+                    </button>
+                    {deleteConfirmId === p.id ? (
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--ds-wine)' }}>מחיקה קשיחה — לצמיתות. בטוח?</span>
+                        <button className="adm-row__reject" onClick={() => hardDelete(p.id)}>כן, מחק לצמיתות</button>
+                        <button onClick={() => setDeleteConfirmId(null)}>ביטול</button>
+                      </div>
+                    ) : (
+                      <button className="adm-row__delete" onClick={() => setDeleteConfirmId(p.id)}>
+                        <Trash2 size={14} /> מחק לצמיתות
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+          <Pagination page={page} totalPages={totalPages} onPage={setPage} />
         </div>
       )}
     </div>
@@ -844,16 +954,17 @@ export function AdminPage() {
   const [tab, setTab] = useState('pending-agents');
   const [pendingAgents, setPendingAgents] = useState([]);
   const [allAgents, setAllAgents] = useState([]);
-  const [approvedDeals, setApprovedDeals] = useState([]);
   const [loading, setLoading] = useState(false);
   const [rejectId, setRejectId] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
   const [rejectTarget, setRejectTarget] = useState(null);
   const [notification, setNotification] = useState(null);
   const [agentsPage, setAgentsPage] = useState(1);
+  const [usersPage, setUsersPage] = useState(1);
+  const [contactPage, setContactPage] = useState(1);
   const [selectedAgent, setSelectedAgent] = useState(null);
-  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [allUsers, setAllUsers] = useState([]);
+  const [propertyTotal, setPropertyTotal] = useState(0);
   const [contactSubmissions, setContactSubmissions] = useState([]);
   const [deleteAgentConfirmId, setDeleteAgentConfirmId] = useState(null);
   const [deleteUserConfirmId, setDeleteUserConfirmId] = useState(null);
@@ -870,17 +981,17 @@ export function AdminPage() {
     if (!token) return;
     setLoading(true);
     try {
-      const [{ agents: pending }, { agents: all }, { deals: aDeals }, usersRes, contactRes] = await Promise.all([
+      const [{ agents: pending }, { agents: all }, usersRes, contactRes, statsRes] = await Promise.all([
         adminApi.getPendingAgents(token),
         adminApi.getAllAgents(token),
-        adminApi.getApprovedDeals(token),
         adminApi.getUsers(token).catch(() => ({ users: [] })),
         fetch('/api/contact', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).catch(() => ({ submissions: [] })),
+        adminApi.getPropertyStats(token).catch(() => null),
       ]);
       setPendingAgents(pending || []);
       setAllAgents(all || []);
-      setApprovedDeals(aDeals || []);
       setAllUsers(usersRes?.users || []);
+      setPropertyTotal(statsRes?.total || 0);
       setContactSubmissions(contactRes?.submissions || []);
     } catch (err) {
       const isAuthError = err.message?.includes('401')
@@ -929,15 +1040,6 @@ export function AdminPage() {
     } catch (err) { notify(err.message, 'error'); }
   }
 
-  async function deleteDeal(id) {
-    try {
-      await adminApi.deleteDeal(token, id);
-      notify('הדיל נמחק');
-      setApprovedDeals(prev => prev.filter(d => d.id !== id));
-      setDeleteConfirmId(null);
-    } catch (err) { notify(err.message, 'error'); }
-  }
-
   async function deleteAgent(id) {
     try {
       await adminApi.deleteAgent(token, id);
@@ -971,13 +1073,6 @@ export function AdminPage() {
       )
     : allAgents;
 
-  const filteredDeals = searchQ
-    ? approvedDeals.filter(d =>
-        (d.destination_name || d.destination || '').toLowerCase().includes(searchQ) ||
-        (d.business_name || '').toLowerCase().includes(searchQ)
-      )
-    : approvedDeals;
-
   const totalAgentsPages = Math.ceil(filteredAgents.length / AGENTS_PER_PAGE);
   const pagedAgents = filteredAgents.slice((agentsPage - 1) * AGENTS_PER_PAGE, agentsPage * AGENTS_PER_PAGE);
 
@@ -987,7 +1082,7 @@ export function AdminPage() {
     return { label: 'ממתין', cls: 'adm-status--pending' };
   }
 
-  const showSearch = tab === 'all-agents' || tab === 'active-deals' || tab === 'users';
+  const showSearch = tab === 'all-agents' || tab === 'users';
 
   return (
     <div className="adm-page" dir="rtl">
@@ -1034,28 +1129,28 @@ export function AdminPage() {
       {/* KPI row */}
       <div className="adm-kpi-row">
         <div className="adm-kpi">
-          <div className="adm-kpi__icon-box" style={{ background: 'rgba(245,158,11,0.12)', color: '#d97706' }}>
+          <div className="adm-kpi__icon-box" style={{ background: 'rgba(184,134,11,0.12)', color: 'var(--ds-gold)' }}>
             <Clock size={22} />
           </div>
           <span className="adm-kpi__value">{pendingAgents.length}</span>
           <span className="adm-kpi__label">סוכנים ממתינים</span>
         </div>
         <div className="adm-kpi">
-          <div className="adm-kpi__icon-box" style={{ background: 'rgba(37,99,235,0.12)', color: '#2563EB' }}>
+          <div className="adm-kpi__icon-box" style={{ background: 'rgba(193,89,43,0.12)', color: 'var(--ds-hearth)' }}>
             <Users size={22} />
           </div>
           <span className="adm-kpi__value">{allAgents.length}</span>
           <span className="adm-kpi__label">סה"כ סוכנים</span>
         </div>
         <div className="adm-kpi">
-          <div className="adm-kpi__icon-box" style={{ background: 'rgba(5,150,105,0.12)', color: '#059669' }}>
+          <div className="adm-kpi__icon-box" style={{ background: 'rgba(91,107,78,0.12)', color: 'var(--ds-olive)' }}>
             <FileCheck size={22} />
           </div>
-          <span className="adm-kpi__value">{approvedDeals.length}</span>
-          <span className="adm-kpi__label">דילים פעילים</span>
+          <span className="adm-kpi__value">{propertyTotal}</span>
+          <span className="adm-kpi__label">סה"כ נכסים</span>
         </div>
         <div className="adm-kpi">
-          <div className="adm-kpi__icon-box" style={{ background: 'rgba(139,92,246,0.12)', color: '#8b5cf6' }}>
+          <div className="adm-kpi__icon-box" style={{ background: 'rgba(156,67,30,0.12)', color: 'var(--ds-hearth-dark)' }}>
             <User size={22} />
           </div>
           <span className="adm-kpi__value">{allUsers.length}</span>
@@ -1071,19 +1166,16 @@ export function AdminPage() {
         <button className={`adm-tabs__btn${tab === 'all-agents' ? ' is-active' : ''}`} onClick={() => setTab('all-agents')}>
           כל הסוכנים <span className="adm-tabs__badge adm-tabs__badge--neutral">{allAgents.length}</span>
         </button>
-        <button className={`adm-tabs__btn${tab === 'active-deals' ? ' is-active' : ''}`} onClick={() => setTab('active-deals')}>
-          דילים פעילים <span className="adm-tabs__badge adm-tabs__badge--neutral">{approvedDeals.length}</span>
-        </button>
         <button className={`adm-tabs__btn${tab === 'users' ? ' is-active' : ''}`} onClick={() => setTab('users')}>
           <User size={14} /> לקוחות <span className="adm-tabs__badge adm-tabs__badge--neutral">{allUsers.length}</span>
-        </button>
-        <button className={`adm-tabs__btn${tab === 'analytics' ? ' is-active' : ''}`} onClick={() => setTab('analytics')}>
-          <BarChart3 size={14} /> נתונים
         </button>
         <button className={`adm-tabs__btn${tab === 'contact' ? ' is-active' : ''}`} onClick={() => setTab('contact')}>
           📬 פניות הציבור {contactSubmissions.filter(s => !s.is_read).length > 0 && (
             <span className="adm-tabs__badge">{contactSubmissions.filter(s => !s.is_read).length}</span>
           )}
+        </button>
+        <button className={`adm-tabs__btn${tab === 'all-properties' ? ' is-active' : ''}`} onClick={() => setTab('all-properties')}>
+          <ListFilter size={14} /> כל הנכסים הפעילים <span className="adm-tabs__badge adm-tabs__badge--neutral">{propertyTotal}</span>
         </button>
         <button className={`adm-tabs__btn${tab === 'property-review' ? ' is-active' : ''}`} onClick={() => setTab('property-review')}>
           <ShieldCheck size={14} /> נכסים לאישור
@@ -1109,7 +1201,7 @@ export function AdminPage() {
           <input
             className="adm-search-bar__input"
             type="text"
-            placeholder={tab === 'all-agents' ? 'חיפוש סוכן לפי שם / אימייל…' : 'חיפוש דיל לפי יעד / סוכן…'}
+            placeholder={tab === 'all-agents' ? 'חיפוש סוכן לפי שם / אימייל…' : 'חיפוש לקוח לפי שם / אימייל…'}
             value={search}
             onChange={handleSearchChange}
             autoComplete="off"
@@ -1131,43 +1223,48 @@ export function AdminPage() {
               ? allUsers.filter(u => (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q))
               : allUsers;
             if (list.length === 0) return <p className="adm-list__empty">אין לקוחות רשומים</p>;
-            return list.map(u => (
-              <div key={u.id} className="adm-row">
-                <div className="adm-row__info">
-                  <span className="adm-row__name">{u.name}</span>
-                  <span className="adm-row__email">{u.email}</span>
-                  <span className="adm-row__meta">
-                    {u.auth_provider === 'google' ? '🔵 Google' : '📧 אימייל'}
-                    {' · '}
-                    {u.created_at ? new Date(u.created_at).toLocaleDateString('he-IL') : ''}
-                  </span>
-                </div>
-                <div className="adm-row__actions">
-                  {deleteUserConfirmId === u.id ? (
-                    <>
-                      <span style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>למחוק?</span>
-                      <button className="adm-row__reject" onClick={() => deleteUser(u.id)}>כן, מחק</button>
-                      <button onClick={() => setDeleteUserConfirmId(null)}>ביטול</button>
-                    </>
-                  ) : (
-                    <motion.button className="adm-row__delete" whileTap={{ scale: 0.97 }} onClick={() => setDeleteUserConfirmId(u.id)}>
-                      <Trash2 size={14} /> מחק
-                    </motion.button>
-                  )}
-                </div>
-              </div>
-            ));
+            const totalUsersPages = Math.ceil(list.length / USERS_PER_PAGE);
+            const paged = list.slice((usersPage - 1) * USERS_PER_PAGE, usersPage * USERS_PER_PAGE);
+            return (
+              <>
+                {paged.map(u => (
+                  <div key={u.id} className="adm-row">
+                    <div className="adm-row__info">
+                      <span className="adm-row__name">{u.name}</span>
+                      <span className="adm-row__email">{u.email}</span>
+                      <span className="adm-row__meta">
+                        {u.auth_provider === 'google' ? '🔵 Google' : '📧 אימייל'}
+                        {' · '}
+                        {u.created_at ? new Date(u.created_at).toLocaleDateString('he-IL') : ''}
+                      </span>
+                    </div>
+                    <div className="adm-row__actions">
+                      {deleteUserConfirmId === u.id ? (
+                        <>
+                          <span style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>למחוק?</span>
+                          <button className="adm-row__reject" onClick={() => deleteUser(u.id)}>כן, מחק</button>
+                          <button onClick={() => setDeleteUserConfirmId(null)}>ביטול</button>
+                        </>
+                      ) : (
+                        <motion.button className="adm-row__delete" whileTap={{ scale: 0.97 }} onClick={() => setDeleteUserConfirmId(u.id)}>
+                          <Trash2 size={14} /> מחק
+                        </motion.button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                <Pagination page={usersPage} totalPages={totalUsersPages} onPage={setUsersPage} />
+              </>
+            );
           })()}
         </div>
       )}
-
-      {/* Analytics */}
-      {tab === 'analytics' && <AnalyticsTab token={token} />}
 
       {/* Property review queue — auto-collected properties awaiting manual approval. While
           ENGINE_AUTO_PUBLISH_ENABLED is off (the default), this is every auto-collected property
           regardless of confidence (8.6); once enabled, only the 60-79 band plus >=80 without a
           usable phone. See propertyStore.listPropertiesPendingReview. */}
+      {tab === 'all-properties' && <AllPropertiesTab token={token} notify={notify} />}
       {tab === 'property-review' && <PropertyReviewTab token={token} notify={notify} />}
       {tab === 'property-analytics' && <PropertyAnalyticsTab token={token} />}
       {tab === 'review-moderation' && <ReviewModerationTab token={token} notify={notify} />}
@@ -1180,12 +1277,12 @@ export function AdminPage() {
       {tab === 'contact' && (
         <div className="adm-list" dir="rtl">
           {contactSubmissions.length === 0 && <p className="adm-list__empty">אין פניות עדיין</p>}
-          {contactSubmissions.map(sub => (
+          {contactSubmissions.slice((contactPage - 1) * CONTACT_PER_PAGE, contactPage * CONTACT_PER_PAGE).map(sub => (
             <div key={sub.id} className={`adm-row${sub.is_read ? ' adm-row--read' : ''}`}>
               <div className="adm-row__info">
                 <strong>{sub.name}</strong>
                 <span>{sub.email}{sub.phone ? ` · ${sub.phone}` : ''}</span>
-                <span className="adm-row__meta" style={{ whiteSpace: 'pre-wrap', fontSize: '0.85rem', color: '#1e293b', marginTop: 4 }}>{sub.message}</span>
+                <span className="adm-row__meta" style={{ whiteSpace: 'pre-wrap', fontSize: '0.85rem', color: 'var(--ds-bone)', marginTop: 4 }}>{sub.message}</span>
                 <span className="adm-row__date">{new Date(sub.created_at).toLocaleString('he-IL')}</span>
               </div>
               <div className="adm-row__actions">
@@ -1203,6 +1300,7 @@ export function AdminPage() {
               </div>
             </div>
           ))}
+          <Pagination page={contactPage} totalPages={Math.ceil(contactSubmissions.length / CONTACT_PER_PAGE)} onPage={setContactPage} />
         </div>
       )}
 
@@ -1272,17 +1370,17 @@ export function AdminPage() {
                           <Eye size={12} /> פרופיל ציבורי
                         </a>
                       </div>
-                      <div className="adm-agent-detail__row" style={{ marginTop: 8, borderTop: '1px solid rgba(185,28,28,0.15)', paddingTop: 8 }}>
+                      <div className="adm-agent-detail__row" style={{ marginTop: 8, borderTop: '1px solid rgba(140,47,57,0.15)', paddingTop: 8 }}>
                         {deleteAgentConfirmId === agent.id ? (
                           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                            <span style={{ fontSize: '0.82rem', color: '#b91c1c' }}>למחוק את כל הנתונים של הסוכן?</span>
+                            <span style={{ fontSize: '0.82rem', color: 'var(--ds-wine)' }}>למחוק את כל הנתונים של הסוכן?</span>
                             <button className="adm-row__reject" onClick={() => deleteAgent(agent.id)}>כן, מחק</button>
                             <button onClick={() => setDeleteAgentConfirmId(null)}>ביטול</button>
                           </div>
                         ) : (
                           <button
                             className="adm-row__delete"
-                            style={{ color: '#b91c1c', borderColor: 'rgba(185,28,28,0.3)' }}
+                            style={{ color: 'var(--ds-wine)', borderColor: 'rgba(140,47,57,0.3)' }}
                             onClick={() => setDeleteAgentConfirmId(agent.id)}
                           >
                             <Trash2 size={13} /> מחק סוכן
@@ -1299,30 +1397,6 @@ export function AdminPage() {
         </div>
       )}
 
-      {/* Active deals */}
-      {!loading && tab === 'active-deals' && (
-        <div className="adm-list">
-          {filteredDeals.length === 0 && <p className="adm-list__empty">{searchQ ? 'לא נמצאו תוצאות' : 'אין דילים פעילים'}</p>}
-          {filteredDeals.map(deal => (
-            <div key={deal.id} className="adm-row">
-              <DealPreview deal={deal} />
-              <div className="adm-row__actions">
-                {deleteConfirmId === deal.id ? (
-                  <>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>למחוק?</span>
-                    <button className="adm-row__reject" onClick={() => deleteDeal(deal.id)}>כן, מחק</button>
-                    <button onClick={() => setDeleteConfirmId(null)}>ביטול</button>
-                  </>
-                ) : (
-                  <motion.button className="adm-row__delete" whileTap={{ scale: 0.97 }} onClick={() => setDeleteConfirmId(deal.id)}>
-                    <Trash2 size={14} /> מחק
-                  </motion.button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
       <SiteFooter />
     </div>
   );

@@ -7,6 +7,7 @@ import {
   listPendingClaims, approveClaim, rejectClaim,
   listPropertiesPendingReview, approveAutoProperty, rejectAutoProperty, updateAutoCollectedProperty,
   getPropertyStats, hardDeletePropertyAdmin, listInfoReports, dismissInfoReport,
+  listPropertiesForAdmin, adminSetPropertyStatus, adminUpdateProperty,
 } from '../store/propertyStore.js';
 import { listEngineRuns, getEngineRun, getLatestEngineRun } from '../store/engineRunStore.js';
 import { getQueryStats, listQueries } from '../store/engineQueryStore.js';
@@ -143,6 +144,45 @@ router.post('/properties/:id/reject-auto', async (req, res) => {
 router.patch('/properties/:id/auto', async (req, res) => {
   try { await updateAutoCollectedProperty(req.params.id, req.body || {}); res.json({ ok: true }); }
   catch (err) { console.error('[admin] property auto-edit error:', err.message); res.status(500).json({ error: 'Internal error' }); }
+});
+
+// ── 11.15: "all active properties" tab — every property regardless of source/status, with
+// search + region/status filters and 10-per-page pagination, distinct from the review queue
+// above (which is auto-collected + pending only) and from claims (owner-verification only). ────
+
+router.get('/properties', async (req, res) => {
+  try {
+    const { search, region, status, page } = req.query;
+    const result = await listPropertiesForAdmin({ search, region, status, page: Number(page) || 1, perPage: 10 });
+    res.json(result);
+  } catch (err) {
+    console.error('[admin] list properties error:', err.message);
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
+const ADMIN_SETTABLE_STATUSES = ['active', 'hidden', 'unclaimed'];
+
+router.patch('/properties/:id/status', async (req, res) => {
+  try {
+    const { status } = req.body || {};
+    if (!ADMIN_SETTABLE_STATUSES.includes(status)) return res.status(400).json({ error: 'Invalid status' });
+    await adminSetPropertyStatus(req.params.id, status);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[admin] set property status error:', err.message);
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
+router.patch('/properties/:id', async (req, res) => {
+  try {
+    await adminUpdateProperty(req.params.id, req.body || {});
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[admin] update property error:', err.message);
+    res.status(500).json({ error: 'Internal error' });
+  }
 });
 
 // ── 11.5: image storage status (which backend is active, how much it's storing) ──────────────

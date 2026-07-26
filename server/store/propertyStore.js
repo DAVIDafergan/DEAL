@@ -798,6 +798,63 @@ export async function hardDeletePropertyAdmin(id) {
   await pool.query('DELETE FROM properties WHERE id = ?', [id]);
 }
 
+// 11.15 — admin "all properties" tab: every property regardless of source/status (unlike every
+// guest-facing query in this file, deliberately has NO hidden/draft/confidence visibility gate —
+// an admin needs to see and manage everything, including what's currently invisible to guests).
+export async function listPropertiesForAdmin({ search, region, status, page = 1, perPage = 10 } = {}) {
+  const pool = getPool();
+  const where = ['deleted_at IS NULL'];
+  const vals = [];
+  if (region) { where.push('region = ?'); vals.push(region); }
+  if (status) { where.push('status = ?'); vals.push(status); }
+  if (search) {
+    where.push('(name LIKE ? OR city LIKE ? OR phone LIKE ? OR whatsapp LIKE ?)');
+    const like = `%${search}%`;
+    vals.push(like, like, like, like);
+  }
+  const whereSql = where.join(' AND ');
+  const [[{ total }]] = await pool.query(`SELECT COUNT(*) AS total FROM properties WHERE ${whereSql}`, vals);
+  const offset = Math.max(0, (page - 1) * perPage);
+  const [rows] = await pool.query(
+    `SELECT * FROM properties WHERE ${whereSql} ORDER BY updated_at DESC LIMIT ? OFFSET ?`,
+    [...vals, perPage, offset]
+  );
+  return { properties: rows.map(parseProperty), total };
+}
+
+/** Admin-only direct status override (hide/unhide/reset-to-unclaimed) — separate from the owner
+ * publish flow and from rejectAutoProperty (which also flips auto_review_status). Restricted to
+ * a small allowlist at the route layer so this can never be used to fake 'claimed'/'draft'. */
+export async function adminSetPropertyStatus(id, status) {
+  const pool = getPool();
+  await pool.query('UPDATE properties SET status = ?, updated_at = ? WHERE id = ?', [status, nowStr(), id]);
+}
+
+/** Admin-only field edit for the "all properties" tab — same settable whitelist as
+ * updateAutoCollectedProperty, but works on ANY property regardless of source (that one is
+ * intentionally scoped to source='auto' only). No collected_at bump — this isn't a re-collection. */
+export async function adminUpdateProperty(id, fields) {
+  const pool = getPool();
+  const settable = [
+    'name', 'description', 'property_type', 'region', 'city', 'address',
+    'guest_capacity', 'bedrooms', 'beds', 'bathrooms',
+    'phone', 'whatsapp', 'email', 'website',
+  ];
+  const sets = [];
+  const vals = [];
+  for (const key of settable) {
+    if (!Object.hasOwn(fields, key)) continue;
+    let value = fields[key];
+    if ((key === 'phone' || key === 'whatsapp') && value) value = normalizePhone(value) || value;
+    sets.push(`${key} = ?`);
+    vals.push(value);
+  }
+  if (sets.length === 0) return;
+  sets.push('updated_at = ?');
+  vals.push(nowStr(), id);
+  await pool.query(`UPDATE properties SET ${sets.join(', ')} WHERE id = ?`, vals);
+}
+
 /** Public owner-profile listing — only claimed/active, never hidden/opted-out (mirrors searchProperties' guard). */
 export async function listPublicPropertiesByOwner(ownerId) {
   const pool = getPool();

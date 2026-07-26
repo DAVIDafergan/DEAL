@@ -3,11 +3,16 @@ import { findDuplicate, matchAgainstCandidates } from '../dedup/matcher.js';
 import { mergeExtractions } from '../dedup/merger.js';
 
 const MIN_CONFIDENCE = 60;
+const MIN_DESCRIPTION_LENGTH = 20;
 
 function computeOverallConfidence(fieldConfidence) {
   const scores = Object.values(fieldConfidence || {}).filter((s) => typeof s === 'number');
   if (scores.length === 0) return 0;
   return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+}
+
+function hasRealDescription(description) {
+  return Boolean(description && description.trim().length >= MIN_DESCRIPTION_LENGTH);
 }
 
 /**
@@ -16,22 +21,26 @@ function computeOverallConfidence(fieldConfidence) {
  * this same pipeline run so the city+name-similarity fallback tier has something to compare
  * against (see matcher.js). Returns { action: 'created'|'updated'|'rejected', id, confidence }.
  *
- * Step 11.7 hard floor: a record with neither a phone nor an identified location (city/region) is
- * unusable as a lodging listing regardless of what else it contains, and anything below
- * MIN_CONFIDENCE is too unreliable to publish even into the unclaimed review queue — both are
- * rejected before ever touching `properties` (logged, not silently dropped). This is what should
- * have caught binaa.co.il (confidence 51, no phone) — the classifier fix is the first line of
- * defense, this is the second.
+ * Step 11.15 hard floor (tightened from 11.7's "phone OR location" — a listing like "ספונטני",
+ * confidence 65, no phone/whatsapp, contradictory city/region and nothing else, was passing the
+ * old OR-gate and reaching the review queue with nothing an admin could actually judge it by):
+ * now requires ALL of — a way to contact the owner (phone or whatsapp), an identified location
+ * (city or region), AND at least one substantive field (price, bedroom count, or an actual
+ * description, not just a name) — before it ever touches `properties` or the review queue
+ * (logged, not silently dropped). MIN_CONFIDENCE stays as a separate, additional floor on top.
  */
 export async function loadProperty(extraction, meta, loadedThisRun) {
   const { sourceUrl, imageUrls } = meta;
   const overallConfidence = computeOverallConfidence(extraction.field_confidence);
 
-  const hasPhone = Boolean(extraction.phone);
+  const hasContact = Boolean(extraction.phone || extraction.whatsapp);
   const hasLocation = Boolean(extraction.city || extraction.region);
-  if (!hasPhone && !hasLocation) {
-    console.log(`[loader] Rejected — no phone and no identified location: "${extraction.name || 'unnamed'}" (${sourceUrl})`);
-    return { action: 'rejected', reason: 'no_phone_and_no_location', confidence: overallConfidence, name: extraction.name, city: extraction.city };
+  const hasSubstance = Boolean(extraction.base_price_night) || Boolean(extraction.bedrooms) || hasRealDescription(extraction.description);
+
+  if (!hasContact || !hasLocation || !hasSubstance) {
+    const reason = !hasContact ? 'no_phone_or_whatsapp' : !hasLocation ? 'no_identified_location' : 'no_price_bedrooms_or_description';
+    console.log(`[loader] Rejected — ${reason}: "${extraction.name || 'unnamed'}" (${sourceUrl})`);
+    return { action: 'rejected', reason, confidence: overallConfidence, name: extraction.name, city: extraction.city };
   }
   if (overallConfidence < MIN_CONFIDENCE) {
     console.log(`[loader] Rejected — confidence ${overallConfidence} < ${MIN_CONFIDENCE}: "${extraction.name || 'unnamed'}" (${sourceUrl})`);
