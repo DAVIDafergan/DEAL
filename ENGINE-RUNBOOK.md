@@ -99,6 +99,44 @@ POST /api/admin/engine/emergency-stop/clear
 - **חושדים שנכס פורסם בטעות בלי אישור:** בדוק ש-`ENGINE_AUTO_PUBLISH_ENABLED` באמת `false`
   ב-Railway Variables (לא רק ב-`.env.example`) — זו ההגנה היחידה נגד פרסום אוטומטי.
 
+## הפצה למסד הפרודקשן (`engine/syncToProduction.js`)
+
+המנוע רץ **מקומית בלבד** (Railway לא מתקין את Playwright בבנייה — זו החלטה מכוונת, ראו הערה
+בקומיט 11.11/11.12: התקנת דפדפן ב-build מגדילה זמן/גודל דיפלוי משמעותית, ורצוי שלא להריץ
+Chromium על אותו dyno שמגיש את האתר לגולשים). הדרך היחידה שנתונים שנאספו מקומית מגיעים
+לפרודקשן היא הסקריפט הזה — סנכרון חד-כיווני **מקומי -> פרודקשן** בלבד (אף פעם לא ההפך).
+
+**מה הוא עושה, בסדר הזה:**
+1. גיבוי מלא (`mysqldump`) של מסד הפרודקשן ל-`backups/prod_backup_<timestamp>.sql`, **תמיד**,
+   לפני כל כתיבה. אם הגיבוי נכשל או יוצא קטן מדי (<1KB) — הסקריפט עוצר לפני שהוא נוגע בפרודקשן.
+2. שולף מהמקומי רק נכסים `source='auto'` עם `source_url` אמיתי, לא opted-out, לא hidden, לא
+   deleted — ומסנן החוצה נתוני פיתוח/דמו (`example-*.co.il` מ-`scripts/seedDemoProperties.js`,
+   `localhost` מריצות ה-dry-run של `engine/fixtures/`) לפי hostname, כדי שאף פעם לא יגיעו
+   לפרודקשן בטעות.
+3. לכל נכס, לפי `source_url` (מפתח הדה-דופ):
+   - **לא קיים בפרודקשן** -> `INSERT` חדש, **תמיד** `status='unclaimed'`, `auto_review_status='pending'`,
+     `owner_id=NULL` — בלי קשר למה שהיה מקומית. כולל שורת `property_units` תואמת.
+   - **קיים, ועדיין לא נגע בו אף אדם בפרודקשן** (`status='unclaimed' AND auto_review_status='pending'
+     AND owner_id IS NULL AND opted_out=0`) -> מרענן רק שדות תוכן (שם/תיאור/מחיר/תמונות/וכו'),
+     **לא** נוגע ב-status/owner/review/units.
+   - **קיים וכבר טופל בפרודקשן** (אדמין אישר/דחה/בעלים תבע בעלות) -> מדלג לגמרי, לא נוגע.
+4. מדפיס דוח: כמה נוצרו / עודכנו / דולגו (קיים+טופל) / דולגו (fixture) / נכשלו.
+
+**איך מריצים:**
+```
+PROD_MYSQL_URL=<production MySQL public proxy URL> node engine/syncToProduction.js
+```
+או, שמרו את זה פעם אחת בקובץ `.env.production.local` (כבר ב-`.gitignore`, אף פעם לא נדחף):
+```
+PROD_MYSQL_URL=mysql://root:PASSWORD@HOST.proxy.rlwy.net:PORT/railway
+```
+לקבל את ה-URL הזה (ה-public proxy, לא `MYSQL_URL`/`MYSQLHOST` הפנימיים שרק Railway יכול להגיע
+אליהם): `railway variables --service MySQL --kv | grep MYSQL_PUBLIC_URL` (דורש `railway login`
+מקומי מחובר לפרויקט — כבר מוגדר בסביבה הזו דרך ה-CLI ב-`~/.npm/_npx/.../railway`).
+
+הרצה בטוחה לחלוטין לחזור עליה — `source_url` הוא מפתח הדה-דופ, ריצה שנייה על אותם נתונים פשוט
+תדלג על מה שכבר קיים (או תרענן תוכן אם עדיין לא טופל בפרודקשן).
+
 ## מה שעדיין ידני/לא בנוי
 
 - **רענון תקופתי (8.7)** — `engine/refresh.js` בנוי (מעקב כשלונות, סימון `inactive` אחרי 3

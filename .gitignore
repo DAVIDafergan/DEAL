@@ -2,6 +2,7 @@ node_modules
 backups/
 .env
 .env.local
+.env.production.local
 data/*.sqlite
 data/*.sqlite-*
 dist
