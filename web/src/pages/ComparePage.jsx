@@ -8,6 +8,19 @@ import { useLanguage } from '../context/LanguageContext.jsx';
 import { optimizedImageUrl } from '../utils/imageUrl.js';
 import { RouteLoading } from '../components/RouteLoading.jsx';
 
+// 11.15 — haversine straight-line distance (km), not driving distance — good enough for "how
+// far apart are these two options actually", the question this row answers.
+function distanceKm(a, b) {
+  if (!a?.latitude || !a?.longitude || !b?.latitude || !b?.longitude) return null;
+  const R = 6371;
+  const dLat = ((b.latitude - a.latitude) * Math.PI) / 180;
+  const dLon = ((b.longitude - a.longitude) * Math.PI) / 180;
+  const lat1 = (a.latitude * Math.PI) / 180;
+  const lat2 = (b.latitude * Math.PI) / 180;
+  const x = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+}
+
 /** ComparePage — 9.6 "השוואה בין נכסים שמורים": a simple side-by-side table (region/city,
  * capacity, price, amenities) for up to 4 properties, driven entirely by ?ids= in the URL so
  * the comparison itself is shareable/bookmarkable, same pattern as search state (7.2). */
@@ -16,6 +29,7 @@ export function ComparePage() {
   const [searchParams] = useSearchParams();
   const ids = (searchParams.get('ids') || '').split(',').filter(Boolean).slice(0, 4);
   const { properties, isLoading } = usePropertyDetails(ids);
+  const reference = properties[0];
 
   return (
     <div className="settings-page" dir={dir}>
@@ -47,6 +61,16 @@ export function ComparePage() {
             <CompareRow label={t.compareGuestCapacity} render={(p) => p.total_guest_capacity ?? p.guest_capacity ?? '—'} properties={properties} />
             <CompareRow label={t.compareBedrooms} render={(p) => p.max_bedrooms ?? p.bedrooms ?? '—'} properties={properties} />
             <CompareRow label={t.compareVerified} render={(p) => (p.status === 'claimed' || p.status === 'active')} properties={properties} boolean />
+            <CompareRow label={t.compareRating} render={(p) => (p.avg_rating ? `★ ${p.avg_rating} (${p.review_count})` : '—')} properties={properties} />
+            <CompareRow
+              label={t.compareDistance}
+              render={(p) => {
+                if (p.id === reference?.id) return t.compareDistanceReference;
+                const km = distanceKm(reference, p);
+                return km == null ? '—' : t.compareDistanceKm(km < 10 ? Math.round(km * 10) / 10 : Math.round(km));
+              }}
+              properties={properties}
+            />
 
             {AMENITIES.map((a) => (
               <CompareRow key={a.value} label={amenityLabel(a.value, lang)} render={(p) => Boolean(p[a.value])} properties={properties} boolean />

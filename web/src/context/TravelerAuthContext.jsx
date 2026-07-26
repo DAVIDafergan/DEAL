@@ -31,8 +31,19 @@ export function TravelerAuthProvider({ children }) {
     setAuth({ token: null, traveler: null });
   }, []);
 
+  // 11.15 — after a profile edit (name change), the cached copy needs updating too — otherwise
+  // every page reads the name the traveler logged in with until they log out and back in.
+  const updateTravelerProfile = useCallback((patch) => {
+    setAuth((prev) => {
+      if (!prev.traveler) return prev;
+      const next = { ...prev.traveler, ...patch };
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(next));
+      return { ...prev, traveler: next };
+    });
+  }, []);
+
   return (
-    <TravelerAuthContext.Provider value={{ travelerToken: token, traveler, travelerLogin, travelerLogout }}>
+    <TravelerAuthContext.Provider value={{ travelerToken: token, traveler, travelerLogin, travelerLogout, updateTravelerProfile }}>
       {children}
     </TravelerAuthContext.Provider>
   );

@@ -211,6 +211,7 @@ export const propertyApi = {
   search: (filters = {}) => getJson(`/properties${buildQuery(filters)}`),
   seoLanding: (params = {}) => getJson(`/seo/landing${buildQuery(params)}`),
   facetCounts: (filters = {}) => getJson(`/properties/facet-counts${buildQuery(filters)}`),
+  popularSearches: () => getJson('/properties/popular-searches'),
   cities: (region) => getJson(`/properties/cities${buildQuery({ region })}`),
   get: (id) => getJson(`/properties/${id}`),
   getBatch: (ids) => getJson(`/properties/batch${buildQuery({ ids: ids.join(',') })}`),
@@ -260,7 +261,8 @@ export const wishlistApi = {
 
 export const alertApi = {
   create: (data) => postJson('/alerts', data),
-  unsubscribe: (token) => postJson(`/alerts/${token}/unsubscribe`, {}),
+  getMine: (userToken) => getJson('/alerts/mine', userToken),
+  deleteMine: (userToken, id) => deleteReq(`/alerts/mine/${id}`, userToken),
 };
 
 export function icalFeedUrl(exportToken) {
@@ -288,6 +290,8 @@ export const userApi = {
   login: (email, password) => postJson('/users/login', { email, password }),
   googleAuth: (credential) => postJson('/users/google', { credential }),
   deleteMe: (token) => deleteReq('/users/me', token),
+  updateProfile: (token, name) => patchJson('/users/me', { name }, token),
+  changePassword: (token, current_password, new_password) => patchJson('/users/me/password', { current_password, new_password }, token),
 };
 
 export const billingApi = {

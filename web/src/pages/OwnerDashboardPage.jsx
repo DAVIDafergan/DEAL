@@ -67,10 +67,20 @@ export function OwnerDashboardPage() {
   const [propertyDeleting, setPropertyDeleting] = useState(false);
   const [showTrash, setShowTrash] = useState(false);
   const [showBulkPricing, setShowBulkPricing] = useState(false);
+  const [draftChecklist, setDraftChecklist] = useState(null);
 
   useEffect(() => {
     if (!loading && !token) navigate('/owner/login', { replace: true });
   }, [loading, token, navigate]);
+
+  // 11.15 — profile completeness nudge (see OwnerDashboardTips.jsx): only the first draft
+  // property, not every property — one nudge at a time, same "don't add visual weight" lesson
+  // 11.5 already learned when it replaced a permanent checklist widget with a single tip line.
+  useEffect(() => {
+    const draft = properties.find((p) => p.status === 'draft');
+    if (!draft || !token) { setDraftChecklist(null); return; }
+    propertyApi.getPublishChecklist(token, draft.id).then(setDraftChecklist).catch(() => setDraftChecklist(null));
+  }, [properties, token]);
 
   function refreshProperties() {
     if (!token) return;
@@ -313,7 +323,7 @@ export function OwnerDashboardPage() {
 
       {activeTab === 'overview' && (
       <>
-      <OwnerDashboardTips agent={agent} properties={properties} />
+      <OwnerDashboardTips agent={agent} properties={properties} draftChecklist={draftChecklist} />
 
       <div id="onb-kpis" className="dash-kpis container">
         <KpiCard icon={Home} label="נכסים" value={properties.length} iconColor="var(--ds-hearth)" iconBg="rgba(193,89,43,0.12)" index={0} />

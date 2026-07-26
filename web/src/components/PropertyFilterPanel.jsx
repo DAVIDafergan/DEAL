@@ -170,7 +170,7 @@ export function PropertyFilterPanel({ filters, setFilter, toggleAmenity, toggleB
     ? `${filters.minPrice || '0'}–${filters.maxPrice || '∞'} ₪`
     : t.filterAllBudgets;
 
-  const whatMattersCount = filters.amenities.length + filters.bedTypes.length + (filters.kosherLevel ? 1 : 0) + (filters.propertyType ? 1 : 0);
+  const whatMattersCount = filters.amenities.length + filters.bedTypes.length + (filters.kosherLevel ? 1 : 0) + (filters.propertyType ? 1 : 0) + (filters.nearby ? 1 : 0);
   const whatMattersSummary = whatMattersCount > 0 ? t.filterMattersSelected(whatMattersCount) : t.filterMattersAll;
 
   return (
@@ -284,6 +284,14 @@ export function PropertyFilterPanel({ filters, setFilter, toggleAmenity, toggleB
             />
           ))}
         </div>
+        <p className="pfp__sub-label">{t.filterNearby}</p>
+        <input
+          type="text"
+          className="agent-form__input"
+          placeholder={t.filterNearbyPlaceholder}
+          value={filters.nearby}
+          onChange={(e) => setFilter({ nearby: e.target.value })}
+        />
       </Section>
 
       <p className="pfp__result-count">{isLoading ? t.filterCountingResults : t.filterResultsCount(resultCount)}</p>

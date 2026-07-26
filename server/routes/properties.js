@@ -11,6 +11,7 @@ import {
   createUnit, updateUnit, deactivateUnit, duplicateUnit, reorderUnits,
   getPublishChecklist, publishProperty, duplicateProperty, reportIncorrectInfo,
   generateUnitIcalExportToken, setUnitIcalImportUrl,
+  recordSearch, getPopularSearches,
 } from '../store/propertyStore.js';
 import { syncUnitIcalImport } from '../services/icalSyncService.js';
 import { findAgentBySlug, findAgentById } from '../store/agentStore.js';
@@ -49,7 +50,7 @@ const VIEW_TYPES = ['sea', 'lake', 'mountains', 'desert', 'green', 'open'];
 /** GET /api/properties?region=&property_type=&min_guests=&max_price=&kosher_level=&amenities=a,b — public search */
 router.get('/', async (req, res) => {
   try {
-    const { region, city, property_type, min_guests, bedrooms, min_price, max_price, kosher_level, view_type, amenities, bed_types, check_in, check_out, limit, sort } = req.query;
+    const { region, city, property_type, min_guests, bedrooms, min_price, max_price, kosher_level, view_type, amenities, bed_types, check_in, check_out, limit, sort, nearby } = req.query;
     const filters = {
       region: REGIONS.includes(region) ? region : undefined,
       city: city || undefined,
@@ -65,12 +66,16 @@ router.get('/', async (req, res) => {
       checkIn: check_in && check_out ? check_in : undefined,
       checkOut: check_in && check_out ? check_out : undefined,
       sort: ['price_asc', 'price_desc', 'new', 'rating_desc'].includes(sort) ? sort : undefined,
+      nearby: nearby ? String(nearby).slice(0, 100) : undefined,
       limit,
     };
     // 10.1: 30s TTL cache — identical query string (the overwhelmingly common case: the
     // homepage's default no-filter search) is served from memory instead of hitting MySQL again.
     const properties = await cachedSearch(JSON.stringify(filters), () => searchProperties(filters));
     res.json({ properties });
+    // 11.15 — fire-and-forget popular-searches logging, after the response is already sent so
+    // it can never add latency or fail the actual search. recordSearch no-ops without region/city.
+    recordSearch({ region: filters.region, city: filters.city }).catch(() => {});
   } catch (err) {
     console.error('[properties] search error:', err.message);
     res.status(500).json({ error: 'Search failed' });
@@ -112,6 +117,20 @@ router.get('/facet-counts', async (req, res) => {
     res.json(counts);
   } catch (err) {
     console.error('[properties] facet-counts error:', err.message);
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
+const cachedPopularSearches = ttlCached('popular-searches', 5 * 60_000);
+
+/** GET /api/properties/popular-searches — 11.15: homepage quick-search chips, computed from
+ * real region/city searches over the last 30 days (property_search_log). */
+router.get('/popular-searches', async (_req, res) => {
+  try {
+    const searches = await cachedPopularSearches('all', () => getPopularSearches(8));
+    res.json({ searches });
+  } catch (err) {
+    console.error('[properties] popular-searches error:', err.message);
     res.status(500).json({ error: 'Internal error' });
   }
 });

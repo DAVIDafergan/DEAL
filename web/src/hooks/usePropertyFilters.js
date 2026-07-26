@@ -6,13 +6,13 @@ const KEYS = {
   region: 'region', city: 'city', checkIn: 'checkin', checkOut: 'checkout',
   guests: 'guests', bedrooms: 'bedrooms', minPrice: 'minprice', maxPrice: 'maxprice',
   propertyType: 'type', kosherLevel: 'kosher', viewType: 'view', amenities: 'amenities',
-  bedTypes: 'beds', sort: 'sort',
+  bedTypes: 'beds', sort: 'sort', nearby: 'nearby',
 };
 
 const EMPTY = {
   region: '', city: '', checkIn: '', checkOut: '',
   guests: '', bedrooms: '', minPrice: '', maxPrice: '',
-  propertyType: '', kosherLevel: '', viewType: '', amenities: [], bedTypes: [], sort: 'recommended',
+  propertyType: '', kosherLevel: '', viewType: '', amenities: [], bedTypes: [], sort: 'recommended', nearby: '',
 };
 
 /** Filter state lives entirely in the URL query string (7.2: "מצב הסינון נשמר ב-query params")
@@ -37,6 +37,7 @@ export function usePropertyFilters() {
       amenities: amenitiesRaw ? amenitiesRaw.split(',').filter(Boolean) : [],
       bedTypes: (searchParams.get(KEYS.bedTypes) || '').split(',').filter(Boolean),
       sort: searchParams.get(KEYS.sort) || 'recommended',
+      nearby: searchParams.get(KEYS.nearby) || '',
     };
   }, [searchParams]);
 
@@ -87,6 +88,7 @@ export function usePropertyFilters() {
     if (filters.propertyType) n++;
     if (filters.kosherLevel) n++;
     if (filters.viewType) n++;
+    if (filters.nearby) n++;
     n += filters.amenities.length;
     n += filters.bedTypes.length;
     return n;
@@ -107,6 +109,7 @@ export function usePropertyFilters() {
     check_in: filters.checkIn && filters.checkOut ? filters.checkIn : undefined,
     check_out: filters.checkIn && filters.checkOut ? filters.checkOut : undefined,
     sort: filters.sort && filters.sort !== 'recommended' ? filters.sort : undefined,
+    nearby: filters.nearby || undefined,
   }), [filters]);
 
   return { filters, setFilter, toggleAmenity, toggleBedType, clearAll, clearField, activeCount, apiFilters, hasActiveFilters: activeCount > 0 };

@@ -26,6 +26,27 @@ export async function createAlert({ email, region, maxPrice, checkIn, checkOut, 
   return { token };
 }
 
+/** 11.15 — surfaced on the logged-in customer's account page ("ההתראות שהגדרתי"). Alerts
+ * themselves stay account-free (matched by email, not user_id — see 11.14), so this is a
+ * lookup by the logged-in user's own email, not a real foreign-key relationship. */
+export async function listAlertsForEmail(email) {
+  const pool = getPool();
+  const [rows] = await pool.query(
+    'SELECT id, region, max_price, check_in, check_out, guest_capacity, unsubscribe_token, is_active, created_at FROM property_alerts WHERE email = ? ORDER BY created_at DESC',
+    [email]
+  );
+  return rows;
+}
+
+/** Same effect as unsubscribeAlert (by token), scoped by (id, email) instead — for the
+ * authenticated "cancel this alert" button on the account page, which has neither the raw
+ * token nor any reason to expose it in the DOM. */
+export async function unsubscribeAlertForEmail(id, email) {
+  const pool = getPool();
+  const [result] = await pool.query('UPDATE property_alerts SET is_active = 0 WHERE id = ? AND email = ?', [id, email]);
+  return result.affectedRows > 0;
+}
+
 export async function unsubscribeAlert(token) {
   const pool = getPool();
   const [result] = await pool.query('UPDATE property_alerts SET is_active = 0 WHERE unsubscribe_token = ?', [token]);

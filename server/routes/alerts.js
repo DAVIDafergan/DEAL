@@ -1,8 +1,35 @@
 import { Router } from 'express';
 import { contactRateLimiter } from '../middleware/rateLimiter.js';
-import { createAlert, unsubscribeAlert } from '../store/alertStore.js';
+import { createAlert, unsubscribeAlert, listAlertsForEmail, unsubscribeAlertForEmail } from '../store/alertStore.js';
+import { requireUserAuth } from '../middleware/userAuth.js';
+import { findUserById } from '../store/userStore.js';
 
 const router = Router();
+
+/** GET /api/alerts/mine — the logged-in customer's own alerts, looked up by their account
+ * email (alerts themselves are intentionally account-free — see createAlert above). */
+router.get('/mine', requireUserAuth, async (req, res) => {
+  try {
+    const user = await findUserById(req.user.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json({ alerts: await listAlertsForEmail(user.email) });
+  } catch (err) {
+    console.error('[alerts] list mine error:', err.message);
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
+router.delete('/mine/:id', requireUserAuth, async (req, res) => {
+  try {
+    const user = await findUserById(req.user.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    await unsubscribeAlertForEmail(req.params.id, user.email);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[alerts] delete mine error:', err.message);
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
 
 const REGION_VALUES = ['north', 'galilee', 'golan', 'carmel', 'center', 'jerusalem', 'south', 'dead_sea', 'eilat'];
 

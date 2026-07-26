@@ -13,6 +13,7 @@ import { PropertyErrorState } from './components/PropertyErrorState.jsx';
 import { PropertyGrid } from './components/PropertyGrid.jsx';
 import { SiteFooter } from './components/SiteFooter.jsx';
 import { RecentSearches } from './components/RecentSearches.jsx';
+import { PopularSearches } from './components/PopularSearches.jsx';
 import { RecentlyViewedStrip } from './components/RecentlyViewedStrip.jsx';
 import { usePropertyFilters } from './hooks/usePropertyFilters.js';
 import { saveRecentSearch, listRecentSearches } from './utils/recentSearches.js';
@@ -33,6 +34,7 @@ export function App() {
   const RESULTS_PAGE_SIZE = 12;
   const [resultsLimit, setResultsLimit] = useState(RESULTS_PAGE_SIZE);
   const [recentSearches, setRecentSearches] = useState(() => listRecentSearches());
+  const [popularSearches, setPopularSearches] = useState([]);
   const [retryTick, setRetryTick] = useState(0);
   const [recentlyViewedIds] = useState(() => listRecentlyViewed());
   const navigate = useLocalizedNavigate();
@@ -77,6 +79,16 @@ export function App() {
 
   function handlePickRecentSearch(s) {
     setFilter({ region: s.region || '', city: s.city || '', checkIn: s.checkIn || '', checkOut: s.checkOut || '', guests: s.guests || '' });
+    scrollToResults();
+  }
+
+  // 11.15 — homepage "popular searches", fetched once (site-wide aggregate, not per-visitor).
+  useEffect(() => {
+    propertyApi.popularSearches().then(({ searches }) => setPopularSearches(searches || [])).catch(() => {});
+  }, []);
+
+  function handlePickPopularSearch(s) {
+    setFilter({ region: s.region || '', city: s.city || '' });
     scrollToResults();
   }
 
@@ -146,6 +158,7 @@ export function App() {
           {/* 11.4: moved out of the hero — it was one more row competing for attention right
               under the search box. Here it's contextual: right above the results it affects. */}
           <RecentSearches searches={recentSearches} onPick={handlePickRecentSearch} />
+          <PopularSearches searches={popularSearches} onPick={handlePickPopularSearch} />
 
           <div className="agent-deals-section__head">
             <div>

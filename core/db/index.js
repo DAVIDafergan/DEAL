@@ -1022,6 +1022,18 @@ const SCHEMA_STATEMENTS = [
     CONSTRAINT fk_wishlist_comments_item FOREIGN KEY (wishlist_item_id) REFERENCES wishlist_items(id) ON DELETE CASCADE
   ) ENGINE=InnoDB`,
 
+  // 11.15 — homepage "popular searches": one row per real search that named a region and/or
+  // city (skips the default no-filter homepage load, which would just drown out everything
+  // else) — no user/session id, purely for aggregate counting.
+  `CREATE TABLE IF NOT EXISTS property_search_log (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    region VARCHAR(32) NULL,
+    city VARCHAR(120) NULL,
+    created_at DATETIME NOT NULL,
+    INDEX idx_property_search_log_region_city (region, city),
+    INDEX idx_property_search_log_created (created_at)
+  ) ENGINE=InnoDB`,
+
   // 11.14 — "notify me" alerts: a visitor sets region/budget/dates once (no account), gets an
   // email when a newly-collected or newly-updated property matches. `last_seen_property_ids`
   // is the dedup guard — only ever emails about a given property once per alert, even if it's

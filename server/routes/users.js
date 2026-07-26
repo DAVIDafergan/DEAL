@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { OAuth2Client } from 'google-auth-library';
-import { createUser, findUserByEmail, deleteUserById } from '../store/userStore.js';
+import { createUser, findUserByEmail, findUserByIdRaw, deleteUserById, updateUserName, setUserPasswordHash } from '../store/userStore.js';
 import { signUserToken, requireUserAuth } from '../middleware/userAuth.js';
 import { authRateLimiter } from '../middleware/rateLimiter.js';
 
@@ -65,6 +65,38 @@ router.post('/google', authRateLimiter, async (req, res) => {
   } catch (err) {
     console.error('[users] google error:', err.message);
     res.status(401).json({ error: 'Google authentication failed' });
+  }
+});
+
+router.patch('/me', requireUserAuth, async (req, res) => {
+  try {
+    const name = (req.body?.name || '').trim();
+    if (!name) return res.status(400).json({ error: 'שם הוא שדה חובה' });
+    const user = await updateUserName(req.user.userId, name);
+    res.json({ user: { id: user.id, name: user.name, email: user.email } });
+  } catch (err) {
+    console.error('[users] update profile error:', err.message);
+    res.status(500).json({ error: 'שגיאה בעדכון הפרופיל' });
+  }
+});
+
+router.patch('/me/password', requireUserAuth, async (req, res) => {
+  try {
+    const { current_password, new_password } = req.body || {};
+    if (!new_password || new_password.length < 6) return res.status(400).json({ error: 'הסיסמה החדשה חייבת להכיל לפחות 6 תווים' });
+    const user = await findUserByIdRaw(req.user.userId);
+    if (!user) return res.status(404).json({ error: 'משתמש לא נמצא' });
+    if (!user.password_hash || user.auth_provider === 'google') {
+      return res.status(400).json({ error: 'חשבון זה מחובר דרך Google — אין סיסמה לשנות' });
+    }
+    const ok = await bcrypt.compare(current_password || '', user.password_hash);
+    if (!ok) return res.status(401).json({ error: 'הסיסמה הנוכחית שגויה' });
+    const newHash = await bcrypt.hash(new_password, 10);
+    await setUserPasswordHash(user.id, newHash);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[users] change password error:', err.message);
+    res.status(500).json({ error: 'שגיאה בשינוי הסיסמה' });
   }
 });
 

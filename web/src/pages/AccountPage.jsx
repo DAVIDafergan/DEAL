@@ -1,15 +1,21 @@
 import { useNavigate } from 'react-router-dom';
 import { Link } from '../components/LocalizedLink.jsx';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Heart, LogOut, ArrowLeft, User, Trash2 } from 'lucide-react';
+import { Heart, LogOut, ArrowLeft, User, Trash2, Pencil, KeyRound, ListChecks, BellRing, X, Check } from 'lucide-react';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { useTravelerAuth } from '../context/TravelerAuthContext.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { useFavorites } from '../hooks/useFavorites.js';
 import { getGreeting } from '../utils/greeting.js';
-import { agentApi, userApi } from '../api/client.js';
+import { agentApi, userApi, alertApi } from '../api/client.js';
 import { optimizedImageUrl } from '../utils/imageUrl.js';
+import { getMyWishlists } from '../components/CreateWishlistModal.jsx';
+import { RecentlyViewedStrip } from '../components/RecentlyViewedStrip.jsx';
+import { listRecentlyViewed } from '../utils/recentlyViewed.js';
+import { RecentSearches } from '../components/RecentSearches.jsx';
+import { listRecentSearches } from '../utils/recentSearches.js';
+import { regionLabel } from '../data/propertyOptions.js';
 
 const cardIn = {
   hidden: { opacity: 0, y: 16 },
@@ -23,12 +29,34 @@ const container = {
 
 export function AccountPage() {
   const { agent, token, loading, logout: agentLogout } = useAgentAuth();
-  const { traveler, travelerToken, travelerLogout } = useTravelerAuth();
+  const { traveler, travelerToken, travelerLogout, updateTravelerProfile } = useTravelerAuth();
   const { t, dir } = useLanguage();
   const navigate = useNavigate();
   const { favorites } = useFavorites();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  // 11.15 — personal area additions: edit name / change password, plus surfacing three things
+  // that already existed as standalone localStorage utilities (wishlists, recently viewed,
+  // recent searches) but had nowhere account-level to live, plus the customer's own alerts.
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [profileName, setProfileName] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [passwordError, setPasswordError] = useState(null);
+  const [passwordSaved, setPasswordSaved] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [myWishlists] = useState(() => getMyWishlists());
+  const [recentlyViewedIds] = useState(() => listRecentlyViewed());
+  const [recentSearches] = useState(() => listRecentSearches());
+  const [myAlerts, setMyAlerts] = useState([]);
+
+  useEffect(() => {
+    if (!travelerToken) return;
+    alertApi.getMine(travelerToken).then(({ alerts }) => setMyAlerts(alerts || [])).catch(() => setMyAlerts([]));
+  }, [travelerToken]);
 
   const isAgent = !loading && token && agent;
   const isTraveler = !isAgent && !!traveler;
@@ -74,6 +102,61 @@ export function AccountPage() {
     }
   }
 
+  function startEditProfile() {
+    setProfileName(displayName);
+    setEditingProfile(true);
+  }
+
+  async function saveProfile() {
+    if (!profileName.trim()) return;
+    setSavingProfile(true);
+    try {
+      await userApi.updateProfile(travelerToken, profileName.trim());
+      updateTravelerProfile({ name: profileName.trim() });
+      setEditingProfile(false);
+    } catch (err) {
+      alert(err.message || t.accountEditError);
+    } finally {
+      setSavingProfile(false);
+    }
+  }
+
+  async function savePassword(e) {
+    e.preventDefault();
+    setPasswordError(null);
+    setSavingPassword(true);
+    try {
+      await userApi.changePassword(travelerToken, currentPassword, newPassword);
+      setPasswordSaved(true);
+      setCurrentPassword('');
+      setNewPassword('');
+      setTimeout(() => { setPasswordSaved(false); setShowPasswordForm(false); }, 2000);
+    } catch (err) {
+      setPasswordError(err.message || t.accountPasswordError);
+    } finally {
+      setSavingPassword(false);
+    }
+  }
+
+  async function cancelAlert(id) {
+    try {
+      await alertApi.deleteMine(travelerToken, id);
+      setMyAlerts((prev) => prev.filter((a) => a.id !== id));
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  function handlePickRecentSearch(s) {
+    const params = new URLSearchParams();
+    if (s.region) params.set('region', s.region);
+    if (s.city) params.set('city', s.city);
+    if (s.checkIn) params.set('checkin', s.checkIn);
+    if (s.checkOut) params.set('checkout', s.checkOut);
+    if (s.guests) params.set('guests', s.guests);
+    navigate(`/?${params.toString()}`);
+  }
+
   return (
     <div className="account-page container" dir={dir}>
       <Link to="/" className="account-page__back">
@@ -105,7 +188,81 @@ export function AccountPage() {
           {isTraveler && <span className="account-profile-badge">{t.accountTravelerBadge}</span>}
           {isAgent && <span className="account-profile-badge account-profile-badge--agent">{agent.account_type === 'property_owner' ? t.accountOwnerBadge : t.accountAgentBadge}</span>}
         </div>
+        {isTraveler && !editingProfile && (
+          <button type="button" className="account-edit-btn" onClick={startEditProfile} aria-label={t.accountEditProfile}>
+            <Pencil size={15} />
+          </button>
+        )}
       </motion.div>
+
+      {isTraveler && editingProfile && (
+        <motion.div className="account-card" variants={cardIn} initial="hidden" animate="visible">
+          <label className="account-form__label">{t.accountNameLabel}
+            <input className="agent-form__input" value={profileName} onChange={(e) => setProfileName(e.target.value)} maxLength={120} />
+          </label>
+          <div className="account-form__actions">
+            <button className="account-form__save" disabled={savingProfile || !profileName.trim()} onClick={saveProfile}>
+              <Check size={15} /> {savingProfile ? t.accountSaving : t.accountSave}
+            </button>
+            <button className="account-form__cancel" onClick={() => setEditingProfile(false)}><X size={15} /> {t.cancelButton}</button>
+          </div>
+        </motion.div>
+      )}
+
+      {isTraveler && (
+        <motion.div className="account-card" variants={cardIn} initial="hidden" animate="visible">
+          <button type="button" className="account-card__section-toggle" onClick={() => setShowPasswordForm((s) => !s)}>
+            <KeyRound size={18} /> {t.accountChangePassword}
+          </button>
+          {showPasswordForm && (
+            <form className="account-form" onSubmit={savePassword}>
+              <input type="password" className="agent-form__input" placeholder={t.accountCurrentPassword} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required />
+              <input type="password" className="agent-form__input" placeholder={t.accountNewPassword} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={6} />
+              {passwordError && <p className="agent-form__error">{passwordError}</p>}
+              <button type="submit" className="account-form__save" disabled={savingPassword}>
+                {passwordSaved ? <><Check size={15} /> {t.accountSaved}</> : savingPassword ? t.accountSaving : t.accountSave}
+              </button>
+            </form>
+          )}
+        </motion.div>
+      )}
+
+      {isTraveler && myWishlists.length > 0 && (
+        <motion.div className="account-card" variants={cardIn} initial="hidden" animate="visible">
+          <h2 className="account-card__section-title"><ListChecks size={18} /> {t.accountMyCollections}</h2>
+          <div className="wishlist-my-lists" style={{ padding: 0 }}>
+            {myWishlists.map((w) => <Link key={w.token} to={`/list/${w.token}`} className="wishlist-my-lists__chip">{w.name}</Link>)}
+          </div>
+        </motion.div>
+      )}
+
+      {isTraveler && recentSearches.length > 0 && (
+        <motion.div className="account-card" variants={cardIn} initial="hidden" animate="visible">
+          <RecentSearches searches={recentSearches} onPick={handlePickRecentSearch} />
+        </motion.div>
+      )}
+
+      {isTraveler && recentlyViewedIds.length > 0 && (
+        <motion.div variants={cardIn} initial="hidden" animate="visible">
+          <RecentlyViewedStrip propertyIds={recentlyViewedIds} />
+        </motion.div>
+      )}
+
+      {isTraveler && myAlerts.length > 0 && (
+        <motion.div className="account-card" variants={cardIn} initial="hidden" animate="visible">
+          <h2 className="account-card__section-title"><BellRing size={18} /> {t.accountMyAlerts}</h2>
+          {myAlerts.map((a) => (
+            <div key={a.id} className="account-alert-row">
+              <span>
+                {a.region ? regionLabel(a.region, 'he') : t.accountAlertAnyRegion}
+                {a.max_price ? ` · ${t.priceFromPrefix}${Math.round(a.max_price)} ₪` : ''}
+                {a.check_in ? ` · ${new Date(a.check_in).toLocaleDateString('he-IL')}` : ''}
+              </span>
+              <button type="button" className="account-alert-row__cancel" onClick={() => cancelAlert(a.id)}><X size={14} /></button>
+            </div>
+          ))}
+        </motion.div>
+      )}
 
       {/* Actions */}
       <motion.div className="account-actions" variants={container} initial="hidden" animate="visible">

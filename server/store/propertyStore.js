@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { getPool } from '../../core/db/index.js';
 import { normalizePhone, addToBlocklist } from '../../core/compliance/blocklist.js';
+import { getReviewAggregatesForProperties } from './reviewStore.js';
 
 function nowStr() {
   return new Date().toISOString().slice(0, 19).replace('T', ' ');
@@ -439,6 +440,10 @@ export async function searchProperties(filters = {}) {
   if (filters.maxPrice) { where.push('units_agg.price_from <= ?'); vals.push(Number(filters.maxPrice)); }
   if (filters.kosherLevel) { where.push('kosher_level = ?'); vals.push(filters.kosherLevel); }
   if (filters.viewType) { where.push('view_type = ?'); vals.push(filters.viewType); }
+  // 11.15 — "what's nearby" filter: free-text match against the owner's own nearby_attractions
+  // field (10.7) — no curated attractions database (see that migration's comment for why), so
+  // this is a plain substring search, same tradeoff as any owner-entered free text.
+  if (filters.nearby) { where.push('nearby_attractions LIKE ?'); vals.push(`%${filters.nearby}%`); }
   for (const amenity of filters.amenities || []) {
     if (AMENITY_FIELDS.includes(amenity)) where.push(`${amenity} = 1`);
   }
@@ -487,6 +492,28 @@ export async function searchProperties(filters = {}) {
     [...vals, limit]
   );
   return rows.map(parseProperty);
+}
+
+// 11.15 — "popular searches" on the homepage: log a real search (one that actually named a
+// region and/or city — skips the default no-filter load), then surface the top combinations.
+export async function recordSearch({ region, city }) {
+  if (!region && !city) return;
+  const pool = getPool();
+  await pool.query('INSERT INTO property_search_log (region, city, created_at) VALUES (?, ?, ?)', [region || null, city || null, nowStr()]);
+}
+
+export async function getPopularSearches(limit = 8) {
+  const pool = getPool();
+  const [rows] = await pool.query(
+    `SELECT region, city, COUNT(*) AS search_count
+     FROM property_search_log
+     WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+     GROUP BY region, city
+     ORDER BY search_count DESC
+     LIMIT ?`,
+    [limit]
+  );
+  return rows;
 }
 
 /** 9.3: "live count per option" (Booking-style) for the staged filter panel. For each facet
@@ -715,9 +742,14 @@ export async function getPropertiesByIds(ids) {
        AND ${NOT_BLOCKLISTED_SQL} AND ${confidencePublishableSql()}`,
     ids
   );
+  // 11.15: batch review aggregate so ComparePage can show a rating row — same one-query-not-N
+  // shape as everything else in this function (10.1).
+  const ratings = await getReviewAggregatesForProperties(rows.map((r) => r.id));
   const byId = new Map();
   await Promise.all(rows.map(async (row) => {
     const property = await withUnits(parseProperty(row), { activeOnly: true });
+    const rating = ratings[property.id];
+    if (rating) { property.avg_rating = rating.avgRating; property.review_count = rating.count; }
     byId.set(property.id, await attachOwnerCard(property));
   }));
   // Preserve the caller's requested order (favorites/compare lists are order-sensitive).

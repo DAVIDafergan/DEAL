@@ -15,6 +15,7 @@ export function buildActiveChips(filters, { setFilter, toggleAmenity, toggleBedT
   if (filters.minPrice || filters.maxPrice) chips.push({ key: 'price', label: `${filters.minPrice || '0'}–${filters.maxPrice || '∞'} ₪`, onRemove: () => setFilter({ minPrice: '', maxPrice: '' }) });
   if (filters.propertyType) chips.push({ key: 'type', label: propertyTypeLabel(filters.propertyType, lang), onRemove: () => setFilter({ propertyType: '' }) });
   if (filters.kosherLevel) chips.push({ key: 'kosher', label: kosherLabel(filters.kosherLevel, lang), onRemove: () => setFilter({ kosherLevel: '' }) });
+  if (filters.nearby) chips.push({ key: 'nearby', label: filters.nearby, onRemove: () => setFilter({ nearby: '' }) });
   for (const a of filters.amenities) {
     chips.push({ key: `am-${a}`, label: amenityLabel(a, lang), onRemove: () => toggleAmenity(a) });
   }

@@ -11,13 +11,34 @@ const GENERAL_TIPS = [
   'תיאור קצר וכן על הנכס עוזר לאורחים הנכונים למצוא אתכם.',
 ];
 
-export function OwnerDashboardTips({ agent, properties }) {
+// 11.15 — one missing-item at a time, in the order an owner would naturally fix them (basics
+// before media before publish-blockers), so the tip always names something concrete to do next.
+const MISSING_ITEM_HINTS = {
+  region: 'הוסיפו אזור',
+  city: 'הוסיפו עיר/יישוב',
+  name: 'הוסיפו שם לנכס',
+  property_type: 'בחרו סוג נכס',
+  unit: 'הוסיפו יחידת דיור',
+  unit_price_capacity: 'הוסיפו מחיר וקיבולת אורחים',
+  complex_photos: 'הוסיפו עוד תמונות',
+  unit_photos: 'הוסיפו תמונות ליחידה',
+  contact: 'הוסיפו טלפון או וואטסאפ',
+};
+const CHECKLIST_TOTAL = 8;
+
+export function OwnerDashboardTips({ agent, properties, draftChecklist }) {
   const hasProperty = properties.length > 0;
   const hasPublished = properties.some((p) => p.status === 'active' || p.status === 'claimed');
 
   let tip;
   if (!hasProperty) {
     tip = 'התחילו בהוספת הנכס הראשון שלכם — זה לוקח כ-5 דקות.';
+  } else if (!hasPublished && draftChecklist && draftChecklist.missing.length > 0) {
+    // "הפרופיל שלך 70% מוכן, הוסף תמונות ומחיר כדי להופיע גבוה יותר" — a percentage plus the
+    // single next concrete step, not the permanent multi-row checklist widget 11.5 removed.
+    const pct = Math.round(((CHECKLIST_TOTAL - draftChecklist.missing.length) / CHECKLIST_TOTAL) * 100);
+    const nextStep = MISSING_ITEM_HINTS[draftChecklist.missing[0]] || 'השלימו את הפרטים החסרים';
+    tip = `הפרופיל שלכם ${pct}% מוכן — ${nextStep} כדי לפרסם ולהופיע גבוה יותר בתוצאות.`;
   } else if (!hasPublished) {
     tip = 'הנכס עדיין בטיוטה — השלימו תמונות ומחיר כדי לפרסם אותו לציבור.';
   } else {
