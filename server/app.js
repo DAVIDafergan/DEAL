@@ -24,6 +24,9 @@ import contactRouter from './routes/contact.js';
 import uploadsRouter from './routes/uploads.js';
 import seoRouter from './routes/seo.js';
 import reviewsRouter from './routes/reviews.js';
+import wishlistsRouter from './routes/wishlists.js';
+import alertsRouter from './routes/alerts.js';
+import icalRouter from './routes/ical.js';
 import { getReviewAggregate } from './store/reviewStore.js';
 import { buildSeoLandingData } from './seo/landingData.js';
 import { buildRegionAndCategoryUrls } from './seo/sitemapBuilder.js';
@@ -941,6 +944,9 @@ export function createApp() {
   app.use('/api/uploads', uploadsRouter);
   app.use('/api/seo', seoRouter);
   app.use('/api/reviews', reviewsRouter);
+  app.use('/api/wishlists', wishlistsRouter);
+  app.use('/api/alerts', alertsRouter);
+  app.use('/api/ical', icalRouter);
 
   app.use('/api', (_req, res) => {
     res.status(404).json({ error: 'Not found' });

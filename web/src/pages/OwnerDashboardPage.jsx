@@ -4,12 +4,13 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Link } from '../components/LocalizedLink.jsx';
 import {
   PlusCircle, Settings, CheckCircle, MessageCircle,
-  LayoutDashboard, Trash2, Home, Pencil, MapPin, CalendarDays, Eye, BarChart3, Copy, LayoutGrid, Zap,
+  LayoutDashboard, Trash2, Home, Pencil, MapPin, CalendarDays, Eye, BarChart3, Copy, LayoutGrid, Zap, PartyPopper,
 } from 'lucide-react';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { propertyApi } from '../api/client.js';
 import { PropertyWizard } from '../components/property/PropertyWizard.jsx';
 import { AvailabilityCalendar } from '../components/property/AvailabilityCalendar.jsx';
+import { IcalSyncPanel } from '../components/property/IcalSyncPanel.jsx';
 import { DeletePropertyModal } from '../components/property/DeletePropertyModal.jsx';
 import { PropertyTrashPanel } from '../components/property/PropertyTrashPanel.jsx';
 import { BulkPriceEditor } from '../components/property/BulkPriceEditor.jsx';
@@ -129,26 +130,53 @@ export function OwnerDashboardPage() {
     }
   }
 
-  // 11.2: "one-tap availability update" — toggle *today* open/blocked straight from the property
-  // card, no calendar modal. Two API calls (read today's current state, then flip it) but only
-  // one tap from the owner's side; togglingId drives a per-card loading state so a slow network
-  // can't make a double-tap send two conflicting writes.
+  // 11.2/11.13: "one-tap availability update" — toggle a date range open/blocked straight from
+  // the property card, no calendar modal. Generalized from the original "today only" version to
+  // also cover "next weekend" (11.13: the higher-value question for a zimmer — most bookings are
+  // weekend stays, not same-day). Two API calls (read the range's current state, then flip it)
+  // but only one tap from the owner's side; togglingId drives a per-card loading state so a slow
+  // network can't make a double-tap send two conflicting writes.
   const [togglingAvailabilityId, setTogglingAvailabilityId] = useState(null);
-  async function handleToggleTodayAvailability(property) {
-    setTogglingAvailabilityId(property.id);
+
+  function nextWeekendDates() {
+    const now = new Date();
+    const day = now.getDay(); // 0=Sun..6=Sat
+    const daysUntilFriday = (5 - day + 7) % 7 || 7; // always the *next* Friday, not today if today is Friday
+    const friday = new Date(now.getTime() + daysUntilFriday * 86400000);
+    const saturday = new Date(friday.getTime() + 86400000);
+    return [friday.toISOString().slice(0, 10), saturday.toISOString().slice(0, 10)];
+  }
+
+  async function handleToggleDatesAvailability(property, dates, { toggleKey, busyMessage, freeMessage }) {
+    setTogglingAvailabilityId(`${property.id}-${toggleKey}`);
     try {
-      const todayStr = new Date().toISOString().slice(0, 10);
-      const tomorrowStr = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
-      const { availability } = await propertyApi.getAvailability(property.id, { from: todayStr, to: tomorrowStr });
-      const todayRow = availability.find((row) => row.date.slice(0, 10) === todayStr);
-      const currentlyAvailable = todayRow ? Boolean(todayRow.is_available) : true;
-      await propertyApi.setAvailability(token, property.id, [{ date: todayStr, is_available: !currentlyAvailable }]);
-      notify(currentlyAvailable ? 'הנכס סומן כתפוס להיום' : 'הנכס סומן כפנוי להיום');
+      const { availability } = await propertyApi.getAvailability(property.id, { from: dates[0], to: dates[dates.length - 1] });
+      const firstRow = availability.find((row) => row.date.slice(0, 10) === dates[0]);
+      const currentlyAvailable = firstRow ? Boolean(firstRow.is_available) : true;
+      await propertyApi.setAvailability(token, property.id, dates.map((date) => ({ date, is_available: !currentlyAvailable })));
+      notify(currentlyAvailable ? busyMessage : freeMessage);
     } catch (err) {
       notify(err.message || 'שגיאה בעדכון הזמינות', 'error');
     } finally {
       setTogglingAvailabilityId(null);
     }
+  }
+
+  function handleToggleTodayAvailability(property) {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    return handleToggleDatesAvailability(property, [todayStr], {
+      toggleKey: 'today',
+      busyMessage: 'הנכס סומן כתפוס להיום',
+      freeMessage: 'הנכס סומן כפנוי להיום',
+    });
+  }
+
+  function handleToggleNextWeekendAvailability(property) {
+    return handleToggleDatesAvailability(property, nextWeekendDates(), {
+      toggleKey: 'weekend',
+      busyMessage: 'הסופ"ש הקרוב סומן כתפוס',
+      freeMessage: 'הסופ"ש הקרוב סומן כפנוי',
+    });
   }
 
   const activeCount = properties.filter((p) => p.status === 'claimed' || p.status === 'active').length;
@@ -191,8 +219,10 @@ export function OwnerDashboardPage() {
               initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
               transition={{ type: 'spring', stiffness: 300, damping: 28 }}
               onClick={(e) => e.stopPropagation()}
+              style={{ maxHeight: '90vh', overflowY: 'auto' }}
             >
               <AvailabilityCalendar propertyId={availabilityProperty.id} token={token} onClose={() => setAvailabilityProperty(null)} />
+              <IcalSyncPanel propertyId={availabilityProperty.id} token={token} />
             </motion.div>
           </motion.div>
         )}
@@ -389,12 +419,24 @@ export function OwnerDashboardPage() {
                   <motion.button
                     className="dash-deal-edit"
                     whileTap={{ scale: 0.9 }}
-                    disabled={togglingAvailabilityId === property.id}
+                    disabled={togglingAvailabilityId === `${property.id}-today`}
                     onClick={(e) => { e.stopPropagation(); handleToggleTodayAvailability(property); }}
                     title="עדכון זמינות היום בלחיצה אחת"
                   >
                     <Zap size={14} />
-                    <span className="dash-deal-btn-label">{togglingAvailabilityId === property.id ? '…' : 'החלף היום'}</span>
+                    <span className="dash-deal-btn-label">{togglingAvailabilityId === `${property.id}-today` ? '…' : 'החלף היום'}</span>
+                  </motion.button>
+                )}
+                {property.status !== 'draft' && (
+                  <motion.button
+                    className="dash-deal-edit"
+                    whileTap={{ scale: 0.9 }}
+                    disabled={togglingAvailabilityId === `${property.id}-weekend`}
+                    onClick={(e) => { e.stopPropagation(); handleToggleNextWeekendAvailability(property); }}
+                    title='עדכון זמינות הסופ"ש הקרוב בלחיצה אחת'
+                  >
+                    <PartyPopper size={14} />
+                    <span className="dash-deal-btn-label">{togglingAvailabilityId === `${property.id}-weekend` ? '…' : 'סופ"ש הקרוב'}</span>
                   </motion.button>
                 )}
                 <motion.button className="dash-deal-edit" whileTap={{ scale: 0.9 }} onClick={(e) => { e.stopPropagation(); handleDuplicateProperty(property.id); }} title="שכפל נכס">

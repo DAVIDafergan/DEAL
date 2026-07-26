@@ -2,6 +2,8 @@ import 'dotenv/config';
 import { createApp } from './app.js';
 import { connectWithRetry } from '../core/db/index.js';
 import { sendPendingReminders } from './services/complianceMessaging.js';
+import { checkPropertyAlerts } from './store/alertStore.js';
+import { sendWeeklyOwnerReports } from './services/weeklyOwnerReport.js';
 
 // Flight world retired (see README): the scanner (sources/, DealPipeline, distribution/),
 // popular-package refresh (core/packages/packageEngine.js), and vibe-feed refresh
@@ -63,6 +65,32 @@ async function main() {
       }
     } catch (err) {
       console.error('[deal-radar-pro] Agent deal expiry check failed:', err.message);
+    }
+  }, 24 * 60 * 60 * 1000);
+
+  // 11.14 — "notify me" alerts: hourly sweep for newly-matching properties (see alertStore.js;
+  // dedup against last_seen_property_ids means an hourly cadence never double-emails).
+  setInterval(async () => {
+    try {
+      const result = await checkPropertyAlerts();
+      if (result.emailsSent > 0) {
+        console.log(`[deal-radar-pro] Property alerts: checked ${result.alertsChecked}, sent ${result.emailsSent} email(s).`);
+      }
+    } catch (err) {
+      console.error('[deal-radar-pro] Property alert check failed:', err.message);
+    }
+  }, 60 * 60 * 1000);
+
+  // 11.13 — weekly owner report: checked daily, but each owner is only actually emailed once
+  // every 7 days (last_weekly_report_sent_at) — see weeklyOwnerReport.js.
+  setInterval(async () => {
+    try {
+      const result = await sendWeeklyOwnerReports();
+      if (result.emailsSent > 0) {
+        console.log(`[deal-radar-pro] Weekly owner reports: checked ${result.ownersChecked}, sent ${result.emailsSent} email(s).`);
+      }
+    } catch (err) {
+      console.error('[deal-radar-pro] Weekly owner report check failed:', err.message);
     }
   }, 24 * 60 * 60 * 1000);
 

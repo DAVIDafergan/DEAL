@@ -10,7 +10,9 @@ import {
   createClaimCode, verifyClaimCode,
   createUnit, updateUnit, deactivateUnit, duplicateUnit, reorderUnits,
   getPublishChecklist, publishProperty, duplicateProperty, reportIncorrectInfo,
+  generateUnitIcalExportToken, setUnitIcalImportUrl,
 } from '../store/propertyStore.js';
+import { syncUnitIcalImport } from '../services/icalSyncService.js';
 import { findAgentBySlug, findAgentById } from '../store/agentStore.js';
 import { requireAgentAuth } from '../middleware/agentAuth.js';
 import { sendVerificationCode, notifyOwnerOfBookingRequest } from '../services/complianceMessaging.js';
@@ -378,6 +380,44 @@ router.delete('/:id/units/:unitId', requireAgentAuth, async (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: 'Failed to delete unit' });
+  }
+});
+
+/** POST /api/properties/:id/units/:unitId/ical/token — generates (or returns the existing)
+ * export token for this unit's iCal feed at GET /api/ical/:token.ics */
+router.post('/:id/units/:unitId/ical/token', requireAgentAuth, async (req, res) => {
+  try {
+    const token = await generateUnitIcalExportToken(req.params.unitId, req.agentId);
+    if (!token) return res.status(404).json({ error: 'Not found' });
+    res.json({ token });
+  } catch (err) {
+    console.error('[properties] ical token error:', err.message);
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
+/** PATCH /api/properties/:id/units/:unitId/ical — body: { importUrl } */
+router.patch('/:id/units/:unitId/ical', requireAgentAuth, async (req, res) => {
+  try {
+    const ok = await setUnitIcalImportUrl(req.params.unitId, req.agentId, (req.body?.importUrl || '').trim());
+    if (!ok) return res.status(404).json({ error: 'Not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[properties] set ical import url error:', err.message);
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
+/** POST /api/properties/:id/units/:unitId/ical/sync — fetches+parses the unit's ical_import_url
+ * right now, on demand (not just waiting for whatever periodic sweep exists). */
+router.post('/:id/units/:unitId/ical/sync', requireAgentAuth, async (req, res) => {
+  try {
+    const result = await syncUnitIcalImport(req.params.unitId, req.agentId);
+    if (!result.ok) return res.status(400).json({ error: result.reason });
+    res.json(result);
+  } catch (err) {
+    console.error('[properties] ical sync error:', err.message);
+    res.status(500).json({ error: 'Internal error' });
   }
 });
 

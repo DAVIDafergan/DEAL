@@ -460,6 +460,17 @@ const MIGRATIONS = [
        WHERE bed_config IS NULL AND beds IS NOT NULL AND beds > 0`
     );
   },
+  // 11.13 — weekly owner email report (views/clicks digest) tracks its own send cadence per
+  // owner independently of any cron schedule, so a server restart never double-sends or skips.
+  (connection) => ensureColumn(connection, 'agents', 'last_weekly_report_sent_at', 'DATETIME NULL'),
+  // 11.13 — iCal sync per unit: export_token is this unit's own secret calendar-feed id (never
+  // the sequential `id` — same "don't let a guessable key enumerate/scrape other units" reasoning
+  // as booking_requests.tracking_token above); import_url is an owner-pasted external calendar
+  // (Airbnb/Booking export link) this unit pulls busy/free dates from.
+  (connection) => ensureColumn(connection, 'property_units', 'ical_export_token', 'VARCHAR(48) NULL'),
+  (connection) => ensureColumn(connection, 'property_units', 'ical_import_url', 'TEXT NULL'),
+  (connection) => ensureColumn(connection, 'property_units', 'ical_last_synced_at', 'DATETIME NULL'),
+  (connection) => ensureIndex(connection, 'property_units', 'idx_property_units_ical_token', 'ical_export_token'),
 ];
 
 const SCHEMA_STATEMENTS = [
@@ -965,6 +976,71 @@ const SCHEMA_STATEMENTS = [
     INDEX idx_property_images_unit (unit_id),
     CONSTRAINT fk_property_images_property FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE,
     CONSTRAINT fk_property_images_unit FOREIGN KEY (unit_id) REFERENCES property_units(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB`,
+
+  // 11.13 — shared wishlists: a signup-free named collection a visitor builds from their
+  // favorites, gets a shareable /list/:token link for, and anyone with the link can upvote/
+  // downvote or comment on each property without registering. `voter_key` is the same
+  // client-generated-and-localStorage-persisted id pattern as getSessionId() (web/src/utils/
+  // session.js) / agent_ratings.session_id — identifies "this browser", not a person.
+  `CREATE TABLE IF NOT EXISTS wishlists (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    token VARCHAR(32) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    created_at DATETIME NOT NULL,
+    UNIQUE KEY uk_wishlists_token (token)
+  ) ENGINE=InnoDB`,
+  `CREATE TABLE IF NOT EXISTS wishlist_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    wishlist_id INT NOT NULL,
+    property_id INT NOT NULL,
+    sort_order SMALLINT NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL,
+    UNIQUE KEY uk_wishlist_items_wishlist_property (wishlist_id, property_id),
+    INDEX idx_wishlist_items_wishlist (wishlist_id),
+    CONSTRAINT fk_wishlist_items_wishlist FOREIGN KEY (wishlist_id) REFERENCES wishlists(id) ON DELETE CASCADE,
+    CONSTRAINT fk_wishlist_items_property FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB`,
+  `CREATE TABLE IF NOT EXISTS wishlist_votes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    wishlist_item_id INT NOT NULL,
+    voter_key VARCHAR(64) NOT NULL,
+    vote ENUM('up','down') NOT NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_wishlist_votes_item_voter (wishlist_item_id, voter_key),
+    CONSTRAINT fk_wishlist_votes_item FOREIGN KEY (wishlist_item_id) REFERENCES wishlist_items(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB`,
+  `CREATE TABLE IF NOT EXISTS wishlist_comments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    wishlist_item_id INT NOT NULL,
+    voter_key VARCHAR(64) NOT NULL,
+    author_name VARCHAR(80) NULL,
+    body VARCHAR(500) NOT NULL,
+    created_at DATETIME NOT NULL,
+    INDEX idx_wishlist_comments_item (wishlist_item_id),
+    CONSTRAINT fk_wishlist_comments_item FOREIGN KEY (wishlist_item_id) REFERENCES wishlist_items(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB`,
+
+  // 11.14 — "notify me" alerts: a visitor sets region/budget/dates once (no account), gets an
+  // email when a newly-collected or newly-updated property matches. `last_seen_property_ids`
+  // is the dedup guard — only ever emails about a given property once per alert, even if it's
+  // re-matched on a later sweep before the visitor acts on the email.
+  `CREATE TABLE IF NOT EXISTS property_alerts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(255) NOT NULL,
+    region ENUM('north','galilee','golan','carmel','center','jerusalem','south','dead_sea','eilat') NULL,
+    max_price DECIMAL(10,2) NULL,
+    check_in DATE NULL,
+    check_out DATE NULL,
+    guest_capacity TINYINT UNSIGNED NULL,
+    unsubscribe_token VARCHAR(48) NOT NULL,
+    last_seen_property_ids JSON NULL,
+    last_checked_at DATETIME NULL,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at DATETIME NOT NULL,
+    UNIQUE KEY uk_property_alerts_unsub_token (unsubscribe_token),
+    INDEX idx_property_alerts_active_region (is_active, region)
   ) ENGINE=InnoDB`,
 ];
 

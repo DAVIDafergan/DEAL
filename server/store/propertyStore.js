@@ -1076,6 +1076,24 @@ export async function getUnitById(unitId) {
   return rows[0] ? parseUnit(rows[0]) : null;
 }
 
+// 11.13 — iCal export: the token is generated once and reused (not rotated per request) so the
+// URL an owner already pasted into Airbnb/Booking/Google Calendar keeps working.
+export async function generateUnitIcalExportToken(unitId, ownerId) {
+  const unit = await getUnitOwnedBy(unitId, ownerId);
+  if (!unit) return null;
+  if (unit.ical_export_token) return unit.ical_export_token;
+  const token = randomBytes(24).toString('hex');
+  await getPool().query('UPDATE property_units SET ical_export_token = ? WHERE id = ?', [token, unitId]);
+  return token;
+}
+
+export async function setUnitIcalImportUrl(unitId, ownerId, importUrl) {
+  const unit = await getUnitOwnedBy(unitId, ownerId);
+  if (!unit) return false;
+  await getPool().query('UPDATE property_units SET ical_import_url = ? WHERE id = ?', [importUrl || null, unitId]);
+  return true;
+}
+
 /** 7.5 owner dashboard "בקשות הזמנה" — every booking request across all of this owner's
  * properties, newest first, joined with just enough property/unit context to render without
  * N+1 lookups on the client. */

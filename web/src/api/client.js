@@ -234,6 +234,9 @@ export const propertyApi = {
   duplicateUnit: (token, propertyId, unitId) => postJson(`/properties/${propertyId}/units/${unitId}/duplicate`, {}, token),
   deleteUnit: (token, propertyId, unitId) => deleteReq(`/properties/${propertyId}/units/${unitId}`, token),
   reorderUnits: (token, propertyId, orderedIds) => patchJson(`/properties/${propertyId}/units/reorder`, { orderedIds }, token),
+  generateIcalExportToken: (token, propertyId, unitId) => postJson(`/properties/${propertyId}/units/${unitId}/ical/token`, {}, token),
+  setIcalImportUrl: (token, propertyId, unitId, importUrl) => patchJson(`/properties/${propertyId}/units/${unitId}/ical`, { importUrl }, token),
+  syncIcalImport: (token, propertyId, unitId) => postJson(`/properties/${propertyId}/units/${unitId}/ical/sync`, {}, token),
   getPublishChecklist: (token, id) => getJson(`/properties/${id}/publish-checklist`, token),
   publish: (token, id) => postJson(`/properties/${id}/publish`, {}, token),
   delete: (token, id) => deleteReq(`/properties/${id}`, token),
@@ -247,6 +250,22 @@ export const propertyApi = {
   getMyReview: (token, id) => getJson(`/properties/${id}/reviews/mine`, token),
   createReview: (token, id, data) => postJson(`/properties/${id}/reviews`, data, token),
 };
+
+export const wishlistApi = {
+  create: (name, propertyIds) => postJson('/wishlists', { name, propertyIds }),
+  get: (token) => getJson(`/wishlists/${token}`),
+  vote: (token, itemId, voterKey, vote) => postJson(`/wishlists/${token}/items/${itemId}/vote`, { voterKey, vote }),
+  comment: (token, itemId, voterKey, authorName, body) => postJson(`/wishlists/${token}/items/${itemId}/comments`, { voterKey, authorName, body }),
+};
+
+export const alertApi = {
+  create: (data) => postJson('/alerts', data),
+  unsubscribe: (token) => postJson(`/alerts/${token}/unsubscribe`, {}),
+};
+
+export function icalFeedUrl(exportToken) {
+  return `${API_BASE}/ical/${exportToken}.ics`;
+}
 
 export const reviewApi = {
   update: (token, id, data) => patchJson(`/reviews/${id}`, data, token),

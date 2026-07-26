@@ -181,6 +181,14 @@
   background: var(--gradient-accent);
   color: #fff;
 }
+.pes__btn--alert {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-color: var(--ds-hearth, var(--color-accent));
+  color: var(--ds-hearth, var(--color-accent));
+  background: transparent;
+}
 
 /* ── Mobile trigger + bottom sheet ───────────────────────────────────────── */
 .pfs__trigger {

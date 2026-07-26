@@ -32,3 +32,14 @@ export const eventTrackingRateLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: 'Too many events' },
 });
+
+// 11.13: shared-wishlist voting/commenting — a real group looking at one list can generate
+// dozens of votes/comments within minutes (everyone reacting to every property), so this stays
+// lenient like eventTrackingRateLimiter; still a backstop against a scripted spam flood.
+export const wishlistRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 40,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'יותר מדי פעולות — נסו שוב בעוד דקה' },
+});
