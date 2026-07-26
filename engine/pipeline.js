@@ -11,6 +11,7 @@ import { startEngineRun, finishEngineRun } from '../server/store/engineRunStore.
 import { recordQueryResult } from '../server/store/engineQueryStore.js';
 import { isEmergencyStopped } from '../server/store/engineSettingsStore.js';
 import { updateProgress, pushRejection } from './progressTracker.js';
+import { deprioritizeBrowser } from './browserPriority.js';
 
 // Step 8.5 cost/safety ceilings — checked every loop iteration so a run that blows past its
 // budget stops immediately instead of finishing the whole discovered site list regardless.
@@ -91,6 +92,7 @@ export async function runPipeline({ queries, searchProvider, siteHints = {}, mod
     }
 
     browser = await chromium.launch({ args: ['--no-sandbox'] });
+    deprioritizeBrowser(browser);
 
     for (const site of discovery.sites) {
       // Step 8.5 — checked before every single fetch, not just once per run, so "stop now"

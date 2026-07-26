@@ -251,6 +251,7 @@ router.post('/engine/run-live', async (req, res) => {
     const { normalizeDomain } = await import('../../core/compliance/blocklist.js');
     const { startEngineRun, finishEngineRun } = await import('../store/engineRunStore.js');
     const { startProgress, clearProgress } = await import('../../engine/progressTracker.js');
+    const { deprioritizeBrowser } = await import('../../engine/browserPriority.js');
     const { chromium } = await import('playwright');
 
     const apiKey = process.env.SEARCH_API_KEY;
@@ -284,6 +285,7 @@ router.post('/engine/run-live', async (req, res) => {
       let classifyBrowser;
       try {
         classifyBrowser = await chromium.launch({ args: ['--no-sandbox'] });
+        deprioritizeBrowser(classifyBrowser);
         let discoverySites;
         if (searchProvider) {
           const discovery = await runDiscovery(queries, searchProvider);
