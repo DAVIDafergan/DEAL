@@ -48,7 +48,7 @@ const OWNER_EDITABLE_FIELDS = [
   ...AMENITY_FIELDS,
   'kosher_level', 'base_price_night', 'weekend_price', 'holiday_price', 'cleaning_fee',
   'min_nights', 'currency', 'owner_images', 'phone', 'whatsapp', 'email', 'website', 'status',
-  'nearby_attractions', 'view_type',
+  'nearby_attractions', 'view_type', 'video_url', 'video_poster_url',
 ];
 
 function parseJsonField(value) {

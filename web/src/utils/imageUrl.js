@@ -23,3 +23,14 @@ export function optimizedImageUrl(url, { width = 480 } = {}) {
   }
   return url;
 }
+
+// 11.18 — density-descriptor srcset (1x/1.5x/2x) for retina/high-DPI screens, Cloudinary only:
+// it's the one backend that can actually produce three different real resolutions on the fly.
+// Density descriptors (vs width descriptors) need no `sizes` attribute — the browser just picks
+// based on devicePixelRatio, which is exactly what a fixed-CSS-size card/thumb/hero image wants.
+const SRCSET_DENSITIES = [1, 1.5, 2];
+
+export function srcSetForImage(url, { width = 480 } = {}) {
+  if (!url || !url.includes('res.cloudinary.com') || !url.includes('/upload/')) return undefined;
+  return SRCSET_DENSITIES.map((d) => `${optimizedImageUrl(url, { width: Math.round(width * d) })} ${d}x`).join(', ');
+}

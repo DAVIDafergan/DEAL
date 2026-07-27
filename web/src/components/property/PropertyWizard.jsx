@@ -7,6 +7,7 @@ import { REGIONS, PROPERTY_TYPES, KOSHER_LEVELS, AMENITIES } from '../../data/pr
 import { townsForRegion } from '../../data/israeliTowns.js';
 import { PropertyUnitsStep } from './PropertyUnitsStep.jsx';
 import { PropertyPhotoUploader } from './PropertyPhotoUploader.jsx';
+import { PropertyVideoUploader } from './PropertyVideoUploader.jsx';
 import { PropertyCard } from '../PropertyCard.jsx';
 import { AmenityPicker } from './AmenityPicker.jsx';
 
@@ -119,6 +120,8 @@ export function PropertyWizard({ initialData = null, propertyId: initialProperty
   const [kosherLevel, setKosherLevel] = useState(initialData?.kosher_level || 'not_applicable');
 
   const [ownerImages, setOwnerImages] = useState(initialData?.owner_images || []);
+  const [videoUrl, setVideoUrl] = useState(initialData?.video_url || null);
+  const [videoPosterUrl, setVideoPosterUrl] = useState(initialData?.video_poster_url || null);
 
   const [phone, setPhone] = useState(initialData?.phone || '');
   const [whatsapp, setWhatsapp] = useState(initialData?.whatsapp || '');
@@ -145,6 +148,8 @@ export function PropertyWizard({ initialData = null, propertyId: initialProperty
       setAmenities(amenityState);
       setKosherLevel(p.kosher_level || 'not_applicable');
       setOwnerImages(p.owner_images || []);
+      setVideoUrl(p.video_url || null);
+      setVideoPosterUrl(p.video_poster_url || null);
       setPhone(p.phone || '');
       setWhatsapp(p.whatsapp || '');
       setWebsite(p.website || '');
@@ -369,6 +374,14 @@ export function PropertyWizard({ initialData = null, propertyId: initialProperty
                   maxImages={15}
                   propertyId={propertyId}
                 />
+                {propertyId && (
+                  <PropertyVideoUploader
+                    videoUrl={videoUrl}
+                    posterUrl={videoPosterUrl}
+                    propertyId={propertyId}
+                    onChange={({ videoUrl: v, posterUrl: p }) => { setVideoUrl(v); setVideoPosterUrl(p); }}
+                  />
+                )}
               </WizardStep>
             </motion.div>
           )}

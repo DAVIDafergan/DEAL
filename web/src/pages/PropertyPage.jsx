@@ -220,7 +220,20 @@ export function PropertyPage() {
       <div className="container pp__layout">
         <div className="pp__main">
           {isClaimed ? (
-            <PropertyGallery images={property.owner_images || []} alt={property.name} />
+            <>
+              <PropertyGallery images={property.owner_images || []} alt={property.name} />
+              {property.video_url && (
+                <video
+                  src={property.video_url}
+                  poster={property.video_poster_url || undefined}
+                  controls
+                  preload="metadata"
+                  playsInline
+                  className="pp__video"
+                  aria-label={`סרטון היכרות — ${property.name}`}
+                />
+              )}
+            </>
           ) : (
             <div className="deal-modal__media" style={{ borderRadius: 'var(--radius-lg)', height: 320 }}>
               <div className="deal-modal__media-placeholder" />

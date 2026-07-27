@@ -278,6 +278,8 @@ export const reviewApi = {
 export const uploadApi = {
   propertyImage: (token, file, onProgress, opts) => uploadFileWithProgress('/uploads/property-image', file, token, onProgress, opts),
   deletePropertyImage: (token, url) => deleteReq(`/uploads/property-image?url=${encodeURIComponent(url)}`, token),
+  propertyVideo: (token, file, onProgress, opts) => uploadFileWithProgress('/uploads/property-video', file, token, onProgress, opts),
+  deletePropertyVideo: (token, url, propertyId) => deleteReq(`/uploads/property-video?url=${encodeURIComponent(url)}&propertyId=${propertyId}`, token),
 };
 
 export const removeApi = {

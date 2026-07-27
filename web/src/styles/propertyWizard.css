@@ -65,6 +65,19 @@
 .ppu__thumb-progress { font-size: 0.72rem; color: var(--color-text-muted); font-weight: 700; }
 .ppu__thumb-error { font-size: 0.68rem; color: var(--color-error,#ef4444); text-align: center; padding: 4px; }
 
+/* ── 11.18 — video uploader (single walkthrough clip, Cloudinary-only) ──────── */
+
+.ppu--video { margin-top: 20px; }
+.ppu--video .ppu__dropzone { min-height: 90px; padding: 12px; text-align: center; }
+.ppu__video-preview {
+  position: relative;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: #000;
+}
+.ppu__video-el { width: 100%; max-height: 360px; display: block; background: #000; }
+.ppu__video-preview .ppu__thumb-remove { top: 8px; inset-inline-end: 8px; }
+
 /* ── Units step ───────────────────────────────────────────────────────────── */
 
 .wus__list { display: flex; flex-direction: column; gap: 10px; }

@@ -471,6 +471,11 @@ const MIGRATIONS = [
   (connection) => ensureColumn(connection, 'property_units', 'ical_import_url', 'TEXT NULL'),
   (connection) => ensureColumn(connection, 'property_units', 'ical_last_synced_at', 'DATETIME NULL'),
   (connection) => ensureIndex(connection, 'property_units', 'idx_property_units_ical_token', 'ical_export_token'),
+  // 11.18 — one walkthrough video per property (Cloudinary-only, see server/routes/uploads.js
+  // property-video route). video_poster_url is Cloudinary's auto-extracted first-frame jpg, not
+  // a second upload — stored alongside the video url so the player never needs to derive it.
+  (connection) => ensureColumn(connection, 'properties', 'video_url', 'TEXT NULL'),
+  (connection) => ensureColumn(connection, 'properties', 'video_poster_url', 'TEXT NULL'),
 ];
 
 const SCHEMA_STATEMENTS = [

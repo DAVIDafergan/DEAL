@@ -4,7 +4,7 @@ import { MessageCircle, CheckCircle, Users, BedDouble, Waves, Heart, Star, Home 
 import { getCurrencySymbol } from '../utils/currency.js';
 import { regionLabel, amenityLabel } from '../data/propertyOptions.js';
 import { useFavorites } from '../hooks/useFavorites.js';
-import { optimizedImageUrl } from '../utils/imageUrl.js';
+import { optimizedImageUrl, srcSetForImage } from '../utils/imageUrl.js';
 import { FreshnessBadge } from './FreshnessBadge.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
 
@@ -66,7 +66,7 @@ export function PropertyCard({ property }) {
     >
       <div className="adc__media">
         {images.length > 0
-          ? <img src={optimizedImageUrl(images[hoverIndex], { width: 480 })} alt={property.name} className="adc__img" loading="lazy" width="480" height="320" />
+          ? <img src={optimizedImageUrl(images[hoverIndex], { width: 480 })} srcSet={srcSetForImage(images[hoverIndex], { width: 480 })} alt={property.name} className="adc__img" loading="lazy" width="480" height="320" />
           : (
             <div className="adc__img-placeholder">
               <Home size={28} strokeWidth={1.3} />

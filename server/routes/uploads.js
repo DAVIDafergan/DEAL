@@ -1,20 +1,42 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { getImageStorage } from '../../media/imageStorage/index.js';
+import { getImageStorage, resolveImageStorageMode } from '../../media/imageStorage/index.js';
+import { isCloudinaryConfigured, uploadVideoToCloudinary, deleteVideoFromCloudinary } from '../../media/cloudinaryUpload.js';
 import { requireAgentAuth } from '../middleware/agentAuth.js';
-import { getPropertyByIdForOwner, getUnitOwnedBy } from '../store/propertyStore.js';
+import { getPropertyByIdForOwner, getUnitOwnedBy, updateProperty } from '../store/propertyStore.js';
 
 const ALLOWED_MIMETYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']);
-// 11.5: 2MB — matches the client-side compression target (web/src/utils/imageCompress.js
-// rejects anything that doesn't fit under 2MB after webp re-encoding, before it's even sent).
-const MAX_FILE_BYTES = 2 * 1024 * 1024;
+// 11.18 — the client tries to canvas-recompress every photo to webp before sending it (see
+// imageCompress.js), but browsers frequently can't *decode* HEIC via createImageBitmap (common
+// on non-Safari browsers), so that path silently falls back to sending the raw, unconverted
+// original — a real iPhone photo, easily 5-10MB. With Cloudinary as the backend that's fine:
+// Cloudinary decodes HEIC and re-encodes it server-side, and the upload-time transform (see
+// cloudinaryUpload.js) caps the stored dimensions regardless of the original's size. The db
+// backend has no such luxury — it stores the raw bytes straight into MySQL — so it keeps the
+// original, stricter 2MB cap.
+const USING_CLOUDINARY = resolveImageStorageMode() === 'cloudinary';
+const MAX_FILE_BYTES = USING_CLOUDINARY ? 10 * 1024 * 1024 : 2 * 1024 * 1024;
+const MAX_FILE_MB = MAX_FILE_BYTES / (1024 * 1024);
 const PROPERTY_IMAGE_LIMIT = 15;
 const UNIT_IMAGE_LIMIT = 10;
+
+const ALLOWED_VIDEO_MIMETYPES = new Set(['video/mp4', 'video/quicktime', 'video/webm', 'video/x-m4v', 'video/3gpp']);
+// Video is Cloudinary-only — there's no realistic way to store/serve video from the db backend's
+// MySQL-blob approach the way images are (see media/imageStorage/dbStorage.js), so this cap only
+// matters when USING_CLOUDINARY is true; the route 503s outright otherwise (see below).
+const MAX_VIDEO_BYTES = 60 * 1024 * 1024;
+const MAX_VIDEO_MB = MAX_VIDEO_BYTES / (1024 * 1024);
 
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: MAX_FILE_BYTES },
   fileFilter: (req, file, cb) => cb(null, ALLOWED_MIMETYPES.has(file.mimetype)),
+});
+
+const uploadVideo = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_VIDEO_BYTES },
+  fileFilter: (req, file, cb) => cb(null, ALLOWED_VIDEO_MIMETYPES.has(file.mimetype)),
 });
 
 const router = Router();
@@ -103,11 +125,59 @@ router.delete('/property-image', requireAgentAuth, async (req, res) => {
   }
 });
 
+/** POST /api/uploads/property-video — Cloudinary-only (video isn't a realistic fit for the db
+ * backend's MySQL-blob storage — see dbStorage.js). 503s with a clear Hebrew message if
+ * Cloudinary isn't configured, rather than accepting an upload that has nowhere real to go. */
+router.post('/property-video', requireAgentAuth, uploadVideo.single('file'), async (req, res) => {
+  if (!isCloudinaryConfigured()) {
+    return res.status(503).json({ error: 'העלאת סרטונים דורשת חיבור ל-Cloudinary, שאינו מוגדר כרגע בשרת' });
+  }
+  const file = req.file;
+  if (!file) return res.status(400).json({ error: 'לא נבחר סרטון להעלאה' });
+
+  const propertyId = req.body.propertyId ? Number(req.body.propertyId) : null;
+  if (propertyId) {
+    const property = await getPropertyByIdForOwner(propertyId, req.agentId);
+    if (!property) return res.status(403).json({ error: 'אין הרשאה להעלות סרטון לנכס הזה' });
+  }
+
+  try {
+    const folder = `dealim/properties/${propertyId || 'misc'}/video`;
+    const { url, posterUrl } = await uploadVideoToCloudinary(file.buffer, { folder });
+    if (propertyId) await updateProperty(propertyId, req.agentId, { video_url: url, video_poster_url: posterUrl });
+    res.json({ url, posterUrl });
+  } catch (err) {
+    console.error('[uploads] property-video error:', err.message);
+    res.status(502).json({ error: 'העלאת הסרטון נכשלה, נסו שוב' });
+  }
+});
+
+/** DELETE /api/uploads/property-video?propertyId=...&url=... */
+router.delete('/property-video', requireAgentAuth, async (req, res) => {
+  const { url, propertyId } = req.query || {};
+  if (!url) return res.status(400).json({ error: 'חסר url למחיקה' });
+  const pid = propertyId ? Number(propertyId) : null;
+  if (pid) {
+    const property = await getPropertyByIdForOwner(pid, req.agentId);
+    if (!property) return res.status(403).json({ error: 'אין הרשאה למחוק את הסרטון הזה' });
+  }
+  try {
+    await deleteVideoFromCloudinary(url);
+    if (pid) await updateProperty(pid, req.agentId, { video_url: null, video_poster_url: null });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[uploads] delete property-video error:', err.message);
+    res.status(502).json({ error: 'מחיקת הסרטון נכשלה' });
+  }
+});
+
 // multer errors (oversized file, rejected mimetype) land here instead of the generic error handler.
 router.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {
+    const isVideo = req.originalUrl?.includes('property-video');
+    const sizeMsg = isVideo ? `הסרטון גדול מדי (עד ${MAX_VIDEO_MB}MB)` : `הקובץ גדול מדי (עד ${MAX_FILE_MB}MB${USING_CLOUDINARY ? '' : ' לאחר דחיסה'})`;
     return res.status(400).json({
-      error: err.code === 'LIMIT_FILE_SIZE' ? 'הקובץ גדול מדי (עד 2MB לאחר דחיסה)' : 'שגיאה בהעלאת הקובץ',
+      error: err.code === 'LIMIT_FILE_SIZE' ? sizeMsg : 'שגיאה בהעלאת הקובץ',
     });
   }
   next(err);

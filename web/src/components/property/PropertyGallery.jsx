@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ChevronRight, ChevronLeft, ImageOff } from 'lucide-react';
-import { optimizedImageUrl } from '../../utils/imageUrl.js';
+import { optimizedImageUrl, srcSetForImage } from '../../utils/imageUrl.js';
 import { useLanguage } from '../../context/LanguageContext.jsx';
 
 /** PropertyGallery — 9.4: main photo + secondary grid (Booking/Airbnb pattern), click opens a
@@ -26,13 +26,13 @@ export function PropertyGallery({ images = [], alt }) {
     <>
       <div className="pg">
         <button type="button" className="pg__main" onClick={() => setLightboxIndex(0)}>
-          <img src={optimizedImageUrl(images[0], { width: 900 })} alt={alt} loading="eager" width="900" height="380" />
+          <img src={optimizedImageUrl(images[0], { width: 900 })} srcSet={srcSetForImage(images[0], { width: 900 })} alt={alt} loading="eager" width="900" height="380" />
         </button>
         {secondary.length > 0 && (
           <div className="pg__grid">
             {secondary.map((src, i) => (
               <button type="button" key={src + i} className="pg__thumb" onClick={() => setLightboxIndex(i + 1)}>
-                <img src={optimizedImageUrl(src, { width: 260 })} alt="" loading="lazy" width="260" height="180" />
+                <img src={optimizedImageUrl(src, { width: 260 })} srcSet={srcSetForImage(src, { width: 260 })} alt="" loading="lazy" width="260" height="180" />
                 {i === secondary.length - 1 && images.length > 5 && (
                   <span className="pg__more">+{images.length - 5}</span>
                 )}
