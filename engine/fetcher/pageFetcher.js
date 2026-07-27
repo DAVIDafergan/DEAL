@@ -30,10 +30,46 @@ const NON_PROPERTY_IMAGE_PATTERNS = [
   /\.svg(\?|$)/i,
   /facebook\.com\/tr\b/i, // Meta Pixel tracking beacon, not an image
   /fatfish\.co\.il/i, // third-party widget branding seen on several scraped directory sites
+  /button/i, /banner[-_]?ad/i,
 ];
+
+// 11.16 — the filename denylist above still let through UI chrome that isn't named like an
+// icon at all: tiny thumbnails (nav arrows, star ratings) and header/footer images that repeat
+// identically on every page of a site. Two more signals, neither requiring a download (fetcher
+// never downloads images — see fetchPage below): the <img> tag's own declared width/height
+// attributes, and whether the exact same URL has already turned up on another page of the same
+// domain during this run (real property photos are page-specific; template chrome isn't).
+const MIN_IMAGE_DIMENSION = 400;
+const GALLERY_CLASS_PATTERN = /\b(gallery|slider|carousel|swiper|lightbox|photos?|property-image|listing-image)\b/i;
 
 function isLikelyNonPropertyImage(url) {
   return NON_PROPERTY_IMAGE_PATTERNS.some((pattern) => pattern.test(url));
+}
+
+function getAttr(attrs, name) {
+  const m = attrs.match(new RegExp(`\\b${name}=["']([^"']*)["']`, 'i'));
+  return m ? m[1] : null;
+}
+
+function isTooSmall(attrs) {
+  const w = getAttr(attrs, 'width');
+  const h = getAttr(attrs, 'height');
+  const wNum = w && /^\d+$/.test(w) ? Number(w) : null;
+  const hNum = h && /^\d+$/.test(h) ? Number(h) : null;
+  return (wNum !== null && wNum < MIN_IMAGE_DIMENSION) || (hNum !== null && hNum < MIN_IMAGE_DIMENSION);
+}
+
+// domain -> (image URL -> Set of distinct page URLs it has appeared on). Module-level so it
+// accumulates across every page fetched in a crawl run, not just the current page.
+const domainImageOccurrences = new Map();
+
+function isRepeatedTemplateImage(domain, url, pageUrl) {
+  let occ = domainImageOccurrences.get(domain);
+  if (!occ) { occ = new Map(); domainImageOccurrences.set(domain, occ); }
+  let pages = occ.get(url);
+  if (!pages) { pages = new Set(); occ.set(url, pages); }
+  pages.add(pageUrl);
+  return pages.size > 1;
 }
 
 /**
@@ -62,12 +98,39 @@ function extractFromHtml(html, baseUrl) {
     for (const m of html.matchAll(backward)) if (!(m[2] in metaTags)) metaTags[m[2]] = m[1];
   }
 
-  const imageUrls = [...new Set(
-    [...html.matchAll(/<img[^>]+src=["']([^"']+)["']/gi)]
-      .map((m) => { try { return new URL(m[1], baseUrl).toString(); } catch { return null; } })
-      .filter(Boolean)
-      .filter((url) => !isLikelyNonPropertyImage(url))
-  )];
+  const ogImageRaw = metaTags['og:image'] || metaTags['og:image:url'] || null;
+  let ogImageAbs = null;
+  if (ogImageRaw) { try { ogImageAbs = new URL(ogImageRaw, baseUrl).toString(); } catch { ogImageAbs = null; } }
+
+  let domain;
+  try { domain = normalizeDomain(new URL(baseUrl).hostname); } catch { domain = baseUrl; }
+
+  const seenImages = new Set();
+  const imageUrls = [];
+  for (const m of html.matchAll(/<img\b([^>]*)>/gi)) {
+    const attrs = m[1];
+    const srcMatch = attrs.match(/\bsrc=["']([^"']+)["']/i);
+    if (!srcMatch) continue;
+    let abs;
+    try { abs = new URL(srcMatch[1], baseUrl).toString(); } catch { continue; }
+    if (seenImages.has(abs)) continue;
+    seenImages.add(abs);
+
+    // og:image and gallery-marked images are strong positive signals of a real property photo —
+    // they skip the size/repeat vetoes below, but never the filename denylist (a site's logo can
+    // just as easily be its og:image or sit inside a "gallery" div as a real photo can).
+    if (isLikelyNonPropertyImage(abs)) continue;
+    const isOg = abs === ogImageAbs;
+    const looksLikeGallery = GALLERY_CLASS_PATTERN.test(getAttr(attrs, 'class') || '');
+    const isLikelyReal = isOg || looksLikeGallery;
+    if (!isLikelyReal && isTooSmall(attrs)) continue; // declared width/height under the min — thumbnail/icon, not a photo
+    if (!isLikelyReal && isRepeatedTemplateImage(domain, abs, baseUrl)) continue; // seen on another page of this site — template chrome
+
+    imageUrls.push(abs);
+  }
+  if (ogImageAbs && !isLikelyNonPropertyImage(ogImageAbs) && !imageUrls.includes(ogImageAbs)) {
+    imageUrls.unshift(ogImageAbs);
+  }
 
   const jsonLd = [...html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)]
     .map((m) => { try { return JSON.parse(m[1]); } catch { return null; } })

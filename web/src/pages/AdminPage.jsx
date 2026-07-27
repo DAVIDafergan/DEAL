@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, XCircle, Eye, RefreshCw, ArrowLeft, Trash2, ChevronLeft, ChevronRight, User, LogOut, Users, FileCheck, LayoutDashboard, Clock, Home, BarChart3, Search, ShoppingBag, MousePointerClick, Bot, ShieldCheck, PlayCircle, MapPin, AlertTriangle, Flag, Image as ImageIcon, ImageOff, Pencil, Save, X, EyeOff, ListFilter } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, RefreshCw, ArrowLeft, Trash2, ChevronLeft, ChevronRight, User, LogOut, Users, LayoutDashboard, Clock, Home, Search, Bot, ShieldCheck, PlayCircle, MapPin, AlertTriangle, ImageOff, Pencil, Save, X, EyeOff } from 'lucide-react';
 import { Link } from '../components/LocalizedLink.jsx';
 import { adminApi } from '../api/client.js';
 import { Logo } from '../components/Logo.jsx';
@@ -98,170 +98,6 @@ function LoginScreen({ onLogin }) {
 
         <Link to="/" className="adm-login-back"><ArrowLeft size={14} /> חזרה לאתר</Link>
       </motion.div>
-    </div>
-  );
-}
-
-/** 10.5: site-wide property view/click aggregate. */
-function PropertyAnalyticsTab({ token }) {
-  const [days, setDays] = useState(30);
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    setLoading(true);
-    adminApi.getPropertyEventStats(token, days)
-      .then((d) => setData(d))
-      .catch(() => setData(null))
-      .finally(() => setLoading(false));
-  }, [token, days]);
-
-  const EVENT_LABELS = {
-    view: 'צפיות', whatsapp_click: 'קליקים לוואטסאפ', call_click: 'קליקים לחיוג', share: 'שיתופים', favorite: 'מועדפים',
-  };
-
-  return (
-    <div className="adm-analytics" dir="rtl">
-      <div className="adm-analytics__filters">
-        <select className="adm-analytics__select" value={days} onChange={(e) => setDays(Number(e.target.value))}>
-          <option value={7}>7 ימים אחרונים</option>
-          <option value={30}>30 ימים אחרונים</option>
-          <option value={90}>90 ימים אחרונים</option>
-        </select>
-      </div>
-
-      {loading && <p style={{ textAlign: 'center', padding: 32, color: 'var(--color-text-muted)' }}>טוען…</p>}
-
-      {!loading && data && (
-        <>
-          <div className="adm-analytics__grid">
-            {Object.entries(EVENT_LABELS).map(([key, label]) => (
-              <div className="adm-analytics-kpi" key={key}>
-                <div className="adm-analytics-kpi__value">{data.totals[key]?.total || 0}</div>
-                <div className="adm-analytics-kpi__label">{label}</div>
-                <div className="adm-analytics-kpi__sub">{data.totals[key]?.unique || 0} ייחודיים</div>
-              </div>
-            ))}
-          </div>
-
-          <h3 style={{ margin: '24px 0 12px' }}>10 הנכסים הנצפים ביותר</h3>
-          <table className="adm-table">
-            <thead><tr><th>נכס</th><th>צפיות</th></tr></thead>
-            <tbody>
-              {data.topProperties.length === 0 ? (
-                <tr><td colSpan={2} style={{ textAlign: 'center', color: 'var(--color-text-muted)' }}>אין עדיין נתונים</td></tr>
-              ) : data.topProperties.map((p) => (
-                <tr key={p.propertyId}>
-                  <td><a href={`/property/${p.propertyId}`} target="_blank" rel="noopener noreferrer">{p.name}</a></td>
-                  <td>{p.views}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </>
-      )}
-    </div>
-  );
-}
-
-/** 11.5 — which ImageStorage backend is live, and (for the "db" backend) how much room it's
- * using. Cloudinary doesn't expose a free storage-usage endpoint here, so those fields show
- * "—" rather than a fake number when that backend is active. */
-function ImageStorageTab({ token }) {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    adminApi.getImageStorageStatus(token).then(setData).catch(() => setData(null)).finally(() => setLoading(false));
-  }, [token]);
-
-  if (loading) return <p style={{ textAlign: 'center', padding: 32, color: 'var(--color-text-muted)' }}>טוען…</p>;
-  if (!data) return <p style={{ textAlign: 'center', padding: 32, color: 'var(--color-text-muted)' }}>שגיאה בטעינת הנתונים</p>;
-
-  const mb = data.totalBytes != null ? (data.totalBytes / (1024 * 1024)).toFixed(1) : null;
-
-  return (
-    <div className="adm-analytics" dir="rtl">
-      <div className="adm-analytics__grid">
-        <div className="adm-analytics-kpi">
-          <div className="adm-analytics-kpi__value" style={{ fontSize: '1.3rem' }}>
-            {data.mode === 'db' ? 'מסד נתונים (מקומי)' : 'Cloudinary'}
-          </div>
-          <div className="adm-analytics-kpi__label">מנגנון אחסון פעיל</div>
-        </div>
-        <div className="adm-analytics-kpi">
-          <div className="adm-analytics-kpi__value">{data.count ?? '—'}</div>
-          <div className="adm-analytics-kpi__label">תמונות מאוחסנות</div>
-        </div>
-        <div className="adm-analytics-kpi">
-          <div className="adm-analytics-kpi__value">{mb ?? '—'}</div>
-          <div className="adm-analytics-kpi__label">מ״ב בשימוש</div>
-        </div>
-      </div>
-      <p className="agent-form__hint" style={{ marginTop: 16 }}>
-        {data.mode === 'db'
-          ? 'התמונות מאוחסנות ישירות במסד הנתונים — לא נדרש חיבור לשירות חיצוני.'
-          : 'התמונות מאוחסנות ב-Cloudinary.'}
-        {' '}{data.cloudinaryConfigured ? 'CLOUDINARY_URL מוגדר בשרת.' : 'CLOUDINARY_URL אינו מוגדר בשרת — האחסון המקומי פעיל כברירת מחדל.'}
-      </p>
-    </div>
-  );
-}
-
-/** 10.6: buyer-review moderation queue — reports > 0, admin can hide/restore/delete. Distinct
- * from PropertyReviewTab above, which approves/rejects auto-collected *listings*, not reviews. */
-function ReviewModerationTab({ token, notify }) {
-  const [queue, setQueue] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  async function load() {
-    setLoading(true);
-    try {
-      const { reviews } = await adminApi.getReportedReviews(token);
-      setQueue(reviews || []);
-    } catch (err) {
-      notify(err.message || 'שגיאה בטעינה', 'error');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => { load(); }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  async function act(id, action) {
-    try {
-      if (action === 'hide') await adminApi.hideReview(token, id);
-      else if (action === 'restore') await adminApi.restoreReview(token, id);
-      else if (action === 'delete') await adminApi.deleteReview(token, id);
-      notify('בוצע');
-      setQueue((prev) => prev.filter((r) => r.id !== id));
-    } catch (err) { notify(err.message, 'error'); }
-  }
-
-  if (loading) return <p style={{ textAlign: 'center', padding: 32, color: 'var(--color-text-muted)' }}>טוען…</p>;
-  if (queue.length === 0) return <p style={{ textAlign: 'center', padding: 32, color: 'var(--color-text-muted)' }}>אין ביקורות מדווחות</p>;
-
-  return (
-    <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {queue.map((r) => (
-        <div key={r.id} className="settings-card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-            <strong>{r.property_name}</strong>
-            <span style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>{r.report_count} דיווחים · {r.status}</span>
-          </div>
-          <p style={{ margin: '6px 0', fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
-            <strong>{r.reviewer_name}</strong> · {r.rating}★ — {r.title ? `${r.title}: ` : ''}{r.body}
-          </p>
-          <div style={{ display: 'flex', gap: 8 }}>
-            {r.status === 'visible' ? (
-              <button className="agent-form__btn agent-form__btn--ghost" onClick={() => act(r.id, 'hide')}>הסתר</button>
-            ) : (
-              <button className="agent-form__btn agent-form__btn--ghost" onClick={() => act(r.id, 'restore')}>שחזר</button>
-            )}
-            <button className="agent-form__btn" style={{ color: 'var(--ds-wine)' }} onClick={() => act(r.id, 'delete')}>מחק לצמיתות</button>
-          </div>
-        </div>
-      ))}
     </div>
   );
 }
@@ -613,14 +449,9 @@ function PropertyReviewTab({ token, notify }) {
       {stats && (
         <div className="adm-analytics__grid" style={{ padding: '16px 20px 0' }}>
           <div className="adm-analytics-kpi">
-            <div className="adm-analytics-kpi__icon" style={{ color: 'var(--ds-hearth)', background: 'rgba(193,89,43,0.12)' }}><Home size={26} /></div>
-            <div className="adm-analytics-kpi__value">{stats.total}</div>
-            <div className="adm-analytics-kpi__label">סה"כ נכסים</div>
-          </div>
-          <div className="adm-analytics-kpi">
             <div className="adm-analytics-kpi__icon" style={{ color: 'var(--ds-olive)', background: 'rgba(91,107,78,0.12)' }}><Bot size={26} /></div>
             <div className="adm-analytics-kpi__value">{stats.autoCollection.totalAuto}</div>
-            <div className="adm-analytics-kpi__label">נאספו אוטומטית</div>
+            <div className="adm-analytics-kpi__label">סה"כ נכסים מהמנוע</div>
             <div className="adm-analytics-kpi__sub">{stats.autoCollection.successRate}% אחוז פרסום</div>
           </div>
           <div className="adm-analytics-kpi">
@@ -762,11 +593,14 @@ const PROPERTY_STATUS_LABELS = {
   unclaimed: 'לא נתבע', claimed: 'נתבע', active: 'פעיל', hidden: 'מוסתר', pending: 'ממתין לבעלים', draft: 'טיוטה',
 };
 
-/** AllPropertiesTab — 11.15: every property regardless of source/status, with search + region/
- * status filters and quick actions (edit/hide/delete) — distinct from PropertyReviewTab above
- * (auto-collected + pending review only). Filters/pagination are server-side (adminApi.getAllProperties)
- * since this table has no natural size cap the way the review queue does. */
-function AllPropertiesTab({ token, notify }) {
+/** PropertiesListTab — 11.16: browsable, editable list of properties for a single `source`
+ * ('manual' or 'auto'), with search + region/status filters and quick actions (edit/hide/delete).
+ * Used for both the "נכסים פעילים" tab (source='manual') and, embedded inside the "נכסים מהמנוע"
+ * tab, to browse auto-collected properties beyond the pending-review queue (already
+ * approved/rejected ones). Filters/pagination are server-side (adminApi.getAllProperties) since
+ * this table has no natural size cap the way the review queue does. `source` is always passed
+ * explicitly to the API — the two tabs must never blend manual and auto-collected rows. */
+function PropertiesListTab({ token, notify, source }) {
   const [properties, setProperties] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -784,7 +618,7 @@ function AllPropertiesTab({ token, notify }) {
   async function load() {
     setLoading(true);
     try {
-      const result = await adminApi.getAllProperties(token, { search: searchQ, region, status, page });
+      const result = await adminApi.getAllProperties(token, { search: searchQ, region, status, source, page });
       setProperties(result.properties || []);
       setTotal(result.total || 0);
     } catch (err) {
@@ -794,7 +628,7 @@ function AllPropertiesTab({ token, notify }) {
     }
   }
 
-  useEffect(() => { load(); }, [token, searchQ, region, status, page]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, [token, searchQ, region, status, source, page]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleSearchChange(e) {
     const v = e.target.value;
@@ -905,7 +739,6 @@ function AllPropertiesTab({ token, notify }) {
                     <span className={`adm-status ${p.status === 'active' || p.status === 'claimed' ? 'adm-status--approved' : p.status === 'hidden' ? 'adm-status--rejected' : 'adm-status--pending'}`}>
                       {PROPERTY_STATUS_LABELS[p.status] || p.status}
                     </span>
-                    {p.source === 'auto' && <span className="adm-tabs__badge adm-tabs__badge--neutral"><Bot size={11} /> אוטומטי</span>}
                   </div>
                   <span>{p.property_type} · {regionLabel(p.region, 'he')} · {p.city || '—'}</span>
                   <span className="adm-row__meta">טלפון: {p.phone || '—'} · וואטסאפ: {p.whatsapp || '—'}</span>
@@ -949,9 +782,98 @@ function AllPropertiesTab({ token, notify }) {
   );
 }
 
+/** PendingClaimsSection — 11.16: an owner who verifies a phone/whatsapp number on an unclaimed
+ * auto-collected listing (see POST /properties/:id/claim/verify) lands here awaiting admin
+ * approval. This queue and its endpoints already existed in the backend/API client but had no
+ * admin-panel UI at all — wiring it up here, inside "נכסים מהמנוע", because approving a claim is
+ * exactly the moment a property moves from source='auto' to source='manual' (see
+ * propertyStore.approveClaim) and reappears in "נכסים פעילים" instead. */
+function PendingClaimsSection({ token, notify }) {
+  const [claims, setClaims] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const { properties } = await adminApi.getPendingPropertyClaims(token);
+      setClaims(properties || []);
+    } catch (err) {
+      notify(err.message || 'שגיאה בטעינה', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { load(); }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function approve(id) {
+    try {
+      await adminApi.approvePropertyClaim(token, id);
+      notify('התביעה אושרה — הנכס עבר לבעלות הטוען ✓');
+      setClaims((prev) => prev.filter((p) => p.id !== id));
+    } catch (err) { notify(err.message, 'error'); }
+  }
+
+  async function reject(id) {
+    try {
+      await adminApi.rejectPropertyClaim(token, id);
+      notify('התביעה נדחתה');
+      setClaims((prev) => prev.filter((p) => p.id !== id));
+    } catch (err) { notify(err.message, 'error'); }
+  }
+
+  if (loading || claims.length === 0) return null;
+
+  return (
+    <div dir="rtl" style={{ padding: '16px 20px 0' }}>
+      <h3 style={{ margin: '0 0 10px' }}>תביעות בעלות ממתינות לאישור ({claims.length})</h3>
+      <div className="adm-list">
+        {claims.map((p) => (
+          <div key={p.id} className="adm-row">
+            <div className="adm-row__info">
+              <strong>{p.name}</strong>
+              <span>{p.property_type} · {regionLabel(p.region, 'he')} · {p.city || '—'}</span>
+              <span className="adm-row__meta">טוען הבעלות: {p.claimant_business_name} · {p.claimant_email}</span>
+            </div>
+            <div className="adm-row__actions">
+              <motion.button className="adm-row__approve" whileTap={{ scale: 0.97 }} onClick={() => approve(p.id)}>
+                <CheckCircle size={16} /> אשר תביעה
+              </motion.button>
+              <motion.button className="adm-row__reject" whileTap={{ scale: 0.97 }} onClick={() => reject(p.id)}>
+                <XCircle size={16} /> דחה
+              </motion.button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** EngineSourcedPropertiesTab — 11.16: "נכסים מהמנוע", the single tab for everything
+ * source='auto' — ownership claims awaiting approval, the pending-review queue (approve/edit/
+ * reject newly scraped listings), and a browsable list of every other auto-collected property
+ * (already approved or rejected). Deliberately separate from "נכסים פעילים" (PropertiesListTab
+ * with source='manual') per the manual/auto split — see propertyStore.listPropertiesForAdmin. */
+function EngineSourcedPropertiesTab({ token, notify }) {
+  return (
+    <div>
+      <PendingClaimsSection token={token} notify={notify} />
+      <PropertyReviewTab token={token} notify={notify} />
+      <div style={{ margin: '28px 20px 0', paddingTop: 16, borderTop: '1px solid rgba(140,47,57,0.15)' }}>
+        <h3 style={{ margin: '0 0 4px' }}>כל הנכסים מהמנוע</h3>
+        <p style={{ margin: '0 0 12px', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
+          כולל נכסים שכבר אושרו או נדחו — לעריכה, הסתרה או מחיקה.
+        </p>
+      </div>
+      <PropertiesListTab token={token} notify={notify} source="auto" />
+    </div>
+  );
+}
+
 export function AdminPage() {
   const [token, setToken] = useState(() => adminApi.getToken());
-  const [tab, setTab] = useState('pending-agents');
+  const [tab, setTab] = useState('active-properties');
   const [pendingAgents, setPendingAgents] = useState([]);
   const [allAgents, setAllAgents] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -964,7 +886,7 @@ export function AdminPage() {
   const [contactPage, setContactPage] = useState(1);
   const [selectedAgent, setSelectedAgent] = useState(null);
   const [allUsers, setAllUsers] = useState([]);
-  const [propertyTotal, setPropertyTotal] = useState(0);
+  const [propertyCounts, setPropertyCounts] = useState({ manual: 0, auto: 0 });
   const [contactSubmissions, setContactSubmissions] = useState([]);
   const [deleteAgentConfirmId, setDeleteAgentConfirmId] = useState(null);
   const [deleteUserConfirmId, setDeleteUserConfirmId] = useState(null);
@@ -991,7 +913,11 @@ export function AdminPage() {
       setPendingAgents(pending || []);
       setAllAgents(all || []);
       setAllUsers(usersRes?.users || []);
-      setPropertyTotal(statsRes?.total || 0);
+      const bySource = statsRes?.bySource || [];
+      setPropertyCounts({
+        manual: bySource.find((s) => s.source === 'manual')?.count || 0,
+        auto: bySource.find((s) => s.source === 'auto')?.count || 0,
+      });
       setContactSubmissions(contactRes?.submissions || []);
     } catch (err) {
       const isAuthError = err.message?.includes('401')
@@ -1082,7 +1008,7 @@ export function AdminPage() {
     return { label: 'ממתין', cls: 'adm-status--pending' };
   }
 
-  const showSearch = tab === 'all-agents' || tab === 'users';
+  const showSearch = tab === 'owners-agents' || tab === 'users';
 
   return (
     <div className="adm-page" dir="rtl">
@@ -1129,28 +1055,28 @@ export function AdminPage() {
       {/* KPI row */}
       <div className="adm-kpi-row">
         <div className="adm-kpi">
-          <div className="adm-kpi__icon-box" style={{ background: 'rgba(184,134,11,0.12)', color: 'var(--ds-gold)' }}>
-            <Clock size={22} />
+          <div className="adm-kpi__icon-box" style={{ background: 'rgba(91,107,78,0.12)', color: 'var(--ds-olive)' }}>
+            <Home size={22} />
           </div>
-          <span className="adm-kpi__value">{pendingAgents.length}</span>
-          <span className="adm-kpi__label">סוכנים ממתינים</span>
+          <span className="adm-kpi__value">{propertyCounts.manual}</span>
+          <span className="adm-kpi__label">נכסים פעילים</span>
+        </div>
+        <div className="adm-kpi">
+          <div className="adm-kpi__icon-box" style={{ background: 'rgba(156,67,30,0.12)', color: 'var(--ds-hearth-dark)' }}>
+            <Bot size={22} />
+          </div>
+          <span className="adm-kpi__value">{propertyCounts.auto}</span>
+          <span className="adm-kpi__label">נכסים מהמנוע</span>
         </div>
         <div className="adm-kpi">
           <div className="adm-kpi__icon-box" style={{ background: 'rgba(193,89,43,0.12)', color: 'var(--ds-hearth)' }}>
             <Users size={22} />
           </div>
           <span className="adm-kpi__value">{allAgents.length}</span>
-          <span className="adm-kpi__label">סה"כ סוכנים</span>
+          <span className="adm-kpi__label">בעלים/סוכנים רשומים</span>
         </div>
         <div className="adm-kpi">
-          <div className="adm-kpi__icon-box" style={{ background: 'rgba(91,107,78,0.12)', color: 'var(--ds-olive)' }}>
-            <FileCheck size={22} />
-          </div>
-          <span className="adm-kpi__value">{propertyTotal}</span>
-          <span className="adm-kpi__label">סה"כ נכסים</span>
-        </div>
-        <div className="adm-kpi">
-          <div className="adm-kpi__icon-box" style={{ background: 'rgba(156,67,30,0.12)', color: 'var(--ds-hearth-dark)' }}>
+          <div className="adm-kpi__icon-box" style={{ background: 'rgba(184,134,11,0.12)', color: 'var(--ds-gold)' }}>
             <User size={22} />
           </div>
           <span className="adm-kpi__value">{allUsers.length}</span>
@@ -1158,13 +1084,18 @@ export function AdminPage() {
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Tabs — order matches the panel's real workflow: properties first (active, then engine
+          queue), then the people (owners/agents, customers), then public inquiries and the
+          collection engine itself. */}
       <div className="adm-tabs">
-        <button className={`adm-tabs__btn${tab === 'pending-agents' ? ' is-active' : ''}`} onClick={() => setTab('pending-agents')}>
-          סוכנים ממתינים {pendingAgents.length > 0 && <span className="adm-tabs__badge">{pendingAgents.length}</span>}
+        <button className={`adm-tabs__btn${tab === 'active-properties' ? ' is-active' : ''}`} onClick={() => setTab('active-properties')}>
+          <Home size={14} /> נכסים פעילים <span className="adm-tabs__badge adm-tabs__badge--neutral">{propertyCounts.manual}</span>
         </button>
-        <button className={`adm-tabs__btn${tab === 'all-agents' ? ' is-active' : ''}`} onClick={() => setTab('all-agents')}>
-          כל הסוכנים <span className="adm-tabs__badge adm-tabs__badge--neutral">{allAgents.length}</span>
+        <button className={`adm-tabs__btn${tab === 'engine-properties' ? ' is-active' : ''}`} onClick={() => setTab('engine-properties')}>
+          <Bot size={14} /> נכסים מהמנוע <span className="adm-tabs__badge adm-tabs__badge--neutral">{propertyCounts.auto}</span>
+        </button>
+        <button className={`adm-tabs__btn${tab === 'owners-agents' ? ' is-active' : ''}`} onClick={() => setTab('owners-agents')}>
+          <Users size={14} /> בעלים/סוכנים רשומים {pendingAgents.length > 0 && <span className="adm-tabs__badge">{pendingAgents.length}</span>}
         </button>
         <button className={`adm-tabs__btn${tab === 'users' ? ' is-active' : ''}`} onClick={() => setTab('users')}>
           <User size={14} /> לקוחות <span className="adm-tabs__badge adm-tabs__badge--neutral">{allUsers.length}</span>
@@ -1174,34 +1105,19 @@ export function AdminPage() {
             <span className="adm-tabs__badge">{contactSubmissions.filter(s => !s.is_read).length}</span>
           )}
         </button>
-        <button className={`adm-tabs__btn${tab === 'all-properties' ? ' is-active' : ''}`} onClick={() => setTab('all-properties')}>
-          <ListFilter size={14} /> כל הנכסים הפעילים <span className="adm-tabs__badge adm-tabs__badge--neutral">{propertyTotal}</span>
-        </button>
-        <button className={`adm-tabs__btn${tab === 'property-review' ? ' is-active' : ''}`} onClick={() => setTab('property-review')}>
-          <ShieldCheck size={14} /> נכסים לאישור
-        </button>
-        <button className={`adm-tabs__btn${tab === 'property-analytics' ? ' is-active' : ''}`} onClick={() => setTab('property-analytics')}>
-          <BarChart3 size={14} /> סטטיסטיקת נכסים
-        </button>
-        <button className={`adm-tabs__btn${tab === 'review-moderation' ? ' is-active' : ''}`} onClick={() => setTab('review-moderation')}>
-          <Flag size={14} /> ביקורות מדווחות
-        </button>
         <button className={`adm-tabs__btn${tab === 'engine' ? ' is-active' : ''}`} onClick={() => setTab('engine')}>
           <Bot size={14} /> מנוע איסוף
         </button>
-        <button className={`adm-tabs__btn${tab === 'image-storage' ? ' is-active' : ''}`} onClick={() => setTab('image-storage')}>
-          <ImageIcon size={14} /> אחסון תמונות
-        </button>
       </div>
 
-      {/* Search bar — visible on agents / deals tabs */}
+      {/* Search bar — visible on the owners/agents and customers tabs */}
       {showSearch && (
         <div className="adm-search-bar">
           <Search size={15} className="adm-search-bar__icon" />
           <input
             className="adm-search-bar__input"
             type="text"
-            placeholder={tab === 'all-agents' ? 'חיפוש סוכן לפי שם / אימייל…' : 'חיפוש לקוח לפי שם / אימייל…'}
+            placeholder={tab === 'owners-agents' ? 'חיפוש בעלים/סוכן לפי שם / אימייל…' : 'חיפוש לקוח לפי שם / אימייל…'}
             value={search}
             onChange={handleSearchChange}
             autoComplete="off"
@@ -1260,18 +1176,16 @@ export function AdminPage() {
         </div>
       )}
 
-      {/* Property review queue — auto-collected properties awaiting manual approval. While
-          ENGINE_AUTO_PUBLISH_ENABLED is off (the default), this is every auto-collected property
-          regardless of confidence (8.6); once enabled, only the 60-79 band plus >=80 without a
-          usable phone. See propertyStore.listPropertiesPendingReview. */}
-      {tab === 'all-properties' && <AllPropertiesTab token={token} notify={notify} />}
-      {tab === 'property-review' && <PropertyReviewTab token={token} notify={notify} />}
-      {tab === 'property-analytics' && <PropertyAnalyticsTab token={token} />}
-      {tab === 'review-moderation' && <ReviewModerationTab token={token} notify={notify} />}
+      {/* נכסים פעילים — source='manual' only: drafts and published listings from real owners. */}
+      {tab === 'active-properties' && <PropertiesListTab token={token} notify={notify} source="manual" />}
+
+      {/* נכסים מהמנוע — source='auto' only: ownership claims, the pending-review queue (approve/
+          edit/reject scraped listings — see propertyStore.listPropertiesPendingReview), and every
+          other auto-collected property. */}
+      {tab === 'engine-properties' && <EngineSourcedPropertiesTab token={token} notify={notify} />}
 
       {/* Collection engine (Step 3/4) */}
       {tab === 'engine' && <EngineTab token={token} notify={notify} />}
-      {tab === 'image-storage' && <ImageStorageTab token={token} />}
 
       {/* Contact Submissions */}
       {tab === 'contact' && (
@@ -1304,10 +1218,12 @@ export function AdminPage() {
         </div>
       )}
 
-      {/* Pending agents */}
-      {!loading && tab === 'pending-agents' && (
-        <div className="adm-list">
-          {pendingAgents.length === 0 && <p className="adm-list__empty">אין סוכנים ממתינים</p>}
+      {/* בעלים/סוכנים רשומים — pending signups needing approval first, then the full searchable
+          roster. Merged into one tab (11.16): these were two separate tabs before, but an admin
+          managing "who's registered" naturally wants both views together. */}
+      {!loading && tab === 'owners-agents' && pendingAgents.length > 0 && (
+        <div className="adm-list" style={{ marginBottom: 20 }}>
+          <h3 style={{ margin: '0 0 10px 20px' }}>ממתינים לאישור ({pendingAgents.length})</h3>
           {pendingAgents.map(agent => (
             <div key={agent.id} className="adm-row">
               <div className="adm-row__info">
@@ -1337,10 +1253,9 @@ export function AdminPage() {
         </div>
       )}
 
-      {/* All agents */}
-      {!loading && tab === 'all-agents' && (
+      {!loading && tab === 'owners-agents' && (
         <div className="adm-list">
-          {filteredAgents.length === 0 && <p className="adm-list__empty">{searchQ ? 'לא נמצאו תוצאות' : 'אין סוכנים'}</p>}
+          {filteredAgents.length === 0 && <p className="adm-list__empty">{searchQ ? 'לא נמצאו תוצאות' : 'אין בעלים/סוכנים'}</p>}
           {pagedAgents.map(agent => {
             const { label, cls } = statusLabel(agent.status);
             const isExpanded = selectedAgent === agent.id;

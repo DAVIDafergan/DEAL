@@ -112,8 +112,15 @@ export function Header({ reels = false, activeTab = 'home' }) {
             )}
           </AnimatePresence>
 
-          {/* ── Desktop right: user | vacation builder | language ───────── */}
+          {/* ── Desktop right: favorites | user | language ───────────────── */}
           <div className="top-bar__desktop-right">
+            {/* 11.16 — favorites/wishlist had no entry point at all on desktop (the hamburger
+                drawer that carries this link on mobile is CSS-hidden above 640px — see
+                .top-bar__mobile-left) other than scrolling to the footer. */}
+            <Link to="/my/favorites" className="header-auth-btn header-auth-btn--ghost" aria-label={t.favoritesLink}>
+              <Heart size={15} />
+              <span>{t.favoritesLink}</span>
+            </Link>
             {!loading && (
               token && agent ? (
                 <Link to="/owner/dashboard" className="header-auth-btn header-auth-btn--ghost">
@@ -155,11 +162,13 @@ export function Header({ reels = false, activeTab = 'home' }) {
                 <Home size={16} /> {t.homeLink}
               </Link>
               <div className="header-drawer__divider" />
-              {token && agent && (
-                <Link to="/my/favorites" className="header-drawer__item" onClick={closeMenu}>
-                  <Heart size={15} /> {t.favoritesLink}
-                </Link>
-              )}
+              {/* 11.16 — favorites are stored locally (useFavorites, no login required), so this
+                  must be visible to everyone, not gated behind an owner/agent login. It was
+                  previously hidden behind `token && agent`, which meant regular customers could
+                  never find their saved-properties list from the menu. */}
+              <Link to="/my/favorites" className="header-drawer__item" onClick={closeMenu}>
+                <Heart size={15} /> {t.favoritesLink}
+              </Link>
               <div className="header-drawer__lang-row">
                 <span className="header-drawer__lang-label">{t.languageLabel}</span>
                 <LanguageSwitcher />

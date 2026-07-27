@@ -150,10 +150,16 @@ router.patch('/properties/:id/auto', async (req, res) => {
 // search + region/status filters and 10-per-page pagination, distinct from the review queue
 // above (which is auto-collected + pending only) and from claims (owner-verification only). ────
 
+// 11.16 — `source` is required and whitelisted (never passed through unchecked): this is the
+// one query every admin property list/count in the panel goes through, so it's also the one
+// place that has to keep manual/auto strictly separate.
+const ADMIN_PROPERTY_SOURCES = ['manual', 'auto'];
+
 router.get('/properties', async (req, res) => {
   try {
-    const { search, region, status, page } = req.query;
-    const result = await listPropertiesForAdmin({ search, region, status, page: Number(page) || 1, perPage: 10 });
+    const { search, region, status, page, source } = req.query;
+    if (!ADMIN_PROPERTY_SOURCES.includes(source)) return res.status(400).json({ error: 'source must be manual or auto' });
+    const result = await listPropertiesForAdmin({ search, region, status, source, page: Number(page) || 1, perPage: 10 });
     res.json(result);
   } catch (err) {
     console.error('[admin] list properties error:', err.message);

@@ -830,13 +830,18 @@ export async function hardDeletePropertyAdmin(id) {
   await pool.query('DELETE FROM properties WHERE id = ?', [id]);
 }
 
-// 11.15 — admin "all properties" tab: every property regardless of source/status (unlike every
+// 11.15 — admin "all properties" tab: every property regardless of status (unlike every
 // guest-facing query in this file, deliberately has NO hidden/draft/confidence visibility gate —
 // an admin needs to see and manage everything, including what's currently invisible to guests).
-export async function listPropertiesForAdmin({ search, region, status, page = 1, perPage = 10 } = {}) {
+// 11.16 — `source` is required at the route layer (never left to the caller to omit): the admin
+// panel now has two strictly separate property tabs — "נכסים פעילים" (source='manual', real
+// owner drafts/listings) and "נכסים מהמנוע" (source='auto', scraped listings) — and nothing here
+// should ever silently blend the two.
+export async function listPropertiesForAdmin({ search, region, status, source, page = 1, perPage = 10 } = {}) {
   const pool = getPool();
   const where = ['deleted_at IS NULL'];
   const vals = [];
+  if (source) { where.push('source = ?'); vals.push(source); }
   if (region) { where.push('region = ?'); vals.push(region); }
   if (status) { where.push('status = ?'); vals.push(status); }
   if (search) {
@@ -1328,9 +1333,15 @@ export async function listPendingClaims() {
   return rows.map(parseProperty);
 }
 
+// Approving a claim is also the one moment an auto-collected listing turns into a real owner's
+// listing — source flips to 'manual' here so it moves out of "נכסים מהמנוע" and into "נכסים
+// פעילים" in the admin panel (and everywhere else that filters by source) from this point on.
 export async function approveClaim(propertyId) {
   const pool = getPool();
-  await pool.query(`UPDATE properties SET status = 'claimed', updated_at = ? WHERE id = ? AND status = 'pending'`, [nowStr(), propertyId]);
+  await pool.query(
+    `UPDATE properties SET status = 'claimed', source = 'manual', updated_at = ? WHERE id = ? AND status = 'pending'`,
+    [nowStr(), propertyId]
+  );
 }
 
 /** Rejecting a claim reverts the property to unclaimed and detaches the claimant — it does not
