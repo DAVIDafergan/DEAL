@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, XCircle, Eye, RefreshCw, ArrowLeft, Trash2, ChevronLeft, ChevronRight, User, LogOut, Users, LayoutDashboard, Clock, Home, Search, Bot, ShieldCheck, PlayCircle, MapPin, AlertTriangle, ImageOff, Pencil, Save, X, EyeOff } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, RefreshCw, ArrowLeft, Trash2, ChevronLeft, ChevronRight, User, LogOut, Users, LayoutDashboard, Clock, Home, Search, Bot, ShieldCheck, PlayCircle, MapPin, AlertTriangle, Flag, ImageOff, Pencil, Save, X, EyeOff } from 'lucide-react';
 import { Link } from '../components/LocalizedLink.jsx';
 import { adminApi } from '../api/client.js';
 import { Logo } from '../components/Logo.jsx';
@@ -888,6 +888,8 @@ export function AdminPage() {
   const [allUsers, setAllUsers] = useState([]);
   const [propertyCounts, setPropertyCounts] = useState({ manual: 0, auto: 0 });
   const [contactSubmissions, setContactSubmissions] = useState([]);
+  const [reportedReviews, setReportedReviews] = useState([]);
+  const [reviewActionBusyId, setReviewActionBusyId] = useState(null);
   const [deleteAgentConfirmId, setDeleteAgentConfirmId] = useState(null);
   const [deleteUserConfirmId, setDeleteUserConfirmId] = useState(null);
   const [search, setSearch] = useState('');
@@ -903,12 +905,13 @@ export function AdminPage() {
     if (!token) return;
     setLoading(true);
     try {
-      const [{ agents: pending }, { agents: all }, usersRes, contactRes, statsRes] = await Promise.all([
+      const [{ agents: pending }, { agents: all }, usersRes, contactRes, statsRes, reviewsRes] = await Promise.all([
         adminApi.getPendingAgents(token),
         adminApi.getAllAgents(token),
         adminApi.getUsers(token).catch(() => ({ users: [] })),
         fetch('/api/contact', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).catch(() => ({ submissions: [] })),
         adminApi.getPropertyStats(token).catch(() => null),
+        adminApi.getReportedReviews(token).catch(() => ({ reviews: [] })),
       ]);
       setPendingAgents(pending || []);
       setAllAgents(all || []);
@@ -919,6 +922,7 @@ export function AdminPage() {
         auto: bySource.find((s) => s.source === 'auto')?.count || 0,
       });
       setContactSubmissions(contactRes?.submissions || []);
+      setReportedReviews(reviewsRes?.reviews || []);
     } catch (err) {
       const isAuthError = err.message?.includes('401')
         || err.message?.includes('Unauthorized')
@@ -987,6 +991,24 @@ export function AdminPage() {
   }
 
   function startReject(id, target) { setRejectId(id); setRejectTarget(target); setRejectReason(''); }
+
+  // Review moderation (11.17) — any of the three actions clears the review's report_count on
+  // the server (setReviewStatus does this now — see reviewStore.js), so it's handled and won't
+  // reappear in listReportedReviews. All three optimistically drop it from local state too.
+  async function reviewAction(id, action) {
+    setReviewActionBusyId(id);
+    try {
+      if (action === 'hide') await adminApi.hideReview(token, id);
+      else if (action === 'approve') await adminApi.restoreReview(token, id);
+      else if (action === 'delete') await adminApi.deleteReview(token, id);
+      notify(action === 'delete' ? 'הביקורת נמחקה' : action === 'hide' ? 'הביקורת הוסתרה' : 'הביקורת אושרה');
+      setReportedReviews(prev => prev.filter(r => r.id !== id));
+    } catch (err) {
+      notify(err.message || 'שגיאה', 'error');
+    } finally {
+      setReviewActionBusyId(null);
+    }
+  }
 
   if (!token) return <LoginScreen onLogin={handleLogin} />;
 
@@ -1105,6 +1127,11 @@ export function AdminPage() {
             <span className="adm-tabs__badge">{contactSubmissions.filter(s => !s.is_read).length}</span>
           )}
         </button>
+        <button className={`adm-tabs__btn${tab === 'reviews' ? ' is-active' : ''}`} onClick={() => setTab('reviews')}>
+          <Flag size={14} /> ביקורות מדווחות {reportedReviews.length > 0 && (
+            <span className="adm-tabs__badge">{reportedReviews.length}</span>
+          )}
+        </button>
         <button className={`adm-tabs__btn${tab === 'engine' ? ' is-active' : ''}`} onClick={() => setTab('engine')}>
           <Bot size={14} /> מנוע איסוף
         </button>
@@ -1215,6 +1242,54 @@ export function AdminPage() {
             </div>
           ))}
           <Pagination page={contactPage} totalPages={Math.ceil(contactSubmissions.length / CONTACT_PER_PAGE)} onPage={setContactPage} />
+        </div>
+      )}
+
+      {/* 11.17 — ביקורות מדווחות: every review here has report_count > 0, i.e. not yet handled
+          by an admin (reviewAction resets report_count to 0 on any decision, which is what
+          removes a review from this list — see reviewStore.setReviewStatus). "אשר" dismisses the
+          report and leaves the review visible; "הסתר"/"שחזר" toggle visibility; "מחק" is
+          permanent (status='removed'). */}
+      {tab === 'reviews' && (
+        <div className="adm-list" dir="rtl">
+          {reportedReviews.length === 0 && <p className="adm-list__empty">אין ביקורות מדווחות שטרם טופלו</p>}
+          {reportedReviews.map(r => (
+            <div key={r.id} className="adm-row">
+              <div className="adm-row__info">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <strong>{r.property_name}</strong>
+                  <span className="adm-status adm-status--pending">טרם טופל</span>
+                  {r.status === 'hidden' && <span className="adm-status adm-status--rejected">מוסתר</span>}
+                </div>
+                <span className="adm-row__meta">{r.report_count} דיווחים · {r.reviewer_name} · {r.rating}★</span>
+                {(r.title || r.body) && (
+                  <span className="adm-row__meta" style={{ whiteSpace: 'pre-wrap' }}>
+                    {r.title ? `${r.title}: ` : ''}{r.body}
+                  </span>
+                )}
+                <span className="adm-row__date">{new Date(r.created_at).toLocaleDateString('he-IL')}</span>
+              </div>
+              <div className="adm-row__actions">
+                {r.status === 'hidden' ? (
+                  <motion.button className="adm-row__approve" whileTap={{ scale: 0.97 }} disabled={reviewActionBusyId === r.id} onClick={() => reviewAction(r.id, 'approve')}>
+                    <Eye size={14} /> שחזר
+                  </motion.button>
+                ) : (
+                  <>
+                    <motion.button className="adm-row__approve" whileTap={{ scale: 0.97 }} disabled={reviewActionBusyId === r.id} onClick={() => reviewAction(r.id, 'approve')}>
+                      <CheckCircle size={14} /> אשר (השאר)
+                    </motion.button>
+                    <button onClick={() => reviewAction(r.id, 'hide')} disabled={reviewActionBusyId === r.id}>
+                      <EyeOff size={14} /> הסתר
+                    </button>
+                  </>
+                )}
+                <button className="adm-row__delete" style={{ color: 'var(--ds-wine)', borderColor: 'rgba(140,47,57,0.3)' }} disabled={reviewActionBusyId === r.id} onClick={() => reviewAction(r.id, 'delete')}>
+                  <Trash2 size={14} /> מחק לצמיתות
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 

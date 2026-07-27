@@ -160,7 +160,11 @@ export async function listReportedReviews() {
   return rows.map(parseReviewRow);
 }
 
+// Any admin decision on a reported review — hide it, restore/approve it as-is, or remove it —
+// counts as the report being handled, so report_count resets to 0 here. Without this, "restore"
+// (approve, leave visible) left report_count untouched and the same review kept reappearing in
+// listReportedReviews on every load even though an admin had already looked at it.
 export async function setReviewStatus(reviewId, status) {
   const pool = getPool();
-  await pool.query(`UPDATE property_reviews SET status = ? WHERE id = ?`, [status, reviewId]);
+  await pool.query(`UPDATE property_reviews SET status = ?, report_count = 0 WHERE id = ?`, [status, reviewId]);
 }
