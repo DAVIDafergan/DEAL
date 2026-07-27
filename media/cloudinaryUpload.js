@@ -26,24 +26,35 @@ export function isCloudinaryConfigured(env = process.env) {
   return Boolean(parseCloudinaryUrl(env));
 }
 
-// 11.18 — incoming transformation applied at upload time (not just at delivery): caps any
-// original at 2400px on the long edge before it's even stored. A 12MP phone photo (4032×3024)
-// gets stored at a sane size instead of Cloudinary having to re-derive every delivery variant
-// from a multi-thousand-pixel original forever. c_limit never *upscales* a smaller image.
-const UPLOAD_WIDTH_CAP = 'w_2400,h_2400,c_limit';
+// 11.19 — defense in depth: Node's built-in fetch has no default timeout, so a stalled
+// connection to Cloudinary would otherwise hang the request indefinitely (this is what an
+// upload-time eager transform used to do before it was removed below — see the comment on
+// uploadImageToCloudinary). A generous but finite ceiling turns "hangs forever" into a clear,
+// bounded failure the route's try/catch already turns into a Hebrew error message.
+const IMAGE_UPLOAD_TIMEOUT_MS = 90_000;
+const VIDEO_UPLOAD_TIMEOUT_MS = 5 * 60_000;
 
 /** Uploads a single image buffer to Cloudinary under `folder`. HEIC/HEIF originals are accepted
  * as-is — Cloudinary decodes them server-side; browsers then get a real jpg/webp at delivery
  * time via f_auto (see web/src/utils/imageUrl.js), never the raw HEIC. Returns the secure_url,
  * or throws if Cloudinary isn't configured (caller should check isCloudinaryConfigured() first
- * to give a clean 503 instead of a stack trace). */
+ * to give a clean 503 instead of a stack trace).
+ *
+ * 11.19 — deliberately NO width-cap transformation at upload time (there was one; removed).
+ * An eager transform on the upload call makes Cloudinary decode+resize synchronously before it
+ * even responds — for a large/HEIC original that's minutes, and it was actually timing out and
+ * failing outright (measured: a 8.5MB real HEIC went from a 17s plain upload to a 6-minute
+ * upload that then failed with "fetch failed", just from adding `transformation=w_2400,...`).
+ * "reasonable width" is already handled correctly at delivery time — every <img> in this app
+ * requests a context-sized transform via optimizedImageUrl() (card/gallery/lightbox widths),
+ * which Cloudinary resizes on the fly and caches; the stored original's size doesn't matter. */
 export async function uploadImageToCloudinary(buffer, { folder = 'dealim/properties', env = process.env } = {}) {
   const config = parseCloudinaryUrl(env);
   if (!config) throw new Error('Cloudinary is not configured (set CLOUDINARY_URL, or CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET)');
 
   const timestamp = Math.floor(Date.now() / 1000);
   // Cloudinary signature: sha1 of the params sorted alphabetically by key (excluding file/api_key) + api_secret.
-  const paramsToSign = `folder=${folder}&timestamp=${timestamp}&transformation=${UPLOAD_WIDTH_CAP}${config.apiSecret}`;
+  const paramsToSign = `folder=${folder}&timestamp=${timestamp}${config.apiSecret}`;
   const signature = crypto.createHash('sha1').update(paramsToSign).digest('hex');
 
   const form = new FormData();
@@ -51,13 +62,19 @@ export async function uploadImageToCloudinary(buffer, { folder = 'dealim/propert
   form.append('api_key', config.apiKey);
   form.append('timestamp', String(timestamp));
   form.append('folder', folder);
-  form.append('transformation', UPLOAD_WIDTH_CAP);
   form.append('signature', signature);
 
-  const res = await fetch(`https://api.cloudinary.com/v1_1/${config.cloudName}/image/upload`, {
-    method: 'POST',
-    body: form,
-  });
+  let res;
+  try {
+    res = await fetch(`https://api.cloudinary.com/v1_1/${config.cloudName}/image/upload`, {
+      method: 'POST',
+      body: form,
+      signal: AbortSignal.timeout(IMAGE_UPLOAD_TIMEOUT_MS),
+    });
+  } catch (err) {
+    if (err.name === 'TimeoutError') throw new Error(`Cloudinary upload timed out after ${IMAGE_UPLOAD_TIMEOUT_MS / 1000}s`);
+    throw err;
+  }
   if (!res.ok) {
     const body = await res.text().catch(() => '');
     throw new Error(`Cloudinary upload failed (${res.status}): ${body.slice(0, 200)}`);
@@ -118,10 +135,17 @@ export async function uploadVideoToCloudinary(buffer, { folder = 'dealim/propert
   form.append('folder', folder);
   form.append('signature', signature);
 
-  const res = await fetch(`https://api.cloudinary.com/v1_1/${config.cloudName}/video/upload`, {
-    method: 'POST',
-    body: form,
-  });
+  let res;
+  try {
+    res = await fetch(`https://api.cloudinary.com/v1_1/${config.cloudName}/video/upload`, {
+      method: 'POST',
+      body: form,
+      signal: AbortSignal.timeout(VIDEO_UPLOAD_TIMEOUT_MS),
+    });
+  } catch (err) {
+    if (err.name === 'TimeoutError') throw new Error(`Cloudinary video upload timed out after ${VIDEO_UPLOAD_TIMEOUT_MS / 1000}s`);
+    throw err;
+  }
   if (!res.ok) {
     const body = await res.text().catch(() => '');
     throw new Error(`Cloudinary video upload failed (${res.status}): ${body.slice(0, 200)}`);

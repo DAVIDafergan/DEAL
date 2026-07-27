@@ -1,13 +1,16 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { X, Film } from 'lucide-react';
 import { useAgentAuth } from '../../context/AgentAuthContext.jsx';
 import { uploadApi } from '../../api/client.js';
 import { ACCEPTED_VIDEO_TYPES, MAX_VIDEO_BYTES, MAX_VIDEO_DURATION_SECONDS, probeVideoDuration } from '../../utils/videoUpload.js';
+import { getUploadConfig } from '../../utils/uploadConfig.js';
 
 const FRIENDLY_TYPE_ERROR = 'סוג הקובץ לא נתמך — אפשר להעלות MP4, MOV או WEBM בלבד';
-const FRIENDLY_SIZE_ERROR = `הסרטון גדול מדי (מקסימום ${MAX_VIDEO_BYTES / (1024 * 1024)}MB)`;
 const FRIENDLY_DURATION_ERROR = `הסרטון ארוך מדי (מקסימום ${MAX_VIDEO_DURATION_SECONDS} שניות) — סרטון היכרות קצר עובד הכי טוב`;
+function friendlyVideoSizeError(maxBytes) {
+  return `הסרטון גדול מדי (מקסימום ${Math.round(maxBytes / (1024 * 1024))}MB)`;
+}
 
 /**
  * PropertyVideoUploader — 11.18: one optional walkthrough video per property, Cloudinary-only
@@ -20,6 +23,8 @@ export function PropertyVideoUploader({ videoUrl, posterUrl, onChange, propertyI
   const [uploading, setUploading] = useState(null); // { name, progress, error } | null
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef(null);
+  const [maxVideoBytes, setMaxVideoBytes] = useState(MAX_VIDEO_BYTES);
+  useEffect(() => { getUploadConfig().then((c) => setMaxVideoBytes(c.maxVideoBytes)); }, []);
 
   async function handleFile(file) {
     if (!file) return;
@@ -27,8 +32,8 @@ export function PropertyVideoUploader({ videoUrl, posterUrl, onChange, propertyI
       setUploading({ name: file.name, progress: 0, error: FRIENDLY_TYPE_ERROR });
       return;
     }
-    if (file.size > MAX_VIDEO_BYTES) {
-      setUploading({ name: file.name, progress: 0, error: FRIENDLY_SIZE_ERROR });
+    if (file.size > maxVideoBytes) {
+      setUploading({ name: file.name, progress: 0, error: friendlyVideoSizeError(maxVideoBytes) });
       return;
     }
     const duration = await probeVideoDuration(file);
@@ -101,7 +106,7 @@ export function PropertyVideoUploader({ videoUrl, posterUrl, onChange, propertyI
             <>
               <Film size={22} />
               <span>גררו סרטון לכאן או לחצו לבחירה</span>
-              <span className="wizard-hint">MP4/MOV/WEBM, עד {MAX_VIDEO_BYTES / (1024 * 1024)}MB, עד {MAX_VIDEO_DURATION_SECONDS} שניות</span>
+              <span className="wizard-hint">MP4/MOV/WEBM, עד {Math.round(maxVideoBytes / (1024 * 1024))}MB, עד {MAX_VIDEO_DURATION_SECONDS} שניות</span>
             </>
           )}
           <input

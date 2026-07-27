@@ -1,13 +1,16 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Upload, X, Star, GripVertical } from 'lucide-react';
 import { useAgentAuth } from '../../context/AgentAuthContext.jsx';
 import { uploadApi } from '../../api/client.js';
 import { compressImageFile, ACCEPTED_IMAGE_TYPES, MAX_IMAGE_BYTES } from '../../utils/imageCompress.js';
 import { optimizedImageUrl } from '../../utils/imageUrl.js';
+import { getUploadConfig } from '../../utils/uploadConfig.js';
 
 const FRIENDLY_TYPE_ERROR = 'סוג הקובץ לא נתמך — אפשר להעלות JPG, PNG, WEBP או HEIC בלבד';
-const FRIENDLY_SIZE_ERROR = 'הקובץ גדול מדי (מקסימום 10MB לפני דחיסה)';
+function friendlySizeError(maxBytes) {
+  return `הקובץ גדול מדי (מקסימום ${Math.round(maxBytes / (1024 * 1024))}MB)`;
+}
 
 /**
  * PropertyPhotoUploader — drag & drop + multi-select + immediate previews + drag-reorder + cover
@@ -24,6 +27,12 @@ export function PropertyPhotoUploader({ images, onChange, label, minRequired = 0
   const [dragIndex, setDragIndex] = useState(null);
   const inputRef = useRef(null);
   const atCapacity = images.length + uploading.length >= maxImages;
+  // 11.19 — config (usingCloudinary + the real server-enforced maxImageBytes) is fetched once
+  // and shared across every uploader instance on the page (see getUploadConfig's memoization).
+  // Falls back to the conservative db-backend numbers (imported MAX_IMAGE_BYTES, compression on)
+  // until it resolves, so there's no gap where an unbounded file could slip through.
+  const [uploadConfig, setUploadConfig] = useState({ usingCloudinary: false, maxImageBytes: MAX_IMAGE_BYTES });
+  useEffect(() => { getUploadConfig().then(setUploadConfig); }, []);
 
   async function handleFiles(fileList) {
     const files = Array.from(fileList);
@@ -35,16 +44,16 @@ export function PropertyPhotoUploader({ images, onChange, label, minRequired = 0
         setUploading((prev) => [...prev, { id, name: file.name, progress: 0, error: FRIENDLY_TYPE_ERROR }]);
         continue;
       }
-      if (file.size > MAX_IMAGE_BYTES) {
+      if (file.size > uploadConfig.maxImageBytes) {
         const id = `${file.name}-${Date.now()}-${Math.random()}`;
-        setUploading((prev) => [...prev, { id, name: file.name, progress: 0, error: FRIENDLY_SIZE_ERROR }]);
+        setUploading((prev) => [...prev, { id, name: file.name, progress: 0, error: friendlySizeError(uploadConfig.maxImageBytes) }]);
         continue;
       }
 
       const id = `${file.name}-${Date.now()}-${Math.random()}`;
       setUploading((prev) => [...prev, { id, name: file.name, progress: 0, error: null }]);
       try {
-        const { file: compressed, thumbFile, width, height } = await compressImageFile(file);
+        const { file: compressed, thumbFile, width, height } = await compressImageFile(file, { skipCompression: uploadConfig.usingCloudinary });
         const { url } = await uploadApi.propertyImage(
           token, compressed,
           (p) => setUploading((prev) => prev.map((u) => (u.id === id ? { ...u, progress: p } : u))),

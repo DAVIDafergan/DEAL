@@ -22,8 +22,22 @@ function resizeToBlob(bitmap, maxDimension, quality) {
  * and also produces a separate 400px "thumb" copy so cards never have to load the full image
  * (see PropertyPhotoUploader.jsx / server/routes/uploads.js). Throws a friendly Hebrew message
  * — not a raw error — if the file still doesn't fit under 2MB after compression, so the
- * uploader can show it directly without a translation layer at the call site. */
-export async function compressImageFile(file) {
+ * uploader can show it directly without a translation layer at the call site.
+ *
+ * 11.19 — `skipCompression` (true when Cloudinary is the active backend — see
+ * PropertyPhotoUploader.jsx) bypasses all of this and returns the original file untouched.
+ * Reasoning: this function exists to keep uploads small for the db backend, which stores raw
+ * bytes in MySQL and has no server-side re-encoding of its own. Cloudinary does that job better
+ * (real HEIC decoding, not just "whatever createImageBitmap in this browser happens to
+ * support") and does it server-side, so client compression is redundant work at best. At worst
+ * it's actively harmful: a browser that can't decode HEIC via createImageBitmap doesn't throw
+ * here, it silently returns the original file (see below) — which used to then get stopped by
+ * a hardcoded client-side size cap that could easily be stricter than what the server (and
+ * Cloudinary) would have happily accepted. Skipping compression entirely for Cloudinary removes
+ * that whole failure mode instead of trying to patch around it. */
+export async function compressImageFile(file, { skipCompression = false } = {}) {
+  if (skipCompression) return { file, thumbFile: null, width: null, height: null };
+
   const bitmap = await createImageBitmap(file).catch(() => null);
   if (!bitmap) {
     // Some browsers can't decode HEIC/HEIF via createImageBitmap — fall back to sending the

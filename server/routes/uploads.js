@@ -6,13 +6,15 @@ import { requireAgentAuth } from '../middleware/agentAuth.js';
 import { getPropertyByIdForOwner, getUnitOwnedBy, updateProperty } from '../store/propertyStore.js';
 
 const ALLOWED_MIMETYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']);
-// 11.18 — the client tries to canvas-recompress every photo to webp before sending it (see
-// imageCompress.js), but browsers frequently can't *decode* HEIC via createImageBitmap (common
-// on non-Safari browsers), so that path silently falls back to sending the raw, unconverted
-// original — a real iPhone photo, easily 5-10MB. With Cloudinary as the backend that's fine:
-// Cloudinary decodes HEIC and re-encodes it server-side, and the upload-time transform (see
-// cloudinaryUpload.js) caps the stored dimensions regardless of the original's size. The db
-// backend has no such luxury — it stores the raw bytes straight into MySQL — so it keeps the
+// 11.19 — the client used to try canvas-recompressing every photo to webp before sending it
+// (see imageCompress.js), but browsers frequently can't *decode* HEIC via createImageBitmap
+// (common on non-Safari browsers), so real phone photos need to reach Cloudinary as-is and let
+// *it* decode/convert/resize — which is what Cloudinary is for. 10MB is not an arbitrary
+// round number: it's this Cloudinary account's own hard per-file cap, confirmed straight from
+// its API (GET /v1_1/<cloud>/usage -> media_limits.image_max_size_bytes = 10485760, Free plan).
+// Setting our cap any higher just means the client uploads for 20-30s before Cloudinary itself
+// rejects it — matching it here gives an accurate error immediately instead. The db backend has
+// no such luxury either way — it stores the raw bytes straight into MySQL — so it keeps its own
 // original, stricter 2MB cap.
 const USING_CLOUDINARY = resolveImageStorageMode() === 'cloudinary';
 const MAX_FILE_BYTES = USING_CLOUDINARY ? 10 * 1024 * 1024 : 2 * 1024 * 1024;
@@ -40,6 +42,26 @@ const uploadVideo = multer({
 });
 
 const router = Router();
+
+/** Cloudinary's own error text for its account-level size/pixel caps (confirmed via
+ * GET /v1_1/<cloud>/usage → media_limits) doesn't read as a Hebrew, user-facing message —
+ * translate the two patterns actually seen instead of showing "upload failed" for something
+ * the user can specifically act on (use a smaller/lower-resolution photo). */
+function friendlyStorageError(rawMessage) {
+  if (/File size too large/i.test(rawMessage)) return `התמונה גדולה מדי (מקסימום ${MAX_FILE_MB}MB) — נסו לייצא אותה ברזולוציה נמוכה יותר`;
+  if (/Image size is too large|max.*(px|pixels)/i.test(rawMessage)) return 'רזולוציית התמונה גבוהה מדי — נסו לייצא אותה ברזולוציה נמוכה יותר';
+  return 'העלאת התמונה נכשלה, נסו שוב';
+}
+
+/** GET /api/uploads/config — public, no auth: lets the client read the *actual* server-enforced
+ * limits instead of hardcoding a guess that can drift out of sync. */
+router.get('/config', (_req, res) => {
+  res.json({
+    usingCloudinary: USING_CLOUDINARY,
+    maxImageBytes: MAX_FILE_BYTES,
+    maxVideoBytes: MAX_VIDEO_BYTES,
+  });
+});
 
 /** POST /api/uploads/property-image — multipart "file" (required) + "thumb" (optional, the
  * pre-generated 400px copy) fields, owner auth required. Optional propertyId/unitId form
@@ -96,7 +118,7 @@ router.post(
       res.json({ url: result.url });
     } catch (err) {
       console.error('[uploads] property-image error:', err.message);
-      res.status(502).json({ error: 'העלאת התמונה נכשלה, נסו שוב' });
+      res.status(502).json({ error: friendlyStorageError(err.message) });
     }
   }
 );
