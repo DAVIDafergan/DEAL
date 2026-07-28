@@ -135,6 +135,10 @@ export function OwnerLoginPage() {
             אין לך חשבון?{' '}
             <Link to="/owner/register" className="auth-card__footer-link">הרשמה כבעל צימר →</Link>
           </p>
+          <p className="auth-card__footer-note">
+            אתה מחפש צימר, לא בעל נכס?{' '}
+            <Link to="/register/traveler/login" className="auth-card__footer-link">התחברות כמטייל →</Link>
+          </p>
         </div>
       </motion.div>
 

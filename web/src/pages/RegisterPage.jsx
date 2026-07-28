@@ -2,24 +2,15 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Luggage, Home } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext.jsx';
-import { GoogleLoginButton } from '../components/GoogleLoginButton.jsx';
-import { agentApi } from '../api/client.js';
 
+// The account-type choice has to come first, always — it used to sit behind a "Continue with
+// Google" button that called agentApi.googleAuth() regardless of which type the visitor
+// actually wanted, silently registering/logging in *everyone* as a property owner before they
+// ever picked. Removed: each type-specific page (TravelerRegisterPage/OwnerRegisterPage) already
+// has its own correctly-scoped Google button one click later.
 export function RegisterPage() {
   const navigate = useNavigate();
   const { t } = useLanguage();
-
-  async function handleGoogleSuccess(credential) {
-    try {
-      const res = await agentApi.googleAuth(credential);
-      if (res.isNew) {
-        navigate(`/owner/register?googleEmail=${encodeURIComponent(res.email)}&googleName=${encodeURIComponent(res.name || '')}`);
-      } else {
-        localStorage.setItem('agent_token', res.token);
-        window.location.replace('/owner/dashboard');
-      }
-    } catch {}
-  }
 
   return (
     <div className="register-choice">
@@ -31,12 +22,6 @@ export function RegisterPage() {
       >
         <h1 className="register-choice__title">הצטרף ל-Dealim</h1>
         <p className="register-choice__subtitle">אתה מחפש צימר, או מפרסם אחד?</p>
-
-        <div className="register-choice__google">
-          <GoogleLoginButton onSuccess={handleGoogleSuccess} />
-        </div>
-
-        <div className="register-choice__divider"><span>או הירשם עם</span></div>
 
         <div className="register-choice__options">
           <motion.button

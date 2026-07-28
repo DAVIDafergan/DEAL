@@ -77,7 +77,7 @@ export function Header({ reels = false, activeTab = 'home' }) {
               ) : (
                 <button
                   className="header-auth-btn header-auth-btn--primary header-login-pill"
-                  onClick={() => navigate('/owner/login')}
+                  onClick={() => navigate('/login')}
                 >
                   {t.headerLoginButton}
                 </button>
@@ -135,7 +135,7 @@ export function Header({ reels = false, activeTab = 'home' }) {
               ) : (
                 <button
                   className="header-auth-btn header-auth-btn--ghost"
-                  onClick={() => navigate('/owner/login')}
+                  onClick={() => navigate('/login')}
                 >
                   {t.headerLoginButton}
                 </button>
@@ -183,9 +183,9 @@ export function Header({ reels = false, activeTab = 'home' }) {
               <Link to="/privacy" className="header-drawer__item header-drawer__item--muted" onClick={closeMenu}>
                 <FileText size={15} /> {t.privacyLink}
               </Link>
-              {!loading && !token && (
+              {!loading && !token && !traveler && (
                 <button className="header-drawer__item" onClick={() => { navigate('/register'); closeMenu(); }}>
-                  {t.footerOwnerRegister}
+                  {t.headerRegisterButton}
                 </button>
               )}
             </motion.nav>

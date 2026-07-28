@@ -165,8 +165,8 @@ export function TravelerRegisterPage() {
             <Link to="/register/traveler/login" className="auth-card__footer-link">התחברות →</Link>
           </p>
           <p className="auth-card__footer-note">
-            סוכן נסיעות?{' '}
-            <Link to="/agent/register" className="auth-card__footer-link">הרשמה כסוכן →</Link>
+            יש לך צימר להשכרה?{' '}
+            <Link to="/owner/register" className="auth-card__footer-link">הרשמה כבעל צימר →</Link>
           </p>
         </div>
       </motion.div>

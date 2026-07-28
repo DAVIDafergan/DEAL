@@ -70,7 +70,7 @@ export function AccountPage() {
   }
 
   if (!loading && !isTraveler) {
-    navigate('/owner/login', { replace: true });
+    navigate('/register/traveler/login?next=/account', { replace: true });
     return null;
   }
 

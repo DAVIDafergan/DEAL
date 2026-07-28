@@ -16,6 +16,7 @@ import './index.css';
 // stays a static import — it's the single most common landing page, so lazy-loading it would
 // only add a loading flash with no real benefit. See DECISIONS.md 10.1.
 const RegisterPage = lazy(() => import('./pages/RegisterPage.jsx').then((m) => ({ default: m.RegisterPage })));
+const LoginPage = lazy(() => import('./pages/LoginPage.jsx').then((m) => ({ default: m.LoginPage })));
 const AdminPage = lazy(() => import('./pages/AdminPage.jsx').then((m) => ({ default: m.AdminPage })));
 const OwnerRegisterPage = lazy(() => import('./pages/OwnerRegisterPage.jsx').then((m) => ({ default: m.OwnerRegisterPage })));
 const OwnerLoginPage = lazy(() => import('./pages/OwnerLoginPage.jsx').then((m) => ({ default: m.OwnerLoginPage })));
@@ -49,6 +50,7 @@ function RouteTree() {
       {/* Routes with shared public header */}
       <Route element={<PublicLayout />}>
         <Route path="register" element={<RegisterPage />} />
+        <Route path="login" element={<LoginPage />} />
         <Route path="register/traveler" element={<TravelerRegisterPage />} />
         <Route path="register/traveler/login" element={<TravelerLoginPage />} />
         <Route path="owner/register" element={<OwnerRegisterPage />} />

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Link } from '../components/LocalizedLink.jsx';
 import { ArrowLeft, Globe } from 'lucide-react';
 import { GoogleLoginButton } from '../components/GoogleLoginButton.jsx';
@@ -10,11 +10,18 @@ import { Logo } from '../components/Logo.jsx';
 
 export function TravelerLoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { travelerLogin } = useTravelerAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
+
+  // Only ever redirect to a relative in-app path — never let ?next= drive an open redirect.
+  // Same pattern as OwnerLoginPage; default lands the customer on their own personal area
+  // instead of the homepage.
+  const next = searchParams.get('next');
+  const redirectTo = next && next.startsWith('/') && !next.startsWith('//') ? next : '/account';
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -26,7 +33,7 @@ export function TravelerLoginPage() {
     try {
       const { token, user } = await userApi.login(email.trim(), password);
       travelerLogin(token, user);
-      navigate('/');
+      navigate(redirectTo);
     } catch (err) {
       setErrors({ form: err.message || 'שגיאה בהתחברות — בדוק אימייל וסיסמה' });
     } finally {
@@ -38,7 +45,7 @@ export function TravelerLoginPage() {
     try {
       const { token, user } = await userApi.googleAuth(credential);
       travelerLogin(token, user);
-      navigate('/');
+      navigate(redirectTo);
     } catch (err) {
       setErrors({ form: err.message || 'שגיאת Google' });
     }
@@ -121,6 +128,10 @@ export function TravelerLoginPage() {
           <p className="auth-card__footer-note">
             אין עדיין חשבון?{' '}
             <Link to="/register/traveler" className="auth-card__footer-link">הרשמה →</Link>
+          </p>
+          <p className="auth-card__footer-note">
+            יש לך צימר להשכרה?{' '}
+            <Link to="/owner/login" className="auth-card__footer-link">התחברות כבעל צימר →</Link>
           </p>
         </div>
       </motion.div>
