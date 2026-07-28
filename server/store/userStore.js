@@ -46,3 +46,54 @@ export async function updateUserName(id, name) {
 export async function setUserPasswordHash(id, passwordHash) {
   await getPool().query('UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, id]);
 }
+
+// 11.21 — favorites: INSERT IGNORE / plain DELETE, no read-modify-write — the UNIQUE key on
+// (user_id, property_id) makes both idempotent (repeat add/remove of the same property is a
+// no-op, not an error), which matters for the anonymous->account merge on login (see
+// useFavorites.js) where the same id can be pushed more than once.
+export async function getFavoritePropertyIds(userId) {
+  const [rows] = await getPool().query(
+    'SELECT property_id FROM property_favorites WHERE user_id = ? ORDER BY created_at DESC', [userId]
+  );
+  return rows.map((r) => r.property_id);
+}
+
+export async function addFavorite(userId, propertyId) {
+  await getPool().query(
+    'INSERT IGNORE INTO property_favorites (user_id, property_id, created_at) VALUES (?, ?, NOW())',
+    [userId, propertyId]
+  );
+}
+
+export async function removeFavorite(userId, propertyId) {
+  await getPool().query('DELETE FROM property_favorites WHERE user_id = ? AND property_id = ?', [userId, propertyId]);
+}
+
+const RECENTLY_VIEWED_MAX = 8; // matches the anonymous localStorage version's MAX_ITEMS (utils/recentlyViewed.js)
+
+export async function getRecentlyViewedPropertyIds(userId) {
+  const [rows] = await getPool().query(
+    'SELECT property_id FROM user_recently_viewed WHERE user_id = ? ORDER BY viewed_at DESC LIMIT ?',
+    [userId, RECENTLY_VIEWED_MAX]
+  );
+  return rows.map((r) => r.property_id);
+}
+
+export async function recordRecentlyViewed(userId, propertyId) {
+  const pool = getPool();
+  await pool.query(
+    `INSERT INTO user_recently_viewed (user_id, property_id, viewed_at) VALUES (?, ?, NOW())
+     ON DUPLICATE KEY UPDATE viewed_at = NOW()`,
+    [userId, propertyId]
+  );
+  // Trim to the most recent N — wrapped in a derived-table subquery because MySQL won't allow
+  // selecting from the same table being deleted from directly in the NOT IN subquery.
+  await pool.query(
+    `DELETE FROM user_recently_viewed WHERE user_id = ? AND id NOT IN (
+       SELECT id FROM (
+         SELECT id FROM user_recently_viewed WHERE user_id = ? ORDER BY viewed_at DESC LIMIT ?
+       ) keep
+     )`,
+    [userId, userId, RECENTLY_VIEWED_MAX]
+  );
+}

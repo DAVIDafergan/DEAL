@@ -1,7 +1,10 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { OAuth2Client } from 'google-auth-library';
-import { createUser, findUserByEmail, findUserByIdRaw, deleteUserById, updateUserName, setUserPasswordHash } from '../store/userStore.js';
+import {
+  createUser, findUserByEmail, findUserByIdRaw, deleteUserById, updateUserName, setUserPasswordHash,
+  getFavoritePropertyIds, addFavorite, removeFavorite, getRecentlyViewedPropertyIds, recordRecentlyViewed,
+} from '../store/userStore.js';
 import { signUserToken, requireUserAuth } from '../middleware/userAuth.js';
 import { authRateLimiter } from '../middleware/rateLimiter.js';
 
@@ -107,6 +110,63 @@ router.delete('/me', requireUserAuth, async (req, res) => {
   } catch (err) {
     console.error('[users] delete account error:', err.message);
     res.status(500).json({ error: 'שגיאה במחיקת החשבון' });
+  }
+});
+
+// 11.21 — account-backed favorites/recently-viewed. propertyId is validated as an integer only
+// (not existence) — INSERT IGNORE / ON DUPLICATE KEY below silently no-op on a bad FK, same
+// "don't fail loudly on a best-effort write" pattern as the rest of this file.
+router.get('/favorites', requireUserAuth, async (req, res) => {
+  try {
+    res.json({ favorites: await getFavoritePropertyIds(req.user.userId) });
+  } catch (err) {
+    console.error('[users] get favorites error:', err.message);
+    res.status(500).json({ error: 'שגיאה בטעינת המועדפים' });
+  }
+});
+
+router.post('/favorites/:propertyId', requireUserAuth, async (req, res) => {
+  const propertyId = Number(req.params.propertyId);
+  if (!Number.isInteger(propertyId)) return res.status(400).json({ error: 'מזהה נכס לא תקין' });
+  try {
+    await addFavorite(req.user.userId, propertyId);
+    res.status(201).json({ ok: true });
+  } catch (err) {
+    console.error('[users] add favorite error:', err.message);
+    res.status(500).json({ error: 'שגיאה בשמירת המועדף' });
+  }
+});
+
+router.delete('/favorites/:propertyId', requireUserAuth, async (req, res) => {
+  const propertyId = Number(req.params.propertyId);
+  if (!Number.isInteger(propertyId)) return res.status(400).json({ error: 'מזהה נכס לא תקין' });
+  try {
+    await removeFavorite(req.user.userId, propertyId);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[users] remove favorite error:', err.message);
+    res.status(500).json({ error: 'שגיאה בהסרת המועדף' });
+  }
+});
+
+router.get('/recently-viewed', requireUserAuth, async (req, res) => {
+  try {
+    res.json({ propertyIds: await getRecentlyViewedPropertyIds(req.user.userId) });
+  } catch (err) {
+    console.error('[users] get recently-viewed error:', err.message);
+    res.status(500).json({ error: 'שגיאה בטעינת הנצפים לאחרונה' });
+  }
+});
+
+router.post('/recently-viewed/:propertyId', requireUserAuth, async (req, res) => {
+  const propertyId = Number(req.params.propertyId);
+  if (!Number.isInteger(propertyId)) return res.status(400).json({ error: 'מזהה נכס לא תקין' });
+  try {
+    await recordRecentlyViewed(req.user.userId, propertyId);
+    res.status(201).json({ ok: true });
+  } catch (err) {
+    console.error('[users] record recently-viewed error:', err.message);
+    res.status(500).json({ error: 'שגיאה בשמירת הצפייה' });
   }
 });
 

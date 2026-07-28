@@ -295,6 +295,11 @@ export const userApi = {
   deleteMe: (token) => deleteReq('/users/me', token),
   updateProfile: (token, name) => patchJson('/users/me', { name }, token),
   changePassword: (token, current_password, new_password) => patchJson('/users/me/password', { current_password, new_password }, token),
+  getFavorites: (token) => getJson('/users/favorites', token),
+  addFavorite: (token, propertyId) => postJson(`/users/favorites/${propertyId}`, {}, token),
+  removeFavorite: (token, propertyId) => deleteReq(`/users/favorites/${propertyId}`, token),
+  getRecentlyViewed: (token) => getJson('/users/recently-viewed', token),
+  recordRecentlyViewed: (token, propertyId) => postJson(`/users/recently-viewed/${propertyId}`, {}, token),
 };
 
 export const billingApi = {

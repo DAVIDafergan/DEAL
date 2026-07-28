@@ -7,12 +7,12 @@ import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { useTravelerAuth } from '../context/TravelerAuthContext.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { useFavorites } from '../hooks/useFavorites.js';
+import { useRecentlyViewed } from '../hooks/useRecentlyViewed.js';
 import { getGreeting } from '../utils/greeting.js';
 import { agentApi, userApi, alertApi } from '../api/client.js';
 import { optimizedImageUrl } from '../utils/imageUrl.js';
 import { getMyWishlists } from '../components/CreateWishlistModal.jsx';
 import { RecentlyViewedStrip } from '../components/RecentlyViewedStrip.jsx';
-import { listRecentlyViewed } from '../utils/recentlyViewed.js';
 import { RecentSearches } from '../components/RecentSearches.jsx';
 import { listRecentSearches } from '../utils/recentSearches.js';
 import { regionLabel } from '../data/propertyOptions.js';
@@ -49,7 +49,7 @@ export function AccountPage() {
   const [passwordSaved, setPasswordSaved] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [myWishlists] = useState(() => getMyWishlists());
-  const [recentlyViewedIds] = useState(() => listRecentlyViewed());
+  const recentlyViewedIds = useRecentlyViewed();
   const [recentSearches] = useState(() => listRecentSearches());
   const [myAlerts, setMyAlerts] = useState([]);
 

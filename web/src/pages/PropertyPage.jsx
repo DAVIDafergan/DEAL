@@ -3,8 +3,9 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Link } from '../components/LocalizedLink.jsx';
 import { motion } from 'framer-motion';
 import { ArrowLeft, ChevronLeft, MessageCircle, Phone, CheckCircle, ExternalLink, Users, Bath, ShieldAlert, Clock, Heart, Share2, CalendarClock, Info, MapPinned, Flag } from 'lucide-react';
-import { propertyApi } from '../api/client.js';
+import { propertyApi, userApi } from '../api/client.js';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
+import { useTravelerAuth } from '../context/TravelerAuthContext.jsx';
 import { useFavorites } from '../hooks/useFavorites.js';
 import { getCurrencySymbol } from '../utils/currency.js';
 import { regionLabel, propertyTypeLabel, kosherLabel } from '../data/propertyOptions.js';
@@ -130,6 +131,7 @@ export function PropertyPage() {
   const [reportInfoSubmitted, setReportInfoSubmitted] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const { toggleFavorite, isFavorite } = useFavorites();
+  const { travelerToken } = useTravelerAuth();
 
   useEffect(() => {
     propertyApi.get(id)
@@ -138,6 +140,10 @@ export function PropertyPage() {
         setSelectedUnitId(p.units?.[0]?.id ?? null);
         trackPropertyEvent(id, 'view');
         saveRecentlyViewed(Number(id));
+        // 11.21: also record server-side for a logged-in customer (so "recently viewed"
+        // follows the account, not just this device) — localStorage write above stays too,
+        // it's what anonymous visitors and the immediate post-view UI both still rely on.
+        if (travelerToken) userApi.recordRecentlyViewed(travelerToken, Number(id)).catch(() => {});
         // 10.7: "similar but cheaper" — when this property has a price, cap the comparison set
         // at that price and sort cheapest-first, instead of just "similar in the area". Falls
         // back to the plain similar-in-area behavior when there's no price to compare against.

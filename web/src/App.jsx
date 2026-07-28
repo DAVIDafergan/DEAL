@@ -4,6 +4,7 @@ import { propertyApi } from './api/client.js';
 import { HeroSearch } from './components/HeroSearch.jsx';
 import { RegionPicker } from './components/RegionPicker.jsx';
 import { CategoryChips } from './components/CategoryChips.jsx';
+import { HowItWorks } from './components/HowItWorks.jsx';
 import { TrustSection } from './components/TrustSection.jsx';
 import { PropertyFilterPanel } from './components/PropertyFilterPanel.jsx';
 import { PropertyFilterSheet } from './components/PropertyFilterSheet.jsx';
@@ -16,11 +17,11 @@ import { RecentSearches } from './components/RecentSearches.jsx';
 import { PopularSearches } from './components/PopularSearches.jsx';
 import { RecentlyViewedStrip } from './components/RecentlyViewedStrip.jsx';
 import { usePropertyFilters } from './hooks/usePropertyFilters.js';
+import { useRecentlyViewed } from './hooks/useRecentlyViewed.js';
 import { saveRecentSearch, listRecentSearches } from './utils/recentSearches.js';
-import { listRecentlyViewed } from './utils/recentlyViewed.js';
 import { motion } from 'framer-motion';
-import { Link, useLocalizedNavigate } from './components/LocalizedLink.jsx';
-import { UserPlus, Shuffle } from 'lucide-react';
+import { useLocalizedNavigate } from './components/LocalizedLink.jsx';
+import { Shuffle } from 'lucide-react';
 import { useLanguage } from './context/LanguageContext.jsx';
 
 export function App() {
@@ -36,7 +37,7 @@ export function App() {
   const [recentSearches, setRecentSearches] = useState(() => listRecentSearches());
   const [popularSearches, setPopularSearches] = useState([]);
   const [retryTick, setRetryTick] = useState(0);
-  const [recentlyViewedIds] = useState(() => listRecentlyViewed());
+  const recentlyViewedIds = useRecentlyViewed();
   const navigate = useLocalizedNavigate();
 
   // 10.8: "surprise me" — a random pick from whatever's currently showing (respects active
@@ -139,6 +140,12 @@ export function App() {
           </div>
         </section>
 
+        {/* 11.21: reconnected — was built (with per-step icon animation + copy) but never
+            imported after 9.2 removed it in favor of TrustSection alone; the two aren't
+            actually redundant (one explains the process, the other builds trust), see
+            DECISIONS.md 11.21. */}
+        <HowItWorks />
+
         <RecentlyViewedStrip propertyIds={recentlyViewedIds} />
 
         {/* ── 2. Regions ── */}
@@ -225,22 +232,15 @@ export function App() {
         {/* ── 5. Why us ── */}
         <TrustSection />
 
-        {/* ── 6. Owner CTA strip ── */}
-        <section className="agent-cta-strip" dir={dir}>
-          <div className="agent-cta-strip__inner container">
-            <div className="agent-cta-strip__text">
-              <span className="agent-cta-strip__eyebrow">{t.ownerCtaEyebrow}</span>
-              <strong className="agent-cta-strip__heading">{t.ownerCtaHeading}</strong>
-              <p className="agent-cta-strip__sub">{t.ownerCtaSub}</p>
-            </div>
-            <Link to="/register" className="agent-cta-strip__btn">
-              <UserPlus size={16} />
-              {t.ownerCtaButton}
-            </Link>
-          </div>
-        </section>
+        {/* 11.21: the dedicated "Owner CTA strip" that used to live here was word-for-word the
+            same pitch ("יש לך צימר? פרסם אותו בחינם") as SiteFooter's own site-wide CTA strip
+            immediately below — on the homepage a visitor scrolled past one only to hit the
+            other one line later. SiteFooter's version already renders on every page (including
+            this one), so it alone covers the homepage too; removed the duplicate instead of
+            hiding SiteFooter's copy just for "/" (which would leave literally every other page
+            without an owner CTA in the footer). See DECISIONS.md 11.21. */}
 
-        {/* ── 7. Rich footer ── */}
+        {/* ── 6. Rich footer ── */}
         <SiteFooter />
       </main>
     </NowProvider>

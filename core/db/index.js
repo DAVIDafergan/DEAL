@@ -1059,6 +1059,35 @@ const SCHEMA_STATEMENTS = [
     UNIQUE KEY uk_property_alerts_unsub_token (unsubscribe_token),
     INDEX idx_property_alerts_active_region (is_active, region)
   ) ENGINE=InnoDB`,
+
+  // 11.21 — favorites/recently-viewed move from device-local (localStorage, anonymous) to
+  // account-backed once a customer logs in, so the same saved properties show up on any device.
+  // Logged-out visitors keep the pre-existing localStorage-only behavior untouched — these
+  // tables only ever get rows for a real user_id (see useFavorites.js / AccountPage.jsx).
+  // Named property_favorites (not user_favorites) — that name is already taken by a dead table
+  // from the retired flights world (session_id/deal_id/deal_type, zero rows, no live code
+  // reads/writes it — see the "Zimmer/villa platform" comment above). Left that one alone
+  // rather than repurposing/dropping it — not this change's problem to solve.
+  `CREATE TABLE IF NOT EXISTS property_favorites (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    property_id INT NOT NULL,
+    created_at DATETIME NOT NULL,
+    UNIQUE KEY uk_property_favorites_user_property (user_id, property_id),
+    INDEX idx_property_favorites_user (user_id),
+    CONSTRAINT fk_property_favorites_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_property_favorites_property FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB`,
+  `CREATE TABLE IF NOT EXISTS user_recently_viewed (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    property_id INT NOT NULL,
+    viewed_at DATETIME NOT NULL,
+    UNIQUE KEY uk_user_recently_viewed_user_property (user_id, property_id),
+    INDEX idx_user_recently_viewed_user_viewed (user_id, viewed_at),
+    CONSTRAINT fk_user_recently_viewed_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_user_recently_viewed_property FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB`,
 ];
 
 /**
