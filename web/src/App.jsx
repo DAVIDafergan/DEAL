@@ -19,8 +19,8 @@ import { usePropertyFilters } from './hooks/usePropertyFilters.js';
 import { useRecentlyViewed } from './hooks/useRecentlyViewed.js';
 import { saveRecentSearch, listRecentSearches } from './utils/recentSearches.js';
 import { motion } from 'framer-motion';
-import { useLocalizedNavigate } from './components/LocalizedLink.jsx';
-import { Shuffle } from 'lucide-react';
+import { Link, useLocalizedNavigate } from './components/LocalizedLink.jsx';
+import { Shuffle, Send } from 'lucide-react';
 import { useLanguage } from './context/LanguageContext.jsx';
 
 export function App() {
@@ -133,9 +133,14 @@ export function App() {
             >
               <HeroSearch filters={filters} setFilter={setFilter} onSearch={scrollToResults} />
             </motion.div>
-            <button type="button" className="surprise-me-btn" onClick={handleSurpriseMe}>
-              <Shuffle size={14} /> {t.surpriseMeButton}
-            </button>
+            <div className="hero-quick-actions">
+              <button type="button" className="surprise-me-btn" onClick={handleSurpriseMe}>
+                <Shuffle size={14} /> {t.surpriseMeButton}
+              </button>
+              <Link to="/request" className="surprise-me-btn">
+                <Send size={14} /> {t.heroPostRequestLink}
+              </Link>
+            </div>
           </div>
         </section>
 

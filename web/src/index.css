@@ -6547,11 +6547,18 @@ html[dir="rtl"] .auth-form__input { text-align: right; direction: rtl; }
 .recent-searches__chip:hover { border-color: var(--ds-hearth); color: var(--ds-hearth); }
 
 /* ── 10.8: surprise-me + recently-viewed ─────────────────────────────────── */
+/* 11.23: now holds surprise-me alongside the "post a request" link (RequestPage.jsx entry
+   point) — the wrapper handles centering/spacing, .surprise-me-btn itself is reused as-is by
+   both a <button> and a <Link>-rendered <a>. */
+.hero-quick-actions {
+  display: flex; align-items: center; justify-content: center; gap: 18px;
+  margin: 10px auto 0; flex-wrap: wrap;
+}
 .surprise-me-btn {
   display: flex; align-items: center; gap: 6px;
-  margin: 10px auto 0;
   background: none; border: none;
   color: var(--ds-ash); font-size: 0.78rem; font-weight: 700;
+  text-decoration: none;
   cursor: pointer;
 }
 .surprise-me-btn:hover { color: var(--ds-hearth); }
@@ -6926,3 +6933,123 @@ html[dir="rtl"] .auth-form__input { text-align: right; direction: rtl; }
   cursor: pointer;
   white-space: nowrap;
 }
+
+/* ── 11.23: "פרסם בקשה" — RequestPage.jsx ─────────────────────────────────── */
+.req-page {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 100px 20px 60px;
+  min-height: 70vh;
+}
+@media (max-width: 640px) {
+  .req-page { padding: 80px 16px 50px; }
+}
+
+.req-header { text-align: center; margin-bottom: 28px; }
+.req-header__title { font-family: var(--font-display); font-size: 1.7rem; font-weight: 800; margin: 0 0 8px; }
+.req-header__sub { color: var(--color-text-muted); font-size: 0.95rem; margin: 0 0 18px; }
+
+.req-progress { display: flex; justify-content: center; gap: 6px; }
+.req-progress__dot { width: 8px; height: 8px; border-radius: 999px; background: var(--color-border); transition: background 0.3s; }
+.req-progress__dot.is-active { background: var(--ds-hearth); }
+
+.req-form { position: relative; }
+.req-step__title { font-size: 1.25rem; font-weight: 700; margin: 0 0 4px; text-align: center; }
+.req-step__sub { color: var(--color-text-muted); font-size: 0.88rem; text-align: center; margin: 0 0 20px; }
+.req-step__body { display: flex; flex-direction: column; gap: 16px; }
+
+.req-input {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 1rem;
+  font-family: inherit;
+}
+.req-input--textarea { resize: vertical; min-height: 72px; }
+.req-input[type="range"] { padding: 0; accent-color: var(--ds-hearth); }
+
+.req-field { display: flex; flex-direction: column; gap: 6px; }
+.req-field__label { display: flex; align-items: center; gap: 6px; font-size: 0.88rem; font-weight: 600; color: var(--color-text-primary); }
+.req-budget__value { text-align: center; font-weight: 700; color: var(--ds-hearth); font-size: 1.05rem; }
+
+.req-stepper { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border: 1px solid var(--color-border); border-radius: var(--radius-md); }
+.req-stepper__label { font-weight: 600; }
+.req-stepper__controls { display: flex; align-items: center; gap: 14px; }
+.req-stepper__btn {
+  width: 32px; height: 32px; border-radius: 999px; border: 1px solid var(--color-border);
+  background: var(--color-surface); font-size: 1.1rem; line-height: 1; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.req-stepper__btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.req-stepper__value { min-width: 24px; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.req-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.req-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: 999px; border: 1px solid var(--color-border);
+  background: var(--color-surface); color: var(--color-text-primary);
+  font-size: 0.86rem; font-weight: 600; cursor: pointer;
+}
+.req-chip.is-active { background: var(--ds-hearth); border-color: var(--ds-hearth); color: #fff; }
+
+.req-error { color: var(--ds-wine, #b3261e); font-size: 0.86rem; text-align: center; margin: 10px 0 0; }
+
+.req-nav { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 28px; }
+.req-nav__btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 12px 20px; border-radius: 999px; border: none;
+  font-weight: 700; font-size: 0.95rem; cursor: pointer;
+}
+.req-nav__btn--ghost { background: transparent; color: var(--color-text-muted); }
+.req-nav__btn--primary { background: var(--ds-hearth); color: #fff; margin-inline-start: auto; }
+.req-nav__btn--primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.req-searching { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 50vh; gap: 24px; }
+.req-searching__grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.req-searching__house { color: var(--ds-hearth); display: flex; align-items: center; justify-content: center; }
+.req-searching__label { color: var(--color-text-muted); font-weight: 600; }
+@media (prefers-reduced-motion: reduce) {
+  .req-searching__house { animation: none !important; opacity: 0.8; }
+}
+
+.req-result { text-align: center; padding: 20px 0 32px; }
+.req-result__icon { color: var(--ds-olive, #4a7c59); margin-bottom: 8px; }
+.req-result__title { font-family: var(--font-display); font-size: 1.5rem; font-weight: 800; margin: 0 0 8px; }
+.req-result__sub { color: var(--color-text-muted); font-size: 0.95rem; max-width: 440px; margin: 0 auto; }
+.req-result__actions { display: flex; justify-content: center; gap: 20px; margin-top: 28px; flex-wrap: wrap; }
+.req-result__link { color: var(--ds-hearth); font-weight: 700; text-decoration: none; }
+.req-result__link--muted { color: var(--color-text-muted); font-weight: 600; }
+
+/* ── 11.23: MyRequestPage.jsx (guest side) / OwnerRequestMatches.jsx (owner side) ──────────── */
+.account-page__title { font-family: var(--font-display); font-size: 1.4rem; font-weight: 800; }
+.account-page__section-title { font-size: 1.05rem; font-weight: 700; margin: 24px 0 12px; }
+
+.myreq-summary { padding: 16px 0; }
+.myreq-summary__line { color: var(--color-text-muted); margin: 4px 0 10px; }
+.myreq-summary__meta { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; font-size: 0.85rem; color: var(--color-text-muted); }
+.myreq-status { padding: 3px 10px; border-radius: 999px; font-weight: 700; font-size: 0.78rem; }
+.myreq-status--open { background: rgba(74,124,89,0.12); color: var(--ds-olive, #4a7c59); }
+.myreq-status--closed { background: var(--color-border); color: var(--color-text-muted); }
+
+.myreq-offers { display: flex; flex-direction: column; gap: 12px; }
+.myreq-offer { border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 14px; background: var(--color-surface); }
+.myreq-offer__owner { display: flex; align-items: center; gap: 10px; }
+.myreq-offer__logo { width: 40px; height: 40px; border-radius: 999px; object-fit: cover; }
+.myreq-offer__logo--placeholder { display: flex; align-items: center; justify-content: center; background: var(--color-border); color: var(--color-text-muted); }
+.myreq-offer__property-link { display: block; font-size: 0.82rem; color: var(--ds-hearth); text-decoration: none; }
+.myreq-offer__price { margin-inline-start: auto; font-weight: 800; color: var(--ds-hearth); }
+.myreq-offer__message { display: flex; align-items: flex-start; gap: 6px; font-size: 0.88rem; color: var(--color-text-primary); margin: 10px 0; }
+.myreq-offer__actions { display: flex; gap: 8px; margin-top: 8px; }
+
+/* Owner dashboard "matches" tab */
+.dash-matches { display: flex; flex-direction: column; gap: 12px; }
+.dash-match-card { border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 16px; background: var(--color-surface); }
+.dash-match-card__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.dash-match-card__region { font-weight: 700; }
+.dash-match-card__meta { font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 10px; }
+.dash-match-card__chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.dash-match-card__notes { font-size: 0.85rem; color: var(--color-text-muted); font-style: italic; margin-bottom: 10px; }
+.dash-offer-form { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--ds-ghost); }
+.dash-offer-form__row { display: flex; gap: 8px; }

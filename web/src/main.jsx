@@ -38,6 +38,8 @@ const TravelerLoginPage = lazy(() => import('./pages/TravelerLoginPage.jsx').the
 const AccessibilityPage = lazy(() => import('./pages/AccessibilityPage.jsx').then((m) => ({ default: m.AccessibilityPage })));
 const ContactPage = lazy(() => import('./pages/ContactPage.jsx').then((m) => ({ default: m.ContactPage })));
 const WishlistPage = lazy(() => import('./pages/WishlistPage.jsx').then((m) => ({ default: m.WishlistPage })));
+const RequestPage = lazy(() => import('./pages/RequestPage.jsx').then((m) => ({ default: m.RequestPage })));
+const MyRequestPage = lazy(() => import('./pages/MyRequestPage.jsx').then((m) => ({ default: m.MyRequestPage })));
 
 // 9.8: the whole route tree, mounted twice below (once at "/", once at "/en") — paths here are
 // relative (no leading "/") so they resolve against whichever base matched. LanguageProvider
@@ -66,8 +68,10 @@ function RouteTree() {
         <Route path="קטגוריה/:categorySlug" element={<SeoLandingPage />} />
         <Route path=":seg1/:seg2" element={<SeoLandingPage />} />
         <Route path="remove" element={<RemovePage />} />
+        <Route path="request" element={<RequestPage />} />
         <Route path="my/favorites" element={<FavoritesPage />} />
         <Route path="my/compare" element={<ComparePage />} />
+        <Route path="my/requests/:id" element={<MyRequestPage />} />
         <Route path="list/:token" element={<WishlistPage />} />
         <Route path="account" element={<AccountPage />} />
         <Route path="terms" element={<TermsPage />} />

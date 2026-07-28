@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { Link } from '../components/LocalizedLink.jsx';
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Heart, LogOut, User, Trash2, Pencil, KeyRound, ListChecks, BellRing, X, Check } from 'lucide-react';
+import { Heart, LogOut, User, Trash2, Pencil, KeyRound, ListChecks, BellRing, X, Check, Send } from 'lucide-react';
 import { BackButton } from '../components/BackButton.jsx';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { useTravelerAuth } from '../context/TravelerAuthContext.jsx';
@@ -10,7 +10,7 @@ import { useLanguage } from '../context/LanguageContext.jsx';
 import { useFavorites } from '../hooks/useFavorites.js';
 import { useRecentlyViewed } from '../hooks/useRecentlyViewed.js';
 import { getGreeting } from '../utils/greeting.js';
-import { agentApi, userApi, alertApi } from '../api/client.js';
+import { agentApi, userApi, alertApi, requestApi } from '../api/client.js';
 import { optimizedImageUrl } from '../utils/imageUrl.js';
 import { getMyWishlists } from '../components/CreateWishlistModal.jsx';
 import { RecentlyViewedStrip } from '../components/RecentlyViewedStrip.jsx';
@@ -53,10 +53,12 @@ export function AccountPage() {
   const recentlyViewedIds = useRecentlyViewed();
   const [recentSearches] = useState(() => listRecentSearches());
   const [myAlerts, setMyAlerts] = useState([]);
+  const [myRequests, setMyRequests] = useState([]);
 
   useEffect(() => {
     if (!travelerToken) return;
     alertApi.getMine(travelerToken).then(({ alerts }) => setMyAlerts(alerts || [])).catch(() => setMyAlerts([]));
+    requestApi.getMine(travelerToken).then(({ requests }) => setMyRequests(requests || [])).catch(() => setMyRequests([]));
   }, [travelerToken]);
 
   const isAgent = !loading && token && agent;
@@ -262,8 +264,37 @@ export function AccountPage() {
         </motion.div>
       )}
 
+      {isTraveler && myRequests.length > 0 && (
+        <motion.div className="account-card" variants={cardIn} initial="hidden" animate="visible">
+          <h2 className="account-card__section-title"><Send size={18} /> {t.myRequestsTitle}</h2>
+          {myRequests.map((r) => (
+            <Link key={r.id} to={`/my/requests/${r.id}`} className="account-alert-row" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <span>
+                {regionLabel(r.region, 'he')}{r.city ? ` · ${r.city}` : ''} — {t.myRequestOfferCount(r.offer_count)}
+              </span>
+              <span className={`myreq-status myreq-status--${r.status}`}>
+                {r.status === 'open' ? t.myRequestStatusOpen : t.myRequestStatusClosed}
+              </span>
+            </Link>
+          ))}
+        </motion.div>
+      )}
+
       {/* Actions */}
       <motion.div className="account-actions" variants={container} initial="hidden" animate="visible">
+        {isTraveler && (
+          <motion.div variants={cardIn}>
+            <Link to="/request" className="account-card account-card--action">
+              <div className="account-card__icon account-card__icon--fav">
+                <Send size={22} />
+              </div>
+              <div className="account-card__text">
+                <span className="account-card__label">{t.myRequestsPostLink}</span>
+              </div>
+            </Link>
+          </motion.div>
+        )}
+
         <motion.div variants={cardIn}>
           <Link to="/my/favorites" className="account-card account-card--action">
             <div className="account-card__icon account-card__icon--fav">

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle, KeyRound, Globe, Briefcase, Phone, Share2, LogOut, Trash2, AlertTriangle } from 'lucide-react';
+import { CheckCircle, KeyRound, Globe, Briefcase, Phone, Share2, LogOut, Trash2, AlertTriangle, BellRing } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
+import { useLanguage } from '../context/LanguageContext.jsx';
 import { agentApi } from '../api/client.js';
 import { PropertyPhotoUploader } from '../components/property/PropertyPhotoUploader.jsx';
 import { FacebookIcon, InstagramIcon, TikTokIcon, YouTubeIcon } from '../components/SocialIcons.jsx';
@@ -45,6 +46,7 @@ const EMPTY_FORM = {
   business_name: '', contact_name: '', email: '', logo_url: '', description: '', response_hours: '',
   phone: '', whatsapp_country_code: '+972', whatsapp_number: '',
   website: '', facebook_url: '', instagram_url: '', tiktok_url: '', youtube_url: '',
+  match_notifications_enabled: true,
 };
 
 function PasswordCard({ token }) {
@@ -153,6 +155,7 @@ function AccountActionsCard({ token, logout }) {
  * (reads its own agent/token from context), so it drops straight into a tab panel with no props. */
 export function OwnerSettingsPanel() {
   const { token, agent, loading, refreshAgent, logout } = useAgentAuth();
+  const { t } = useLanguage();
   const [form, setForm] = useState(EMPTY_FORM);
   const [saveState, setSaveState] = useState(null); // 'saving' | 'saved' | 'error' | null
   const [saveError, setSaveError] = useState('');
@@ -178,6 +181,7 @@ export function OwnerSettingsPanel() {
         instagram_url: agent.instagram_url || '',
         tiktok_url: agent.tiktok_url || '',
         youtube_url: agent.youtube_url || '',
+        match_notifications_enabled: agent.match_notifications_enabled !== 0,
       });
     }
   }, [agent]);
@@ -214,6 +218,7 @@ export function OwnerSettingsPanel() {
   }, [form, token]);
 
   function set(key) { return (e) => setForm((prev) => ({ ...prev, [key]: e.target.value })); }
+  function setChecked(key) { return (e) => setForm((prev) => ({ ...prev, [key]: e.target.checked })); }
 
   if (loading || !agent) {
     return <div className="settings-page settings-page--loading">טוען…</div>;
@@ -299,6 +304,14 @@ export function OwnerSettingsPanel() {
               </div>
             ))}
           </div>
+        </section>
+
+        <section className="settings-card">
+          <h2 className="settings-card__title"><BellRing size={16} /> {t.ownerMatchNotificationsLabel}</h2>
+          <label className="settings-field" style={{ flexDirection: 'row', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+            <input type="checkbox" checked={form.match_notifications_enabled} onChange={setChecked('match_notifications_enabled')} />
+            <span className="settings-field__label" style={{ margin: 0 }}>{t.ownerMatchNotificationsSub}</span>
+          </label>
         </section>
 
         <PasswordCard token={token} />

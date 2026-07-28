@@ -88,7 +88,7 @@ export async function updateAgentProfile(id, fields) {
   const allowed = [
     'business_name','contact_name','email','phone','whatsapp_number','whatsapp_template','license_number',
     'logo_url','description','about','cover_url','response_hours','preferred_currency','has_seen_onboarding',
-    'website','facebook_url','instagram_url','tiktok_url','youtube_url',
+    'website','facebook_url','instagram_url','tiktok_url','youtube_url','match_notifications_enabled',
   ];
   const sets = [];
   const vals = [];

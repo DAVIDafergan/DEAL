@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Link } from '../components/LocalizedLink.jsx';
 import {
   PlusCircle, Settings, CheckCircle, MessageCircle,
-  LayoutDashboard, Trash2, Home, Pencil, MapPin, CalendarDays, Eye, BarChart3, Copy, LayoutGrid, Zap, PartyPopper,
+  LayoutDashboard, Trash2, Home, Pencil, MapPin, CalendarDays, Eye, BarChart3, Copy, LayoutGrid, Zap, PartyPopper, Send,
 } from 'lucide-react';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { propertyApi } from '../api/client.js';
@@ -16,6 +16,7 @@ import { PropertyTrashPanel } from '../components/property/PropertyTrashPanel.js
 import { BulkPriceEditor } from '../components/property/BulkPriceEditor.jsx';
 import { DashListSkeleton } from '../components/DashListSkeleton.jsx';
 import { OwnerDashboardTips } from '../components/OwnerDashboardTips.jsx';
+import { OwnerRequestMatches } from '../components/OwnerRequestMatches.jsx';
 import { RouteLoading } from '../components/RouteLoading.jsx';
 import { OwnerSettingsPanel } from './OwnerSettingsPage.jsx';
 import { PropertyStatsPanel } from './PropertyStatsPage.jsx';
@@ -25,6 +26,7 @@ import { optimizedImageUrl } from '../utils/imageUrl.js';
 
 const TABS = [
   { key: 'overview', label: 'סקירה כללית', icon: LayoutGrid },
+  { key: 'matches', label: 'בקשות שמתאימות לי', icon: Send },
   { key: 'stats', label: 'סטטיסטיקה', icon: BarChart3 },
   { key: 'settings', label: 'הגדרות', icon: Settings },
 ];
@@ -298,6 +300,12 @@ export function OwnerDashboardPage() {
       </div>
 
       {activeTab === 'settings' && <OwnerSettingsPanel />}
+
+      {activeTab === 'matches' && (
+        <div className="container">
+          <OwnerRequestMatches token={token} />
+        </div>
+      )}
 
       {activeTab === 'stats' && (
         <div className="container">

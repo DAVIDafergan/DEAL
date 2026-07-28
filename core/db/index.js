@@ -480,6 +480,11 @@ const MIGRATIONS = [
   // JSON array of hint ids already seen/dismissed, so they don't reappear on another device.
   // Anonymous visitors track the same thing in localStorage only — see useHints.js.
   (connection) => ensureColumn(connection, 'users', 'seen_hints', 'JSON NULL'),
+  // 11.23 — "פרסם בקשה" match-notification emails only ever go to an owner who's opted in.
+  // Defaults to 1 (on) for every existing and new agent — self-registering on the platform at
+  // all is exactly the "נרשמו מרצונם" (registered voluntarily) consent the spec requires; this
+  // is the opt-*out* toggle (OwnerSettingsPage.jsx), not an opt-in gate someone has to find.
+  (connection) => ensureColumn(connection, 'agents', 'match_notifications_enabled', 'TINYINT(1) NOT NULL DEFAULT 1'),
 ];
 
 const SCHEMA_STATEMENTS = [
@@ -1091,6 +1096,74 @@ const SCHEMA_STATEMENTS = [
     INDEX idx_user_recently_viewed_user_viewed (user_id, viewed_at),
     CONSTRAINT fk_user_recently_viewed_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     CONSTRAINT fk_user_recently_viewed_property FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB`,
+
+  // 11.23 — "פרסם בקשה, והצימרים באים אליך": a guest posts what they're looking for once,
+  // instead of searching. Matching happens once at creation time (not a periodic sweep like
+  // property_alerts — there's nothing to wait for, the property pool already exists), against
+  // manual/claimed-or-active properties whose owner has opted in (agents.match_notifications_enabled).
+  // user_id is nullable — posting a request never requires an account (see RequestPage.jsx).
+  `CREATE TABLE IF NOT EXISTS guest_requests (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NULL,
+    contact_name VARCHAR(255) NULL,
+    contact_email VARCHAR(255) NOT NULL,
+    contact_phone VARCHAR(32) NULL,
+    region ENUM('north','galilee','golan','carmel','center','jerusalem','south','dead_sea','eilat') NOT NULL,
+    city VARCHAR(120) NULL,
+    check_in DATE NULL,
+    check_out DATE NULL,
+    adults TINYINT UNSIGNED NULL,
+    children TINYINT UNSIGNED NULL,
+    budget_min DECIMAL(10,2) NULL,
+    budget_max DECIMAL(10,2) NULL,
+    amenities JSON NULL,
+    kosher_level ENUM('kosher','shomer_shabbat','kosher_kitchen','not_applicable') NULL,
+    notes TEXT NULL,
+    matched_properties_count INT NOT NULL DEFAULT 0,
+    notified_owner_count INT NOT NULL DEFAULT 0,
+    status ENUM('open','closed') NOT NULL DEFAULT 'open',
+    expires_at DATETIME NOT NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    INDEX idx_guest_requests_user (user_id),
+    INDEX idx_guest_requests_status_region (status, region),
+    INDEX idx_guest_requests_expires (expires_at),
+    CONSTRAINT fk_guest_requests_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+  ) ENGINE=InnoDB`,
+
+  // One row per (request, owner) actually notified — doubles as the owner's "matches feed"
+  // (join back to guest_requests where status='open' and not expired) and as the dedup guard
+  // that stops the same request re-notifying the same owner if matching were ever re-run.
+  `CREATE TABLE IF NOT EXISTS guest_request_matches (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    request_id INT NOT NULL,
+    agent_id INT NOT NULL,
+    property_id INT NOT NULL,
+    match_score INT NOT NULL DEFAULT 0,
+    notified_at DATETIME NULL,
+    created_at DATETIME NOT NULL,
+    UNIQUE KEY uk_guest_request_matches_request_agent (request_id, agent_id),
+    INDEX idx_guest_request_matches_agent (agent_id),
+    CONSTRAINT fk_grm_request FOREIGN KEY (request_id) REFERENCES guest_requests(id) ON DELETE CASCADE,
+    CONSTRAINT fk_grm_agent FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE,
+    CONSTRAINT fk_grm_property FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB`,
+
+  // An owner's response to a request they were matched to — one offer per (request, owner).
+  `CREATE TABLE IF NOT EXISTS guest_request_offers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    request_id INT NOT NULL,
+    agent_id INT NOT NULL,
+    property_id INT NOT NULL,
+    price DECIMAL(10,2) NULL,
+    message TEXT NULL,
+    created_at DATETIME NOT NULL,
+    UNIQUE KEY uk_guest_request_offers_request_agent (request_id, agent_id),
+    INDEX idx_guest_request_offers_request (request_id),
+    CONSTRAINT fk_gro_request FOREIGN KEY (request_id) REFERENCES guest_requests(id) ON DELETE CASCADE,
+    CONSTRAINT fk_gro_agent FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE,
+    CONSTRAINT fk_gro_property FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE
   ) ENGINE=InnoDB`,
 ];
 

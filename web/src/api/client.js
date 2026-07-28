@@ -304,6 +304,19 @@ export const userApi = {
   markHintSeen: (token, hintId) => postJson(`/users/hints/${hintId}`, {}, token),
 };
 
+// 11.23 — "פרסם בקשה, והצימרים באים אליך". create() takes an optional traveler token (posting
+// a request never requires an account) — everything else needs one, either as the traveler who
+// owns the request or the owner who was matched to it.
+export const requestApi = {
+  create: (data, token = null) => postJson('/requests', data, token),
+  getMine: (token) => getJson('/requests/mine', token),
+  getOne: (token, id) => getJson(`/requests/${id}`, token),
+  getOffers: (token, id) => getJson(`/requests/${id}/offers`, token),
+  close: (token, id) => patchJson(`/requests/${id}/close`, {}, token),
+  getOwnerMatches: (token) => getJson('/requests/owner/matches', token),
+  createOffer: (token, id, data) => postJson(`/requests/${id}/offers`, data, token),
+};
+
 export const billingApi = {
   getPlans: () => getJson('/billing/plans'),
   checkout: (token, tier) => postJson('/billing/checkout', { tier }, token),
