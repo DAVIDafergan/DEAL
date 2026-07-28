@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { Link } from '../components/LocalizedLink.jsx';
-import { ArrowLeft, Heart, Scale, Share2 } from 'lucide-react';
+import { Heart, Scale, Share2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useFavorites } from '../hooks/useFavorites.js';
 import { PropertyGrid } from '../components/PropertyGrid.jsx';
 import { usePropertyDetails } from '../hooks/usePropertyDetails.js';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { CreateWishlistModal, getMyWishlists } from '../components/CreateWishlistModal.jsx';
+import { BackButton } from '../components/BackButton.jsx';
+import { FeatureHint } from '../components/FeatureHint.jsx';
+import { useHintSeen } from '../context/HintsContext.jsx';
 
 /** FavoritesPage — 9.6: shows saved properties (the only thing favoritable on the live site
  * today — see DECISIONS.md 9.3/9.6). Fetches full current data for each saved id rather than
@@ -20,6 +23,14 @@ export function FavoritesPage() {
   const { properties, isLoading } = usePropertyDetails(propertyFavorites.map((f) => f.id));
   const [showShareModal, setShowShareModal] = useState(false);
   const myWishlists = getMyWishlists();
+  // 11.22: "share with friends who are deciding" only makes sense once there's actually
+  // something worth deciding between — matches the second-favorite trigger from the request.
+  const { markSeen: markShareHintSeen } = useHintSeen('favorites-share');
+
+  function openShareModal() {
+    markShareHintSeen();
+    setShowShareModal(true);
+  }
 
   return (
     <div className="favorites-page" dir={dir}>
@@ -27,10 +38,9 @@ export function FavoritesPage() {
         <CreateWishlistModal propertyIds={properties.map((p) => p.id)} onClose={() => setShowShareModal(false)} />
       )}
 
+      <BackButton />
+
       <div className="favorites-page__header">
-        <Link to="/" className="favorites-page__back">
-          <ArrowLeft size={16} /> {t.backButton}
-        </Link>
         <h1 className="favorites-page__title">
           <Heart size={20} style={{ color: 'var(--ds-wine)', marginInlineEnd: 8, verticalAlign: 'middle' }} />
           {t.favoritesTitle}
@@ -41,11 +51,24 @@ export function FavoritesPage() {
           </Link>
         )}
         {properties.length >= 1 && (
-          <button type="button" className="favorites-page__compare-btn" onClick={() => setShowShareModal(true)}>
+          <button type="button" className="favorites-page__compare-btn" onClick={openShareModal}>
             <Share2 size={15} /> {t.wishlistShareButton}
           </button>
         )}
       </div>
+
+      {propertyFavorites.length >= 2 && (
+        <div className="container">
+          <FeatureHint id="favorites-share">
+            {t.hintFavoritesShare}
+            <br />
+            <span style={{ opacity: 0.75, fontSize: '0.82em' }}>{t.hintFavoritesShareCaption}</span>
+            <button type="button" className="feature-hint__cta" onClick={openShareModal}>
+              <Share2 size={12} /> {t.hintFavoritesShareCta}
+            </button>
+          </FeatureHint>
+        </div>
+      )}
 
       {myWishlists.length > 0 && (
         <div className="container wishlist-my-lists">

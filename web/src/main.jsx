@@ -6,6 +6,7 @@ import { PublicLayout } from './components/PublicLayout.jsx';
 import { LanguageProvider } from './context/LanguageContext.jsx';
 import { AgentAuthProvider } from './context/AgentAuthContext.jsx';
 import { TravelerAuthProvider } from './context/TravelerAuthContext.jsx';
+import { HintsProvider } from './context/HintsContext.jsx';
 import { AccessibilityWidget } from './components/AccessibilityWidget.jsx';
 import { RouteLoading } from './components/RouteLoading.jsx';
 import './index.css';
@@ -90,17 +91,19 @@ function RouteTree() {
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <TravelerAuthProvider>
-      <AgentAuthProvider>
-        <BrowserRouter>
-          <LanguageProvider>
-            <AccessibilityWidget />
-            <Routes>
-              <Route path="/en/*" element={<RouteTree />} />
-              <Route path="/*" element={<RouteTree />} />
-            </Routes>
-          </LanguageProvider>
-        </BrowserRouter>
-      </AgentAuthProvider>
+      <HintsProvider>
+        <AgentAuthProvider>
+          <BrowserRouter>
+            <LanguageProvider>
+              <AccessibilityWidget />
+              <Routes>
+                <Route path="/en/*" element={<RouteTree />} />
+                <Route path="/*" element={<RouteTree />} />
+              </Routes>
+            </LanguageProvider>
+          </BrowserRouter>
+        </AgentAuthProvider>
+      </HintsProvider>
     </TravelerAuthProvider>
   </React.StrictMode>
 );

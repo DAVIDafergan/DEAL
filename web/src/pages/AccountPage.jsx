@@ -2,7 +2,8 @@ import { useNavigate } from 'react-router-dom';
 import { Link } from '../components/LocalizedLink.jsx';
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Heart, LogOut, ArrowLeft, User, Trash2, Pencil, KeyRound, ListChecks, BellRing, X, Check } from 'lucide-react';
+import { Heart, LogOut, User, Trash2, Pencil, KeyRound, ListChecks, BellRing, X, Check } from 'lucide-react';
+import { BackButton } from '../components/BackButton.jsx';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { useTravelerAuth } from '../context/TravelerAuthContext.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
@@ -159,10 +160,7 @@ export function AccountPage() {
 
   return (
     <div className="account-page container" dir={dir}>
-      <Link to="/" className="account-page__back">
-        <ArrowLeft size={14} />
-        {t.backButton}
-      </Link>
+      <BackButton />
 
       {/* Greeting */}
       <p className="account-greeting">{greeting}</p>

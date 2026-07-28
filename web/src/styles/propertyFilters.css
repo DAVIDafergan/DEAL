@@ -181,6 +181,7 @@
   background: var(--gradient-accent);
   color: #fff;
 }
+.pes__hint { margin-top: 14px; }
 .pes__btn--alert {
   display: inline-flex;
   align-items: center;

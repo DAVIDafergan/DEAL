@@ -300,6 +300,8 @@ export const userApi = {
   removeFavorite: (token, propertyId) => deleteReq(`/users/favorites/${propertyId}`, token),
   getRecentlyViewed: (token) => getJson('/users/recently-viewed', token),
   recordRecentlyViewed: (token, propertyId) => postJson(`/users/recently-viewed/${propertyId}`, {}, token),
+  getSeenHints: (token) => getJson('/users/hints', token),
+  markHintSeen: (token, hintId) => postJson(`/users/hints/${hintId}`, {}, token),
 };
 
 export const billingApi = {

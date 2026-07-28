@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { Link } from '../components/LocalizedLink.jsx';
 import { motion } from 'framer-motion';
-import { ArrowLeft, ChevronLeft, MessageCircle, Phone, CheckCircle, ExternalLink, Users, Bath, ShieldAlert, Clock, Heart, Share2, CalendarClock, Info, MapPinned, Flag } from 'lucide-react';
+import { ChevronLeft, MessageCircle, Phone, CheckCircle, ExternalLink, Users, Bath, ShieldAlert, Clock, Heart, Share2, CalendarClock, Info, MapPinned, Flag } from 'lucide-react';
 import { propertyApi, userApi } from '../api/client.js';
 import { useAgentAuth } from '../context/AgentAuthContext.jsx';
 import { useTravelerAuth } from '../context/TravelerAuthContext.jsx';
@@ -22,21 +22,8 @@ import { trackPropertyEvent } from '../utils/eventTracking.js';
 import { saveRecentlyViewed } from '../utils/recentlyViewed.js';
 import { PropertyPageSkeleton } from '../components/property/PropertyPageSkeleton.jsx';
 import { PropertyGrid } from '../components/PropertyGrid.jsx';
+import { BackButton } from '../components/BackButton.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
-
-/** BackLink — 7.8: "כפתור חזרה ששומר על מצב החיפוש והגלילה". Going back in browser history
- * (rather than a hard Link to "/") preserves the previous page's URL query params (7.2's filter
- * state lives there) and its scroll position automatically. Falls back to a plain link home when
- * there's no in-app history to go back to (e.g. the property page was opened directly/shared). */
-function BackLink({ className, children }) {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const hasHistory = location.key !== 'default';
-  if (hasHistory) {
-    return <button type="button" className={className} onClick={() => navigate(-1)}>{children}</button>;
-  }
-  return <Link to="/" className={className}>{children}</Link>;
-}
 
 /** ClaimFlow — the "אני בעל הנכס" flow: request code (owner auth required) → enter code → pending. */
 function ClaimFlow({ propertyId }) {
@@ -180,7 +167,7 @@ export function PropertyPage() {
     return (
       <div className="agent-social-profile agent-social-profile--error" dir={dir}>
         <p>{t.propertyNotFound}</p>
-        <BackLink className="agent-social-profile__back-clean">← {t.backButton}</BackLink>
+        <BackButton />
       </div>
     );
   }
@@ -209,11 +196,7 @@ export function PropertyPage() {
 
   return (
     <div className="pp" dir={dir}>
-      <div className="pp__topbar container">
-        <BackLink className="agent-social-profile__back-clean">
-          <ArrowLeft size={14} /> {t.backButton}
-        </BackLink>
-      </div>
+      <BackButton />
 
       <nav className="property-breadcrumbs container" aria-label={t.breadcrumbsLabel}>
         <Link to="/">{t.homeLink}</Link>

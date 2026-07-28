@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Link } from '../components/LocalizedLink.jsx';
-import { ArrowLeft, ThumbsUp, ThumbsDown, MessageCircle, ListChecks } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, MessageCircle, ListChecks } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { wishlistApi } from '../api/client.js';
 import { getSessionId } from '../utils/session.js';
 import { PropertyCard } from '../components/PropertyCard.jsx';
 import { RouteLoading } from '../components/RouteLoading.jsx';
+import { BackButton } from '../components/BackButton.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
 
 function WishlistItem({ item, token, voterKey, onVoted, onCommented }) {
@@ -129,10 +130,9 @@ export function WishlistPage() {
 
   return (
     <div className="wishlist-page" dir={dir}>
+      <BackButton />
+
       <div className="wishlist-page__header container">
-        <Link to="/" className="favorites-page__back">
-          <ArrowLeft size={16} /> {t.backButton}
-        </Link>
         <h1 className="wishlist-page__title"><ListChecks size={20} /> {wishlist.name}</h1>
         <p className="wishlist-page__subtitle">{t.wishlistSharedSubtitle}</p>
       </div>

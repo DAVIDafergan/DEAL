@@ -1,12 +1,13 @@
 import { useSearchParams } from 'react-router-dom';
 import { Link } from '../components/LocalizedLink.jsx';
-import { ArrowLeft, CheckCircle2, XCircle } from 'lucide-react';
+import { CheckCircle2, XCircle } from 'lucide-react';
 import { usePropertyDetails } from '../hooks/usePropertyDetails.js';
 import { regionLabel, propertyTypeLabel, AMENITIES, amenityLabel } from '../data/propertyOptions.js';
 import { getCurrencySymbol } from '../utils/currency.js';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { optimizedImageUrl } from '../utils/imageUrl.js';
 import { RouteLoading } from '../components/RouteLoading.jsx';
+import { BackButton } from '../components/BackButton.jsx';
 
 // 11.15 — haversine straight-line distance (km), not driving distance — good enough for "how
 // far apart are these two options actually", the question this row answers.
@@ -33,8 +34,9 @@ export function ComparePage() {
 
   return (
     <div className="settings-page" dir={dir}>
+      <BackButton fallbackTo="/my/favorites" label={t.compareBackToFavorites} />
+
       <div className="settings-page__header">
-        <Link to="/my/favorites" className="settings-page__back"><ArrowLeft size={16} /> {t.compareBackToFavorites}</Link>
         <h1 className="settings-page__title">{t.compareTitle}</h1>
       </div>
 

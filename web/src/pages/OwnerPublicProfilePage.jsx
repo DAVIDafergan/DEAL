@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Link } from '../components/LocalizedLink.jsx';
-import { Share2, MessageCircle, CheckCircle, ArrowLeft, Globe } from 'lucide-react';
+import { Share2, MessageCircle, CheckCircle, Globe } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { propertyApi } from '../api/client.js';
 import { PropertyCard } from '../components/PropertyCard.jsx';
 import { FacebookIcon, InstagramIcon, TikTokIcon, YouTubeIcon } from '../components/SocialIcons.jsx';
 import { optimizedImageUrl } from '../utils/imageUrl.js';
+import { BackButton } from '../components/BackButton.jsx';
 
 const SOCIAL_LINKS = [
   { key: 'website', Icon: Globe, label: 'אתר' },
@@ -51,7 +51,7 @@ export function OwnerPublicProfilePage() {
   if (error || !data) return (
     <div className="agent-social-profile agent-social-profile--error" dir="rtl">
       <p>בעל הנכס לא נמצא</p>
-      <Link to="/">← חזרה</Link>
+      <BackButton />
     </div>
   );
 
@@ -60,11 +60,7 @@ export function OwnerPublicProfilePage() {
 
   return (
     <div className="agent-social-profile" dir="rtl">
-      <div className="agent-social-profile__topbar container">
-        <Link to="/" className="agent-social-profile__back-clean">
-          <ArrowLeft size={14} /> חזרה
-        </Link>
-      </div>
+      <BackButton />
 
       <div className="agent-social-profile__header container agent-social-profile__header--clean">
         <div className="agent-social-profile__avatar-wrap">

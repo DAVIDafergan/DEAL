@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Link } from '../components/LocalizedLink.jsx';
-import { ArrowLeft, ShieldOff, CheckCircle } from 'lucide-react';
+import { ShieldOff, CheckCircle } from 'lucide-react';
 import { removeApi } from '../api/client.js';
 import { Logo } from '../components/Logo.jsx';
+import { BackButton } from '../components/BackButton.jsx';
 
 /** RemovePage — public self-service removal (Step 5.5). Same auth-page/auth-card shell as the
  * login pages. Immediate, automatic, no admin approval — per the compliance SLA. */
@@ -49,9 +49,7 @@ export function RemovePage() {
 
   return (
     <div className="auth-page" dir="rtl">
-      <Link to="/" className="auth-page__back">
-        <ArrowLeft size={16} /> חזרה לדף הבית
-      </Link>
+      <BackButton />
 
       <motion.div className="auth-card" initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
         <div className="auth-card__hero">

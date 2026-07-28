@@ -4,7 +4,6 @@ import { propertyApi } from './api/client.js';
 import { HeroSearch } from './components/HeroSearch.jsx';
 import { RegionPicker } from './components/RegionPicker.jsx';
 import { CategoryChips } from './components/CategoryChips.jsx';
-import { HowItWorks } from './components/HowItWorks.jsx';
 import { TrustSection } from './components/TrustSection.jsx';
 import { PropertyFilterPanel } from './components/PropertyFilterPanel.jsx';
 import { PropertyFilterSheet } from './components/PropertyFilterSheet.jsx';
@@ -140,12 +139,9 @@ export function App() {
           </div>
         </section>
 
-        {/* 11.21: reconnected — was built (with per-step icon animation + copy) but never
-            imported after 9.2 removed it in favor of TrustSection alone; the two aren't
-            actually redundant (one explains the process, the other builds trust), see
-            DECISIONS.md 11.21. */}
-        <HowItWorks />
-
+        {/* 11.22: the general "how it works" block that lived here (11.21) was replaced with
+            contextual, first-use hints inside each feature instead (FeatureHint.jsx) — see
+            DECISIONS.md 11.22. HowItWorks.jsx is untouched on disk, just unimported again. */}
         <RecentlyViewedStrip propertyIds={recentlyViewedIds} />
 
         {/* ── 2. Regions ── */}

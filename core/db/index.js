@@ -476,6 +476,10 @@ const MIGRATIONS = [
   // a second upload — stored alongside the video url so the player never needs to derive it.
   (connection) => ensureColumn(connection, 'properties', 'video_url', 'TEXT NULL'),
   (connection) => ensureColumn(connection, 'properties', 'video_poster_url', 'TEXT NULL'),
+  // 11.22 — first-time contextual feature hints (FeatureHint.jsx) for a logged-in customer:
+  // JSON array of hint ids already seen/dismissed, so they don't reappear on another device.
+  // Anonymous visitors track the same thing in localStorage only — see useHints.js.
+  (connection) => ensureColumn(connection, 'users', 'seen_hints', 'JSON NULL'),
 ];
 
 const SCHEMA_STATEMENTS = [

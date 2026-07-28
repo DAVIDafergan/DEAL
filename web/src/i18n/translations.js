@@ -623,6 +623,13 @@ export const translations = {
     deletingButton: 'מוחק…',
     savedPropertiesCount: (n) => `${n} נכסים שמורים`,
 
+    // 11.22 — first-time contextual hints (FeatureHint.jsx), shown once then remembered
+    hintFavoritesShare: 'אפשר לשתף את הרשימה עם חברים שמתלבטים, כולם יצביעו ויחליטו יחד',
+    hintFavoritesShareCaption: 'שלחו לקבוצה, כולם מצביעים ומגיבים בלי להירשם',
+    hintFavoritesShareCta: 'שתפו עכשיו',
+    hintAlerts: 'נודיע לך במייל כשמתפנה צימר שמתאים',
+    hintDismissLabel: 'סגור רמז',
+
     // 11.13 — shared wishlist (voting/comments, no signup)
     closeButton: 'סגור',
     wishlistShareButton: 'שתפו רשימה',
@@ -1293,6 +1300,13 @@ export const translations = {
     deleteForeverButton: 'Delete permanently',
     deletingButton: 'Deleting…',
     savedPropertiesCount: (n) => `${n} saved properties`,
+
+    // 11.22 — first-time contextual hints (FeatureHint.jsx), shown once then remembered
+    hintFavoritesShare: 'You can share this list with friends who are deciding — everyone votes and decides together',
+    hintFavoritesShareCaption: 'Send it to the group — everyone votes and comments, no signup needed',
+    hintFavoritesShareCta: 'Share now',
+    hintAlerts: "We'll email you when a matching cabin opens up",
+    hintDismissLabel: 'Dismiss hint',
 
     // 11.13 — shared wishlist (voting/comments, no signup)
     closeButton: 'Close',

@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { SearchX, BellPlus } from 'lucide-react';
 import { buildActiveChips } from './PropertyActiveChips.jsx';
 import { CreateAlertModal } from './CreateAlertModal.jsx';
+import { FeatureHint } from './FeatureHint.jsx';
+import { useHintSeen } from '../context/HintsContext.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
 
 const RESTRICTIVENESS_ORDER = ['am-', 'bed-', 'kosher', 'type', 'bedrooms', 'price', 'guests', 'dates', 'city', 'region'];
@@ -18,6 +20,12 @@ function mostRestrictiveChip(chips) {
 export function PropertyEmptyState({ filters, setFilter, toggleAmenity, toggleBedType, onClearAll, hasActiveFilters }) {
   const { t, lang } = useLanguage();
   const [showAlertModal, setShowAlertModal] = useState(false);
+  const { markSeen: markAlertHintSeen } = useHintSeen('alerts');
+
+  function openAlertModal() {
+    markAlertHintSeen();
+    setShowAlertModal(true);
+  }
 
   if (!hasActiveFilters) {
     return (
@@ -47,10 +55,11 @@ export function PropertyEmptyState({ filters, setFilter, toggleAmenity, toggleBe
         <button type="button" className="pes__btn" onClick={onClearAll}>
           {t.filterClearAll}
         </button>
-        <button type="button" className="pes__btn pes__btn--alert" onClick={() => setShowAlertModal(true)}>
+        <button type="button" className="pes__btn pes__btn--alert" onClick={openAlertModal}>
           <BellPlus size={14} /> {t.emptyStateNotifyMe}
         </button>
       </div>
+      <FeatureHint id="alerts" className="pes__hint">{t.hintAlerts}</FeatureHint>
     </div>
   );
 }

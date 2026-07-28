@@ -6,6 +6,7 @@ import { propertyApi } from '../api/client.js';
 import { PropertyGrid } from '../components/PropertyGrid.jsx';
 import { PropertyEmptyState } from '../components/PropertyEmptyState.jsx';
 import { RouteLoading } from '../components/RouteLoading.jsx';
+import { BackButton } from '../components/BackButton.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
 
 /** SeoLandingPage — 9.7: the real, navigable React version of the region/city/category pages
@@ -72,6 +73,8 @@ export function SeoLandingPage() {
 
   return (
     <div className="seo-lp" dir={dir}>
+      <BackButton />
+
       <nav className="property-breadcrumbs container" aria-label={t.breadcrumbsLabel}>
         {data.breadcrumbs.map((b, i) => (
           <span key={b.name} style={{ display: 'contents' }}>

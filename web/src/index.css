@@ -590,66 +590,74 @@ select:focus-visible {
   filter: drop-shadow(0 2px 6px rgba(0,0,0,0.2));
 }
 
-/* ── 11.4: per-region hover/tap icon animation ──────────────────────────────
-   :active (not just :hover) so a tap on mobile triggers it too — touch devices don't reliably
-   fire :hover. Every keyframe stays inside 300-500ms and only ever moves/rotates the icon a
-   few degrees or pixels — gentle, not bouncy. Fully skipped under prefers-reduced-motion. */
+/* ── 11.22: per-region icon animation — continuous ambient loop, not a hover-only
+   micro-interaction (that was the 11.4 version; replaced per explicit request — a resting card
+   should already look "alive": the sun keeps turning, waves keep moving, the tree keeps
+   swaying, snow keeps drifting, with no interaction needed). transform-only (GPU-friendly,
+   no layout thrash), :hover/:active/:focus-visible layer a slightly bigger/faster version on
+   top as a boost rather than being the only trigger — the card lift (.region-card:hover above)
+   already gives its own hover feedback regardless. Fully skipped under prefers-reduced-motion:
+   the icon simply sits still, matching WCAG 2.3.3 (motion caused by interaction only, and here
+   not even that). */
 @media (prefers-reduced-motion: no-preference) {
+  .region-card__icon {
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+  }
+  .region-card[data-anim="sway"] .region-card__icon {
+    animation-name: region-icon-sway; animation-duration: 3.2s; transform-origin: 50% 90%;
+  }
+  .region-card[data-anim="spin"] .region-card__icon {
+    animation-name: region-icon-spin; animation-duration: 9s; animation-timing-function: linear; transform-origin: 50% 50%;
+  }
+  .region-card[data-anim="ripple"] .region-card__icon {
+    animation-name: region-icon-ripple; animation-duration: 2.8s; transform-origin: 50% 50%;
+  }
+  .region-card[data-anim="fall"] .region-card__icon {
+    animation-name: region-icon-fall; animation-duration: 2.6s; transform-origin: 50% 50%;
+  }
+  .region-card[data-anim="rise"] .region-card__icon {
+    animation-name: region-icon-rise; animation-duration: 3s; transform-origin: 50% 50%;
+  }
+  .region-card[data-anim="pulse"] .region-card__icon {
+    animation-name: region-icon-pulse; animation-duration: 2.4s; transform-origin: 50% 50%;
+  }
+
+  /* Hover/tap/focus boost — same motion, faster and a touch stronger, layered on the
+     already-running loop above so a deliberate interaction still reads as "responding". */
   .region-card:hover .region-card__icon,
   .region-card:active .region-card__icon,
   .region-card:focus-visible .region-card__icon {
-    animation-duration: 480ms;
-    animation-timing-function: ease-in-out;
-    animation-fill-mode: both;
+    animation-duration: 900ms;
   }
-  .region-card[data-anim="sway"]:hover .region-card__icon,
-  .region-card[data-anim="sway"]:active .region-card__icon,
-  .region-card[data-anim="sway"]:focus-visible .region-card__icon { animation-name: region-icon-sway; transform-origin: 50% 90%; }
-
   .region-card[data-anim="spin"]:hover .region-card__icon,
   .region-card[data-anim="spin"]:active .region-card__icon,
-  .region-card[data-anim="spin"]:focus-visible .region-card__icon { animation-name: region-icon-spin; animation-duration: 500ms; transform-origin: 50% 50%; }
-
-  .region-card[data-anim="ripple"]:hover .region-card__icon,
-  .region-card[data-anim="ripple"]:active .region-card__icon,
-  .region-card[data-anim="ripple"]:focus-visible .region-card__icon { animation-name: region-icon-ripple; }
-
-  .region-card[data-anim="fall"]:hover .region-card__icon,
-  .region-card[data-anim="fall"]:active .region-card__icon,
-  .region-card[data-anim="fall"]:focus-visible .region-card__icon { animation-name: region-icon-fall; }
-
-  .region-card[data-anim="rise"]:hover .region-card__icon,
-  .region-card[data-anim="rise"]:active .region-card__icon,
-  .region-card[data-anim="rise"]:focus-visible .region-card__icon { animation-name: region-icon-rise; }
-
-  .region-card[data-anim="pulse"]:hover .region-card__icon,
-  .region-card[data-anim="pulse"]:active .region-card__icon,
-  .region-card[data-anim="pulse"]:focus-visible .region-card__icon { animation-name: region-icon-pulse; }
+  .region-card[data-anim="spin"]:focus-visible .region-card__icon { animation-duration: 700ms; }
 }
 
 @keyframes region-icon-sway {
-  0%, 100% { transform: rotate(0deg); }
-  50% { transform: rotate(9deg); }
+  0%, 100% { transform: rotate(-8deg); }
+  50% { transform: rotate(8deg); }
 }
 @keyframes region-icon-spin {
   from { transform: rotate(0deg); }
-  to { transform: rotate(160deg); }
+  to { transform: rotate(360deg); }
 }
 @keyframes region-icon-ripple {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
+  0%, 100% { transform: translateX(-4px); }
+  50% { transform: translateX(4px); }
 }
 @keyframes region-icon-fall {
-  0% { transform: translateY(0) rotate(0deg); }
-  100% { transform: translateY(5px) rotate(20deg); }
+  0%, 100% { transform: translateY(-3px) rotate(-6deg); }
+  50% { transform: translateY(4px) rotate(6deg); }
 }
 @keyframes region-icon-rise {
   0%, 100% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(-3px) scale(1.06); }
+  50% { transform: translateY(-4px) scale(1.05); }
 }
 @keyframes region-icon-pulse {
   0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
+  50% { transform: scale(1.08); }
 }
 
 .region-card__name {
@@ -5143,6 +5151,42 @@ label { color: var(--color-text-secondary); }
   padding-top: 24px;
 }
 
+/* ── 11.22: shared fixed-position back button (BackButton.jsx) — pinned to the physical
+   top-right corner of the viewport (right, not inset-inline-end: the ask was "always the same
+   physical corner", including across the /en language toggle, not a corner that flips with
+   direction), below the sticky header (.top-bar-wrapper, z-index 200) at every scroll position
+   on every page. 84px clears the 18px-padding desktop header; the 640px query matches the
+   header's own mobile breakpoint (10px padding) with a smaller top offset + inline gap. */
+.back-button-fixed {
+  position: fixed;
+  top: 84px;
+  right: 20px;
+  z-index: 150;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.back-button-fixed:hover,
+.back-button-fixed:focus-visible {
+  color: var(--color-text-primary);
+  border-color: var(--color-text-muted);
+  box-shadow: var(--shadow-card-hover);
+}
+@media (max-width: 640px) {
+  .back-button-fixed { top: 64px; right: 10px; padding: 6px 12px; font-size: 0.78rem; }
+}
+
 /* ── Account Page ─────────────────────────────────────────────────────────── */
 .account-page {
   min-height: 100vh;
@@ -6833,4 +6877,52 @@ html[dir="rtl"] .auth-form__input { text-align: right; direction: rtl; }
 @keyframes icon-spin-rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) {
   .icon-spin { animation: none; }
+}
+
+/* ── 11.22: FeatureHint — small, dismiss-once contextual explanation, not a modal/banner ── */
+.feature-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: 420px;
+  margin: 10px 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--ds-hearth-tint, rgba(193, 89, 43, 0.08));
+  border: 1px solid var(--ds-hearth);
+  font-size: 0.86rem;
+  line-height: 1.4;
+  color: var(--color-text-primary);
+}
+.feature-hint__text { flex: 1; }
+.feature-hint__dismiss {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.feature-hint__dismiss:hover { background: rgba(0,0,0,0.06); color: var(--color-text-primary); }
+
+.feature-hint__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-inline-start: 8px;
+  padding: 3px 10px;
+  border: none;
+  border-radius: 999px;
+  background: var(--ds-hearth);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
 }

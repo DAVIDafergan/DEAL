@@ -97,3 +97,20 @@ export async function recordRecentlyViewed(userId, propertyId) {
     [userId, userId, RECENTLY_VIEWED_MAX]
   );
 }
+
+// 11.22 — first-time feature hints: a small JSON array on the user row (no separate table —
+// this is a handful of ids per user, not a growing log, so a single column is simpler than a
+// join). Read-modify-write under normal (non-concurrent-toggle) usage is fine here.
+export async function getSeenHints(userId) {
+  const [rows] = await getPool().query('SELECT seen_hints FROM users WHERE id = ?', [userId]);
+  const raw = rows[0]?.seen_hints;
+  if (!raw) return [];
+  return typeof raw === 'string' ? JSON.parse(raw) : raw;
+}
+
+export async function markHintSeen(userId, hintId) {
+  const seen = await getSeenHints(userId);
+  if (!seen.includes(hintId)) seen.push(hintId);
+  await getPool().query('UPDATE users SET seen_hints = ? WHERE id = ?', [JSON.stringify(seen), userId]);
+  return seen;
+}

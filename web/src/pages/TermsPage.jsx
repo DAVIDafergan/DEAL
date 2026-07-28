@@ -1,11 +1,10 @@
-import { Link } from '../components/LocalizedLink.jsx';
-import { ArrowLeft } from 'lucide-react';
+import { BackButton } from '../components/BackButton.jsx';
 
 export function TermsPage() {
   return (
     <div className="legal-page" dir="rtl">
       <div className="legal-page__inner container">
-        <Link to="/" className="legal-page__back"><ArrowLeft size={16} /> חזרה לדף הבית</Link>
+        <BackButton />
         <h1 className="legal-page__title">תנאי שימוש</h1>
         <p className="legal-page__updated">גרסה 2.0 | עודכן לאחרונה: יוני 2026</p>
         <section className="legal-section">

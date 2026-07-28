@@ -4,6 +4,7 @@ import { OAuth2Client } from 'google-auth-library';
 import {
   createUser, findUserByEmail, findUserByIdRaw, deleteUserById, updateUserName, setUserPasswordHash,
   getFavoritePropertyIds, addFavorite, removeFavorite, getRecentlyViewedPropertyIds, recordRecentlyViewed,
+  getSeenHints, markHintSeen,
 } from '../store/userStore.js';
 import { signUserToken, requireUserAuth } from '../middleware/userAuth.js';
 import { authRateLimiter } from '../middleware/rateLimiter.js';
@@ -167,6 +168,25 @@ router.post('/recently-viewed/:propertyId', requireUserAuth, async (req, res) =>
   } catch (err) {
     console.error('[users] record recently-viewed error:', err.message);
     res.status(500).json({ error: 'שגיאה בשמירת הצפייה' });
+  }
+});
+
+// 11.22 — first-time feature hints, kept seen/dismissed across devices for a logged-in customer.
+router.get('/hints', requireUserAuth, async (req, res) => {
+  try {
+    res.json({ seenHints: await getSeenHints(req.user.userId) });
+  } catch (err) {
+    console.error('[users] get hints error:', err.message);
+    res.status(500).json({ error: 'שגיאה בטעינת הרמזים' });
+  }
+});
+
+router.post('/hints/:hintId', requireUserAuth, async (req, res) => {
+  try {
+    res.json({ seenHints: await markHintSeen(req.user.userId, req.params.hintId) });
+  } catch (err) {
+    console.error('[users] mark hint seen error:', err.message);
+    res.status(500).json({ error: 'שגיאה בשמירת הרמז' });
   }
 });
 

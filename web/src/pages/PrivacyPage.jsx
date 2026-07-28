@@ -1,11 +1,10 @@
-import { Link } from '../components/LocalizedLink.jsx';
-import { ArrowLeft } from 'lucide-react';
+import { BackButton } from '../components/BackButton.jsx';
 
 export function PrivacyPage() {
   return (
     <div className="legal-page" dir="rtl">
       <div className="legal-page__inner container">
-        <Link to="/" className="legal-page__back"><ArrowLeft size={16} /> חזרה לדף הבית</Link>
+        <BackButton />
         <h1 className="legal-page__title">מדיניות פרטיות</h1>
         <p className="legal-page__updated">עודכן לאחרונה: יוני 2026</p>
 

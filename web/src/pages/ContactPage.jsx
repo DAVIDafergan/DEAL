@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react';
 import { Link } from '../components/LocalizedLink.jsx';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Send, CheckCircle } from 'lucide-react';
+import { Send, CheckCircle } from 'lucide-react';
+import { BackButton } from '../components/BackButton.jsx';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
@@ -59,8 +60,8 @@ export function ContactPage() {
 
   return (
     <div className="legal-page" dir="rtl">
+      <BackButton />
       <div className="legal-page__inner container" style={{ maxWidth: 560 }}>
-        <Link to="/" className="legal-page__back"><ArrowLeft size={16} /> חזרה לדף הבית</Link>
         <h1 className="legal-page__title">צור קשר</h1>
 
         {success ? (
